@@ -1,0 +1,82 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Flask
+instance/
+.webassets-cache
+
+# Uploads and outputs - NO AUDIO FILES!
+webui-uploads/
+webui-outputs/
+*.wav
+*.mp3
+*.m4a
+*.ogg
+*.flac
+*.aac
+*.wma
+*.opus
+*.mp4
+*.avi
+*.mov
+*.mkv
+*.webm
+
+# Transcription outputs (exclude requirements.txt!)
+webui-outputs/*.txt
+*.srt
+*.vtt
+
+# Whisper data and models - LARGE FILES!
+data/
+cache-whisper/
+models/
+webui-cache/
+webui-data/
+webui-models/
+app/
+run/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.claude/
+
+# OS
+.DS_Store
+Thumbs.db
+*.tmp
+
+# Docker
+.dockerignore
+
+# Logs
+*.log
+
+# Environment
+.env

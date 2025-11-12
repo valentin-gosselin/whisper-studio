@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  faster-whisper:
+    image: lscr.io/linuxserver/faster-whisper:gpu
+    container_name: faster-whisper
+    runtime: nvidia
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/Paris
+      - WHISPER_MODEL=large-v3
+      - WHISPER_LANG=fr
+    volumes:
+      - ./data:/config
+    ports:
+      - "10300:10300"
+    restart: unless-stopped
+    networks:
+      - whisper-network
+
+  whisper-webui:
+    build:
+      context: ./webui
+      dockerfile: Dockerfile
+    container_name: whisper-webui
+    environment:
+      - WYOMING_HOST=faster-whisper
+      - WYOMING_PORT=10300
+    ports:
+      - "7860:7860"
+    volumes:
+      - ./webui-uploads:/tmp/uploads
+      - ./webui-outputs:/tmp/outputs
+    restart: unless-stopped
+    depends_on:
+      - faster-whisper
+    networks:
+      - whisper-network
+
+networks:
+  whisper-network:
+    name: whisper-network
+    driver: bridge

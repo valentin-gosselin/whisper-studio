@@ -1,0 +1,19 @@
+services:
+  whisper-webui:
+    build:
+      context: ./webui
+      dockerfile: Dockerfile
+    container_name: whisper-webui
+    ports:
+      - 7860:7860
+    volumes:
+      - /docker/whisper/webui-uploads:/tmp/uploads
+      - /docker/whisper/webui-outputs:/tmp/outputs
+    restart: unless-stopped
+    networks:
+      - whisper-network
+
+networks:
+  whisper-network:
+    name: whisper-network
+    external: true
