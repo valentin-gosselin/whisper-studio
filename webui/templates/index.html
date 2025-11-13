@@ -16,211 +16,899 @@
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
             padding: 20px;
         }
 
         .container {
-            background: #1e1e2e;
-            border-radius: 16px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            max-width: 800px;
-            width: 100%;
-            padding: 40px;
+            max-width: 1200px;
+            margin: 0 auto;
         }
 
         h1 {
             text-align: center;
-            color: #e0e0e0;
-            margin-bottom: 10px;
-            font-size: 32px;
+            color: white;
+            margin-bottom: 30px;
+            font-size: 36px;
+            font-weight: 700;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            letter-spacing: 1px;
         }
 
-        .subtitle {
+        /* Theme Toggle */
+        .theme-toggle-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        .theme-toggle {
+            position: relative;
+            width: 60px;
+            height: 30px;
+            background: rgba(255,255,255,0.15);
+            border-radius: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid rgba(255,255,255,0.25);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 6px;
+        }
+
+        .theme-toggle:hover {
+            background: rgba(255,255,255,0.2);
+            border-color: rgba(255,255,255,0.4);
+        }
+
+        .theme-icon {
+            width: 14px;
+            height: 14px;
+            fill: rgba(255,255,255,0.6);
+            stroke: rgba(255,255,255,0.6);
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            transition: all 0.3s ease;
+            z-index: 1;
+        }
+
+        .theme-toggle-slider {
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 22px;
+            height: 22px;
+            background: white;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+        }
+
+        .theme-toggle.neon .theme-toggle-slider {
+            transform: translateX(30px);
+            background: #00ffff;
+        }
+
+        .theme-toggle.neon .theme-icon:first-child {
+            fill: rgba(255,255,255,0.3);
+            stroke: rgba(255,255,255,0.3);
+        }
+
+        .theme-toggle.neon .theme-icon:last-child {
+            fill: #00ffff;
+            stroke: #00ffff;
+        }
+
+        /* Neon Night Theme */
+        body.neon-night {
+            background: linear-gradient(135deg, #0a0a1a 0%, #1a0a2e 50%, #16213e 100%);
+        }
+
+        body.neon-night h1 {
+            color: #00ffff;
+            text-shadow: 0 0 20px rgba(0,255,255,0.5), 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        body.neon-night .theme-toggle {
+            background: rgba(0,255,255,0.15);
+            border-color: rgba(0,255,255,0.3);
+        }
+
+        body.neon-night .mode-btn {
+            border-color: rgba(0,255,255,0.4);
+            background: rgba(0,255,255,0.1);
+            color: #00ffff;
+        }
+
+        body.neon-night .mode-btn:hover {
+            background: rgba(0,255,255,0.2);
+        }
+
+        body.neon-night .mode-btn.active {
+            background: #00ffff;
+            color: #0a0a1a;
+            border-color: #00ffff;
+        }
+
+        body.neon-night .language-selector label {
+            color: rgba(0,255,255,0.8);
+        }
+
+        body.neon-night .select-trigger {
+            border-color: rgba(0,255,255,0.4);
+            background: rgba(0,255,255,0.1);
+            color: #00ffff;
+        }
+
+        body.neon-night .select-trigger:hover {
+            background: rgba(0,255,255,0.15);
+            border-color: rgba(0,255,255,0.6);
+        }
+
+        body.neon-night .custom-select.open .select-trigger {
+            border-color: #00ffff;
+            box-shadow: 0 0 0 3px rgba(0,255,255,0.2);
+        }
+
+        body.neon-night .select-arrow {
+            stroke: #00ffff;
+        }
+
+        body.neon-night .select-options {
+            background: linear-gradient(135deg, #0a0a1a 0%, #1a0a2e 100%);
+            border-color: rgba(0,255,255,0.4);
+            box-shadow: 0 8px 24px rgba(0,255,255,0.2);
+        }
+
+        body.neon-night .select-option {
+            color: #00ffff;
+            border-bottom-color: rgba(0,255,255,0.1);
+        }
+
+        body.neon-night .select-option:hover {
+            background: rgba(0,255,255,0.2);
+        }
+
+        body.neon-night .select-option.active {
+            background: #00ffff;
+            color: #0a0a1a;
+        }
+
+        body.neon-night .select-options::-webkit-scrollbar-track {
+            background: rgba(0,255,255,0.1);
+        }
+
+        body.neon-night .select-options::-webkit-scrollbar-thumb {
+            background: rgba(0,255,255,0.3);
+        }
+
+        body.neon-night .select-options::-webkit-scrollbar-thumb:hover {
+            background: rgba(0,255,255,0.5);
+        }
+
+        body.neon-night .drop-zone {
+            border-color: rgba(0,255,255,0.4);
+            background: rgba(0,255,255,0.05);
+        }
+
+        body.neon-night .drop-zone:hover,
+        body.neon-night .drop-zone.drag-over {
+            background: rgba(0,255,255,0.15);
+            border-color: #00ffff;
+        }
+
+        body.neon-night .drop-zone-text {
+            color: #00ffff;
+        }
+
+        body.neon-night .drop-zone-subtext {
+            color: rgba(0,255,255,0.6);
+        }
+
+        body.neon-night .browse-btn {
+            background: #00ffff;
+            color: #0a0a1a;
+        }
+
+        body.neon-night .browse-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        body.neon-night .supported-formats {
+            color: rgba(0,255,255,0.5);
+        }
+
+        body.neon-night .file-item {
+            background: rgba(0,255,255,0.08);
+            border-color: rgba(0,255,255,0.3);
+        }
+
+        body.neon-night .file-item:hover {
+            background: rgba(0,255,255,0.15);
+        }
+
+        body.neon-night .file-name {
+            color: #00ffff;
+        }
+
+        body.neon-night .file-size {
+            color: rgba(0,255,255,0.6);
+        }
+
+        body.neon-night .status-idle {
+            background: rgba(0,255,255,0.2);
+            color: #00ffff;
+        }
+
+        body.neon-night .status-processing {
+            background: rgba(251,191,36,0.2);
+            color: #fbbf24;
+        }
+
+        body.neon-night .status-completed {
+            background: rgba(16,185,129,0.2);
+            color: #10b981;
+        }
+
+        body.neon-night .status-error {
+            background: rgba(239,68,68,0.2);
+            color: #ef4444;
+        }
+
+        body.neon-night .btn-start {
+            background: #00ffff;
+            color: #0a0a1a;
+        }
+
+        body.neon-night .btn-start:hover {
+            transform: translateY(-2px);
+        }
+
+        body.neon-night .btn-download {
+            background: #10b981;
+        }
+
+        body.neon-night .btn-download:hover {
+            background: #059669;
+        }
+
+        body.neon-night .btn-remove {
+            background: rgba(239,68,68,0.2);
+        }
+
+        body.neon-night .btn-remove:hover {
+            background: #ef4444;
+        }
+
+        body.neon-night .progress-bar {
+            background: rgba(0,255,255,0.2);
+            border: 1px solid rgba(0,255,255,0.3);
+        }
+
+        body.neon-night .progress-fill {
+            background: linear-gradient(90deg, #00ffff, #10b981);
+        }
+
+        body.neon-night .progress-info {
+            color: rgba(0,255,255,0.9);
+        }
+
+        body.neon-night .error-message {
+            background: rgba(239,68,68,0.15);
+            border-left-color: #ef4444;
+        }
+
+        body.neon-night .empty-state {
+            color: rgba(0,255,255,0.5);
+        }
+
+        /* Mode Toggle */
+        .mode-toggle {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .mode-btn {
+            padding: 12px 28px;
+            border: 2px solid rgba(255,255,255,0.3);
+            background: rgba(255,255,255,0.1);
+            color: white;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .mode-btn:hover {
+            background: rgba(255,255,255,0.2);
+            transform: translateY(-2px);
+        }
+
+        .mode-btn.active {
+            background: white;
+            color: #667eea;
+            border-color: white;
+            box-shadow: 0 4px 12px rgba(255,255,255,0.3);
+        }
+
+        /* Language Selector */
+        .language-selector {
             text-align: center;
-            color: #a0a0a0;
-            margin-bottom: 40px;
-            font-size: 14px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
         }
 
+        .language-selector label {
+            color: rgba(255,255,255,0.8);
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .custom-select {
+            position: relative;
+            min-width: 280px;
+        }
+
+        .select-trigger {
+            padding: 10px 16px;
+            border-radius: 8px;
+            border: 2px solid rgba(255,255,255,0.3);
+            background: rgba(255,255,255,0.1);
+            color: white;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .select-trigger:hover {
+            background: rgba(255,255,255,0.15);
+            border-color: rgba(255,255,255,0.5);
+            transform: translateY(-1px);
+        }
+
+        .custom-select.open .select-trigger {
+            border-color: white;
+            box-shadow: 0 0 0 3px rgba(255,255,255,0.2);
+        }
+
+        .select-arrow {
+            width: 16px;
+            height: 16px;
+            stroke: white;
+            stroke-width: 2;
+            fill: none;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            transition: transform 0.3s ease;
+        }
+
+        .custom-select.open .select-arrow {
+            transform: rotate(180deg);
+        }
+
+        .select-options {
+            position: absolute;
+            top: calc(100% + 8px);
+            left: 0;
+            right: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 8px;
+            backdrop-filter: blur(10px);
+            max-height: 300px;
+            overflow-y: auto;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-10px);
+            transition: all 0.3s ease;
+            z-index: 1000;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+        }
+
+        .custom-select.open .select-options {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .select-option {
+            padding: 12px 16px;
+            color: white;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .select-option:last-child {
+            border-bottom: none;
+        }
+
+        .select-option:hover {
+            background: rgba(255,255,255,0.2);
+            padding-left: 20px;
+        }
+
+        .select-option.active {
+            background: white;
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        .select-options::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .select-options::-webkit-scrollbar-track {
+            background: rgba(255,255,255,0.1);
+            border-radius: 4px;
+        }
+
+        .select-options::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.3);
+            border-radius: 4px;
+        }
+
+        .select-options::-webkit-scrollbar-thumb:hover {
+            background: rgba(255,255,255,0.5);
+        }
+
+        /* Drop Zone */
         .drop-zone {
-            border: 3px dashed #667eea;
-            border-radius: 12px;
+            border: 3px dashed rgba(255,255,255,0.4);
+            border-radius: 16px;
             padding: 60px 20px;
             text-align: center;
             cursor: pointer;
             transition: all 0.3s ease;
-            background: #2a2a3a;
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            margin-bottom: 20px;
         }
 
         .drop-zone:hover, .drop-zone.drag-over {
-            background: #3a3a4a;
-            border-color: #764ba2;
-            transform: scale(1.02);
-        }
-
-        .drop-zone-icon {
-            font-size: 48px;
-            margin-bottom: 20px;
-            color: #667eea;
+            background: rgba(255,255,255,0.2);
+            border-color: white;
+            transform: scale(1.01);
         }
 
         .drop-zone-text {
-            color: #667eea;
-            font-size: 18px;
+            color: white;
+            font-size: 20px;
             font-weight: 600;
             margin-bottom: 10px;
         }
 
         .drop-zone-subtext {
-            color: #808080;
+            color: rgba(255,255,255,0.8);
             font-size: 14px;
+            margin-bottom: 20px;
+        }
+
+        .browse-btn {
+            display: inline-block;
+            padding: 12px 32px;
+            background: white;
+            color: #667eea;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        .browse-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255,255,255,0.4);
+        }
+
+        .supported-formats {
+            text-align: center;
+            color: rgba(255,255,255,0.7);
+            font-size: 12px;
+            margin-top: 10px;
         }
 
         input[type="file"] {
             display: none;
         }
 
-        .status {
-            margin-top: 30px;
-            padding: 20px;
-            border-radius: 8px;
+        /* Files List */
+        .files-section {
             display: none;
         }
 
-        .status.processing {
-            background: #3a3a2a;
-            border: 1px solid #667eea;
-            color: #ffd700;
+        .files-section.show {
             display: block;
         }
 
-        .status.success {
-            background: #2a3a2a;
-            border: 1px solid #4caf50;
-            color: #4caf50;
-            display: block;
-        }
-
-        .status.error {
-            background: #3a2a2a;
-            border: 1px solid #f44336;
-            color: #f44336;
-            display: block;
-        }
-
-        .result-box {
-            margin-top: 20px;
+        .file-item {
+            background: rgba(255,255,255,0.15);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 12px;
             padding: 20px;
-            background: #2a2a3a;
-            border-radius: 8px;
-            border-left: 4px solid #667eea;
-            display: none;
-        }
-
-        .result-box.show {
-            display: block;
-        }
-
-        .result-text {
-            white-space: pre-wrap;
-            line-height: 1.6;
-            color: #e0e0e0;
             margin-bottom: 15px;
-        }
-
-        .download-btn {
-            background: #667eea;
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 16px;
-            font-weight: 600;
             transition: all 0.3s ease;
         }
 
-        .download-btn:hover {
-            background: #764ba2;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        .file-item:hover {
+            background: rgba(255,255,255,0.2);
+            transform: translateX(4px);
         }
 
-        .spinner {
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid #667eea;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 20px auto;
-            display: none;
+        .file-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
         }
 
-        .spinner.show {
-            display: block;
+        .file-info {
+            flex: 1;
+            min-width: 0;
+            margin-right: 15px;
         }
 
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+        .file-name {
+            color: white;
+            font-weight: 600;
+            font-size: 16px;
+            margin-bottom: 4px;
+            word-break: break-word;
         }
 
-        .supported-formats {
-            text-align: center;
-            margin-top: 20px;
-            color: #808080;
+        .file-size {
+            color: rgba(255,255,255,0.7);
+            font-size: 13px;
+        }
+
+        .file-actions {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .status-badge {
+            padding: 6px 14px;
+            border-radius: 20px;
             font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+
+        .status-idle { background: rgba(255,255,255,0.2); color: white; }
+        .status-processing { background: #fbbf24; color: #78350f; }
+        .status-completed { background: #10b981; color: white; }
+        .status-error { background: #ef4444; color: white; }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-start {
+            background: white;
+            color: #667eea;
+        }
+
+        .btn-start:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(255,255,255,0.3);
+        }
+
+        .btn-download {
+            background: #10b981;
+            color: white;
+        }
+
+        .btn-download:hover {
+            background: #059669;
+        }
+
+        .btn-remove {
+            background: rgba(239,68,68,0.2);
+            color: white;
+            padding: 6px;
+            width: 32px;
+            height: 32px;
+            justify-content: center;
+        }
+
+        .btn-remove:hover {
+            background: #ef4444;
+        }
+
+        /* Progress Bar */
+        .progress-container {
+            margin-top: 12px;
+        }
+
+        .progress-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 6px;
+            font-size: 13px;
+            color: rgba(255,255,255,0.9);
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #10b981, #34d399);
+            transition: width 0.3s ease;
+            border-radius: 4px;
+        }
+
+        .error-message {
+            margin-top: 8px;
+            padding: 10px;
+            background: rgba(239,68,68,0.2);
+            border-left: 3px solid #ef4444;
+            border-radius: 4px;
+            color: white;
+            font-size: 13px;
+        }
+
+        /* Action Buttons */
+        .action-buttons {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+        }
+
+        .action-buttons .btn {
+            flex: 1;
+            min-width: 150px;
+            justify-content: center;
+            padding: 14px 24px;
+            font-size: 15px;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: rgba(255,255,255,0.7);
+            font-size: 15px;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            h1 { font-size: 24px; }
+            .mode-toggle { flex-direction: column; }
+            .mode-btn { width: 100%; }
+            .file-header { flex-direction: column; align-items: flex-start; }
+            .file-actions { margin-top: 12px; width: 100%; justify-content: space-between; }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Whisper Transcription</h1>
-        <p class="subtitle">Déposez votre fichier audio pour obtenir une transcription</p>
+        <h1>Whisper Studio</h1>
 
+        <!-- Theme Toggle -->
+        <div class="theme-toggle-container">
+            <div class="theme-toggle" id="themeToggle">
+                <svg class="theme-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="12" cy="12" r="5"/>
+                    <line x1="12" y1="1" x2="12" y2="3"/>
+                    <line x1="12" y1="21" x2="12" y2="23"/>
+                    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+                    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+                    <line x1="1" y1="12" x2="3" y2="12"/>
+                    <line x1="21" y1="12" x2="23" y2="12"/>
+                    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+                    <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+                </svg>
+                <div class="theme-toggle-slider"></div>
+                <svg class="theme-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                </svg>
+            </div>
+        </div>
+
+        <!-- Mode Toggle -->
+        <div class="mode-toggle">
+            <button class="mode-btn active" id="textModeBtn" data-mode="text">
+                Texte
+            </button>
+            <button class="mode-btn" id="srtModeBtn" data-mode="srt">
+                Sous-titres
+            </button>
+        </div>
+
+        <!-- Language Selector -->
+        <div class="language-selector">
+            <label>Langue :</label>
+            <div class="custom-select" id="customSelect">
+                <div class="select-trigger">
+                    <span id="selectedLanguage">Auto (détection automatique)</span>
+                    <svg class="select-arrow" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
+                </div>
+                <div class="select-options">
+                    <div class="select-option active" data-value="auto">Auto (détection automatique)</div>
+                    <div class="select-option" data-value="fr">Français</div>
+                    <div class="select-option" data-value="en">Anglais</div>
+                    <div class="select-option" data-value="es">Espagnol</div>
+                    <div class="select-option" data-value="de">Allemand</div>
+                    <div class="select-option" data-value="it">Italien</div>
+                    <div class="select-option" data-value="pt">Portugais</div>
+                    <div class="select-option" data-value="nl">Néerlandais</div>
+                    <div class="select-option" data-value="da">Danois</div>
+                    <div class="select-option" data-value="sv">Suédois</div>
+                    <div class="select-option" data-value="no">Norvégien</div>
+                    <div class="select-option" data-value="fi">Finnois</div>
+                    <div class="select-option" data-value="pl">Polonais</div>
+                    <div class="select-option" data-value="cs">Tchèque</div>
+                    <div class="select-option" data-value="sk">Slovaque</div>
+                    <div class="select-option" data-value="ro">Roumain</div>
+                    <div class="select-option" data-value="el">Grec</div>
+                    <div class="select-option" data-value="ru">Russe</div>
+                    <div class="select-option" data-value="uk">Ukrainien</div>
+                    <div class="select-option" data-value="zh">Chinois</div>
+                    <div class="select-option" data-value="ja">Japonais</div>
+                    <div class="select-option" data-value="ko">Coréen</div>
+                    <div class="select-option" data-value="ar">Arabe</div>
+                    <div class="select-option" data-value="tr">Turc</div>
+                    <div class="select-option" data-value="hi">Hindi</div>
+                    <div class="select-option" data-value="vi">Vietnamien</div>
+                    <div class="select-option" data-value="th">Thaï</div>
+                    <div class="select-option" data-value="id">Indonésien</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Drop Zone -->
         <div class="drop-zone" id="dropZone">
-            <div class="drop-zone-icon">🎵</div>
-            <div class="drop-zone-text">Glissez-déposez votre fichier audio ici</div>
-            <div class="drop-zone-subtext">ou cliquez pour sélectionner</div>
+            <div class="drop-zone-text">Glissez-déposez vos fichiers ici</div>
+            <div class="drop-zone-subtext">ou</div>
+            <label for="fileInput" class="browse-btn">Parcourir les fichiers</label>
+            <p class="supported-formats" id="supportedFormats">
+                Audio: MP3, WAV, M4A, OGG, FLAC, AAC, WMA, OPUS<br>
+                Vidéo: MP4, MKV, AVI, MOV, WEBM
+            </p>
         </div>
 
-        <input type="file" id="fileInput" accept="audio/*">
+        <input type="file" id="fileInput" accept="audio/*,video/*" multiple>
 
-        <div class="supported-formats">
-            Formats supportés: MP3, WAV, M4A, OGG, FLAC, AAC, WMA, OPUS
+        <!-- Action Buttons -->
+        <div class="action-buttons" id="actionButtons" style="display:none;">
+            <button class="btn btn-start" id="startAllBtn">
+                Démarrer tout
+            </button>
         </div>
 
-        <div class="spinner" id="spinner"></div>
-
-        <div class="status" id="status"></div>
-
-        <div class="result-box" id="resultBox">
-            <div class="result-text" id="resultText"></div>
-            <button class="download-btn" id="downloadBtn">Télécharger la transcription (.txt)</button>
+        <!-- Files List -->
+        <div class="files-section" id="filesSection">
+            <div id="filesList"></div>
+            <div class="empty-state" id="emptyState">
+                Aucun fichier sélectionné. Glissez des fichiers ou cliquez sur "Parcourir".
+            </div>
         </div>
     </div>
 
     <script>
         const dropZone = document.getElementById('dropZone');
         const fileInput = document.getElementById('fileInput');
-        const status = document.getElementById('status');
-        const spinner = document.getElementById('spinner');
-        const resultBox = document.getElementById('resultBox');
-        const resultText = document.getElementById('resultText');
-        const downloadBtn = document.getElementById('downloadBtn');
+        const filesSection = document.getElementById('filesSection');
+        const filesList = document.getElementById('filesList');
+        const emptyState = document.getElementById('emptyState');
+        const textModeBtn = document.getElementById('textModeBtn');
+        const srtModeBtn = document.getElementById('srtModeBtn');
+        const actionButtons = document.getElementById('actionButtons');
+        const startAllBtn = document.getElementById('startAllBtn');
+        const themeToggle = document.getElementById('themeToggle');
 
-        let downloadUrl = '';
+        let currentMode = 'text';
+        let currentChunking = 'strong_head'; // Always use Strong Head for robustness
+        let currentLanguage = 'auto'; // Default to auto-detection
+        let files = [];
 
-        // Click to select file
-        dropZone.addEventListener('click', () => {
-            fileInput.click();
+        // Theme management
+        const savedTheme = localStorage.getItem('theme') || 'purple';
+        if (savedTheme === 'neon') {
+            document.body.classList.add('neon-night');
+            themeToggle.classList.add('neon');
+        }
+
+        themeToggle.addEventListener('click', () => {
+            document.body.classList.toggle('neon-night');
+            themeToggle.classList.toggle('neon');
+            const theme = document.body.classList.contains('neon-night') ? 'neon' : 'purple';
+            localStorage.setItem('theme', theme);
         });
 
-        // Drag and drop events
+        // Mode toggle
+        textModeBtn.addEventListener('click', () => {
+            currentMode = 'text';
+            textModeBtn.classList.add('active');
+            srtModeBtn.classList.remove('active');
+        });
+
+        srtModeBtn.addEventListener('click', () => {
+            currentMode = 'srt';
+            srtModeBtn.classList.add('active');
+            textModeBtn.classList.remove('active');
+        });
+
+        // Custom Language Selector
+        const customSelect = document.getElementById('customSelect');
+        const selectTrigger = customSelect.querySelector('.select-trigger');
+        const selectOptions = customSelect.querySelectorAll('.select-option');
+        const selectedLanguageSpan = document.getElementById('selectedLanguage');
+
+        // Toggle dropdown
+        selectTrigger.addEventListener('click', (e) => {
+            e.stopPropagation();
+            customSelect.classList.toggle('open');
+        });
+
+        // Select option
+        selectOptions.forEach(option => {
+            option.addEventListener('click', (e) => {
+                e.stopPropagation();
+
+                // Remove active from all options
+                selectOptions.forEach(opt => opt.classList.remove('active'));
+
+                // Add active to clicked option
+                option.classList.add('active');
+
+                // Update selected value
+                currentLanguage = option.dataset.value;
+                selectedLanguageSpan.textContent = option.textContent;
+
+                // Close dropdown
+                customSelect.classList.remove('open');
+            });
+        });
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!customSelect.contains(e.target)) {
+                customSelect.classList.remove('open');
+            }
+        });
+
+        // Drag and drop
+        dropZone.addEventListener('click', () => fileInput.click());
+
         dropZone.addEventListener('dragover', (e) => {
             e.preventDefault();
             dropZone.classList.add('drag-over');
@@ -233,66 +921,253 @@
         dropZone.addEventListener('drop', (e) => {
             e.preventDefault();
             dropZone.classList.remove('drag-over');
-            const files = e.dataTransfer.files;
-            if (files.length > 0) {
-                handleFile(files[0]);
-            }
+            addFiles(e.dataTransfer.files);
         });
 
-        // File input change
         fileInput.addEventListener('change', (e) => {
-            if (e.target.files.length > 0) {
-                handleFile(e.target.files[0]);
-            }
+            addFiles(e.target.files);
+            e.target.value = '';
         });
 
-        // Handle file upload
-        async function handleFile(file) {
-            // Reset UI
-            status.className = 'status';
-            status.textContent = '';
-            resultBox.classList.remove('show');
-            spinner.classList.add('show');
+        function addFiles(newFiles) {
+            Array.from(newFiles).forEach(file => {
+                files.push({
+                    file: file,
+                    status: 'idle',
+                    progress: 0,
+                    message: '',
+                    downloadUrl: null,
+                    downloadName: null
+                });
+            });
+            renderFiles();
+        }
 
-            // Show processing status
-            status.className = 'status processing';
-            status.textContent = `Upload et transcription de "${file.name}" en cours...`;
+        function renderFiles() {
+            if (files.length === 0) {
+                filesSection.classList.remove('show');
+                actionButtons.style.display = 'none';
+                emptyState.style.display = 'block';
+                return;
+            }
+
+            filesSection.classList.add('show');
+            emptyState.style.display = 'none';
+
+            const idleCount = files.filter(f => f.status === 'idle').length;
+            if (idleCount > 0) {
+                actionButtons.style.display = 'flex';
+                startAllBtn.innerHTML = `Démarrer tout (${idleCount})`;
+            } else {
+                actionButtons.style.display = 'none';
+            }
+
+            filesList.innerHTML = files.map((fileItem, index) => `
+                <div class="file-item">
+                    <div class="file-header">
+                        <div class="file-info">
+                            <div class="file-name">${fileItem.file.name}</div>
+                            <div class="file-size">${formatFileSize(fileItem.file.size)}</div>
+                        </div>
+                        <div class="file-actions">
+                            <span class="status-badge status-${fileItem.status}">
+                                ${getStatusText(fileItem.status)}
+                            </span>
+                            ${fileItem.status === 'idle' ? `
+                                <button class="btn btn-start" onclick="processFile(${index})">Démarrer</button>
+                                <button class="btn btn-remove" onclick="removeFile(${index})">×</button>
+                            ` : ''}
+                            ${fileItem.status === 'completed' && fileItem.downloadUrl ? `
+                                <button class="btn btn-download" onclick="downloadFile(${index})">
+                                    Télécharger
+                                </button>
+                            ` : ''}
+                            ${fileItem.status === 'processing' ? `
+                                <button class="btn btn-remove" onclick="removeFile(${index})">×</button>
+                            ` : ''}
+                        </div>
+                    </div>
+                    ${fileItem.status === 'processing' ? `
+                        <div class="progress-container">
+                            <div class="progress-info">
+                                <span>${fileItem.message || 'Traitement en cours...'}</span>
+                                <span>${Math.round(fileItem.progress)}%</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: ${fileItem.progress}%"></div>
+                            </div>
+                        </div>
+                    ` : ''}
+                    ${fileItem.status === 'error' ? `
+                        <div class="error-message">Erreur: ${fileItem.message || 'Erreur inconnue'}</div>
+                    ` : ''}
+                </div>
+            `).join('');
+        }
+
+        startAllBtn.addEventListener('click', () => {
+            files.forEach((f, i) => {
+                if (f.status === 'idle') processFile(i);
+            });
+        });
+
+        async function processFile(index) {
+            const fileItem = files[index];
+            if (fileItem.status !== 'idle') return;
+
+            fileItem.status = 'processing';
+            fileItem.progress = 0;
+            fileItem.message = 'Upload en cours...';
+            renderFiles();
 
             const formData = new FormData();
-            formData.append('file', file);
+            formData.append('file', fileItem.file);
+            formData.append('mode', currentMode);
+            formData.append('chunking', currentChunking);
+            formData.append('language', currentLanguage);
 
             try {
-                const response = await fetch('/transcribe', {
-                    method: 'POST',
-                    body: formData
+                // Use XMLHttpRequest for real upload progress tracking
+                const xhr = new XMLHttpRequest();
+
+                // Track upload progress
+                xhr.upload.addEventListener('progress', (e) => {
+                    if (e.lengthComputable) {
+                        // Upload is 0-30% of total progress
+                        fileItem.progress = (e.loaded / e.total) * 30;
+                        fileItem.message = `Upload: ${Math.round(e.loaded / 1024 / 1024)}/${Math.round(e.total / 1024 / 1024)} MB`;
+                        renderFiles();
+                    }
                 });
 
-                const data = await response.json();
+                // Handle response
+                xhr.addEventListener('load', () => {
+                    if (xhr.status === 200) {
+                        const data = JSON.parse(xhr.responseText);
 
-                spinner.classList.remove('show');
+                        if (data.success && data.job_id) {
+                            console.log(`[SSE] Connecting to progress stream for job ${data.job_id}`);
 
-                if (data.success) {
-                    status.className = 'status success';
-                    status.textContent = 'Transcription terminée avec succès !';
-                    resultText.textContent = data.text;
-                    downloadUrl = data.download_url;
-                    resultBox.classList.add('show');
-                } else {
-                    throw new Error(data.error || 'Erreur inconnue');
-                }
+                            // Connect to SSE for real-time progress
+                            const eventSource = new EventSource(`/progress/${data.job_id}`);
+
+                            eventSource.onopen = () => {
+                                console.log(`[SSE] Connection opened for job ${data.job_id}`);
+                            };
+
+                            eventSource.onmessage = (event) => {
+                                console.log(`[SSE] Message received:`, event.data);
+                                const progressData = JSON.parse(event.data);
+                                fileItem.progress = progressData.progress;
+                                fileItem.message = progressData.message;
+                                renderFiles();
+
+                                // Close connection when complete
+                                if (progressData.progress >= 100) {
+                                    console.log(`[SSE] Job complete, fetching result...`);
+                                    eventSource.close();
+
+                                    // Fetch job result for download info
+                                    fetch(`/job_result/${data.job_id}`)
+                                        .then(res => res.json())
+                                        .then(result => {
+                                            if (result.success) {
+                                                fileItem.status = 'completed';
+                                                fileItem.downloadUrl = result.download_url;
+                                                fileItem.downloadName = result.download_name;
+                                            } else {
+                                                fileItem.status = 'error';
+                                                fileItem.message = result.error || 'Erreur inconnue';
+                                            }
+                                            renderFiles();
+                                        })
+                                        .catch(err => {
+                                            console.error('[SSE] Failed to fetch job result:', err);
+                                            fileItem.status = 'error';
+                                            fileItem.message = 'Erreur lors de la récupération du résultat';
+                                            renderFiles();
+                                        });
+                                }
+                            };
+
+                            eventSource.onerror = (err) => {
+                                console.error(`[SSE] Connection error:`, err);
+                                eventSource.close();
+                                // If we got an error but progress is 100, we're done anyway
+                                if (fileItem.progress >= 100) {
+                                    fileItem.status = 'completed';
+                                    fileItem.downloadUrl = data.download_url;
+                                    fileItem.downloadName = data.download_name || data.download_url.split('/').pop();
+                                } else {
+                                    fileItem.status = 'error';
+                                    fileItem.message = 'Erreur de connexion SSE';
+                                }
+                                renderFiles();
+                            };
+
+                            fileItem._eventSource = eventSource;
+                        } else {
+                            throw new Error(data.error || 'Erreur inconnue');
+                        }
+                    } else {
+                        throw new Error(`Erreur HTTP: ${xhr.status}`);
+                    }
+                });
+
+                xhr.addEventListener('error', () => {
+                    fileItem.status = 'error';
+                    fileItem.message = 'Erreur réseau';
+                    renderFiles();
+                });
+
+                xhr.open('POST', '/transcribe');
+                xhr.send(formData);
+
             } catch (error) {
-                spinner.classList.remove('show');
-                status.className = 'status error';
-                status.textContent = `Erreur: ${error.message}`;
+                if (fileItem._eventSource) {
+                    fileItem._eventSource.close();
+                }
+                fileItem.status = 'error';
+                fileItem.message = error.message;
+                renderFiles();
             }
         }
 
-        // Download button
-        downloadBtn.addEventListener('click', () => {
-            if (downloadUrl) {
-                window.location.href = downloadUrl;
+        function removeFile(index) {
+            files.splice(index, 1);
+            renderFiles();
+        }
+
+        function downloadFile(index) {
+            const fileItem = files[index];
+            if (fileItem && fileItem.downloadUrl) {
+                // Create a temporary link with the proper filename
+                const link = document.createElement('a');
+                link.href = fileItem.downloadUrl;
+                link.download = fileItem.downloadName || fileItem.downloadUrl.split('/').pop();
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
             }
-        });
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+        }
+
+        function getStatusText(status) {
+            const texts = {
+                'idle': 'Prêt',
+                'processing': 'En cours',
+                'completed': 'Terminé',
+                'error': 'Erreur'
+            };
+            return texts[status] || status;
+        }
     </script>
 </body>
 </html>

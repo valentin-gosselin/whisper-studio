@@ -1,4 +1,24 @@
 services:
+  # Whisper HTTP API for SRT mode
+  whisper-srt:
+    image: fedirz/faster-whisper-server:latest-cuda
+    container_name: whisper-srt
+    environment:
+      - WHISPER__MODEL=large-v3
+      - WHISPER__INFERENCE_DEVICE=cuda
+    volumes:
+      - whisper-srt-models:/root/.cache/huggingface
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    restart: unless-stopped
+    networks:
+      - whisper-network
+
   whisper-webui:
     build:
       context: ./webui
@@ -6,12 +26,19 @@ services:
     container_name: whisper-webui
     ports:
       - 7860:7860
+    environment:
+      - WHISPER_HTTP_URL=http://whisper-srt:8000
     volumes:
       - /docker/whisper/webui-uploads:/tmp/uploads
       - /docker/whisper/webui-outputs:/tmp/outputs
+    depends_on:
+      - whisper-srt
     restart: unless-stopped
     networks:
       - whisper-network
+
+volumes:
+  whisper-srt-models:
 
 networks:
   whisper-network:
