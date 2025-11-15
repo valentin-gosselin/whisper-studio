@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Whisper Transcription</title>
+    <title>Whisper Studio</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%23667eea' width='100' height='100' rx='20'/><text x='50' y='70' font-size='60' text-anchor='middle' fill='white' font-family='Arial'>W</text></svg>">
     <style>
         * {
@@ -469,6 +469,89 @@
             background: rgba(255,255,255,0.5);
         }
 
+        /* Diarization Checkbox */
+        .diarization-option {
+            text-align: center;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .diarization-option label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: rgba(255,255,255,0.8);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            padding: 10px 16px;
+            border-radius: 8px;
+            border: 2px solid rgba(255,255,255,0.3);
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+
+        .diarization-option label:hover {
+            background: rgba(255,255,255,0.15);
+            border-color: rgba(255,255,255,0.5);
+            transform: translateY(-1px);
+        }
+
+        .diarization-option input[type="checkbox"] {
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255,255,255,0.5);
+            border-radius: 4px;
+            cursor: pointer;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        .diarization-option input[type="checkbox"]:checked {
+            background: white;
+            border-color: white;
+        }
+
+        .diarization-option input[type="checkbox"]:checked::after {
+            content: '✓';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #667eea;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        body.neon-night .diarization-option label {
+            border-color: rgba(0,255,255,0.4);
+            background: rgba(0,255,255,0.1);
+            color: rgba(0,255,255,0.8);
+        }
+
+        body.neon-night .diarization-option label:hover {
+            background: rgba(0,255,255,0.15);
+            border-color: rgba(0,255,255,0.6);
+        }
+
+        body.neon-night .diarization-option input[type="checkbox"] {
+            border-color: rgba(0,255,255,0.5);
+        }
+
+        body.neon-night .diarization-option input[type="checkbox"]:checked {
+            background: #00ffff;
+            border-color: #00ffff;
+        }
+
+        body.neon-night .diarization-option input[type="checkbox"]:checked::after {
+            color: #0a0a1a;
+        }
+
         /* Drop Zone */
         .drop-zone {
             border: 3px dashed rgba(255,255,255,0.4);
@@ -718,7 +801,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>Whisper Studio</h1>
+        <h1>Whisper Web UI</h1>
 
         <!-- Theme Toggle -->
         <div class="theme-toggle-container">
@@ -794,6 +877,14 @@
             </div>
         </div>
 
+        <!-- Diarization Option (only for SRT mode) -->
+        <div class="diarization-option" id="diarizationOption" style="display:none;">
+            <label>
+                <input type="checkbox" id="diarizationCheckbox">
+                <span>Détecter les changements de locuteurs (dialogues)</span>
+            </label>
+        </div>
+
         <!-- Drop Zone -->
         <div class="drop-zone" id="dropZone">
             <div class="drop-zone-text">Glissez-déposez vos fichiers ici</div>
@@ -834,10 +925,13 @@
         const actionButtons = document.getElementById('actionButtons');
         const startAllBtn = document.getElementById('startAllBtn');
         const themeToggle = document.getElementById('themeToggle');
+        const diarizationOption = document.getElementById('diarizationOption');
+        const diarizationCheckbox = document.getElementById('diarizationCheckbox');
 
         let currentMode = 'text';
         let currentChunking = 'strong_head'; // Always use Strong Head for robustness
         let currentLanguage = 'auto'; // Default to auto-detection
+        let useDiarization = false; // Default to disabled
         let files = [];
 
         // Theme management
@@ -859,12 +953,22 @@
             currentMode = 'text';
             textModeBtn.classList.add('active');
             srtModeBtn.classList.remove('active');
+            // Hide diarization option in text mode
+            diarizationOption.style.display = 'none';
         });
 
         srtModeBtn.addEventListener('click', () => {
             currentMode = 'srt';
             srtModeBtn.classList.add('active');
             textModeBtn.classList.remove('active');
+            // Show diarization option in SRT mode
+            diarizationOption.style.display = 'flex';
+        });
+
+        // Diarization checkbox listener
+        diarizationCheckbox.addEventListener('change', (e) => {
+            useDiarization = e.target.checked;
+            console.log('Diarization enabled:', useDiarization);
         });
 
         // Custom Language Selector
@@ -1025,6 +1129,7 @@
             formData.append('mode', currentMode);
             formData.append('chunking', currentChunking);
             formData.append('language', currentLanguage);
+            formData.append('diarization', useDiarization ? 'true' : 'false');
 
             try {
                 // Use XMLHttpRequest for real upload progress tracking

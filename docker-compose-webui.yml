@@ -19,6 +19,27 @@ services:
     networks:
       - whisper-network
 
+  # Pyannote Speaker Diarization Service
+  pyannote-diarization:
+    build:
+      context: ./pyannote-service
+      dockerfile: Dockerfile
+    container_name: pyannote-diarization
+    environment:
+      - HF_TOKEN=${HF_TOKEN}  # Hugging Face token (required)
+    volumes:
+      - pyannote-models:/root/.cache/huggingface
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    restart: unless-stopped
+    networks:
+      - whisper-network
+
   whisper-webui:
     build:
       context: ./webui
@@ -28,17 +49,20 @@ services:
       - 7860:7860
     environment:
       - WHISPER_HTTP_URL=http://whisper-srt:8000
+      - PYANNOTE_URL=http://pyannote-diarization:8001
     volumes:
       - /docker/whisper/webui-uploads:/tmp/uploads
       - /docker/whisper/webui-outputs:/tmp/outputs
     depends_on:
       - whisper-srt
+      - pyannote-diarization
     restart: unless-stopped
     networks:
       - whisper-network
 
 volumes:
   whisper-srt-models:
+  pyannote-models:
 
 networks:
   whisper-network:

@@ -12,7 +12,7 @@ import time
 import json
 
 # Import SRT and video utilities
-from srt_utils import merge_srt_segments, clean_hallucinations
+from srt_utils import merge_srt_segments, clean_hallucinations, apply_speaker_segmentation, parse_srt
 from video_utils import is_video_file, prepare_audio_for_whisper, get_media_duration
 
 # Force immediate stdout/stderr flush for Docker logs
@@ -32,6 +32,7 @@ job_results = {}
 
 ALLOWED_EXTENSIONS = {'wav', 'mp3', 'm4a', 'ogg', 'flac', 'aac', 'wma', 'opus', 'mp4', 'mkv', 'avi', 'mov', 'webm'}
 WHISPER_HTTP_URL = os.environ.get('WHISPER_HTTP_URL', 'http://whisper-srt:8000')
+PYANNOTE_URL = os.environ.get('PYANNOTE_URL', 'http://pyannote-diarization:8001')
 
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 os.makedirs(app.config['OUTPUT_FOLDER'], exist_ok=True)
@@ -384,13 +385,13 @@ def transcribe_srt_http(wav_path, is_first_chunk=False, retry_with_fallback=True
     # Wait for GPU if available
     wait_for_gpu(threshold=70)
 
-    # Parameters - use verbose_json to get language detection + segments
+    # Parameters - use verbose_json to get language detection + word-level timestamps
     params = {
         'model': 'large-v3',
         'response_format': 'verbose_json',
         'temperature': '0.0',
         'beam_size': '5',
-        'timestamp_granularities[]': 'segment'  # Get segment-level timestamps
+        'timestamp_granularities[]': 'word'  # Get word-level timestamps for better subtitle formatting
     }
 
     # Force language if specified (not 'auto')
@@ -431,29 +432,26 @@ def transcribe_srt_http(wav_path, is_first_chunk=False, retry_with_fallback=True
                     detected_language = result.get('language')
                     print(f"[LANG] API returned language: {detected_language}")
 
-                    # Convert segments to SRT format
-                    segments = result.get('segments', [])
-                    print(f"[TRANSCRIBE] Got {len(segments)} segments")
-                    if not segments or len(segments) == 0:
+                    # Get word-level timestamps
+                    words = result.get('words', [])
+                    print(f"[TRANSCRIBE] Got {len(words)} words with timestamps")
+                    if not words or len(words) == 0:
                         return None, None
 
-                    # Generate SRT from segments
+                    # Group words into well-formatted subtitles (max 2 lines, 42 chars/line)
+                    from srt_utils import group_words_into_subtitles, format_srt_timestamp
+                    subtitle_segments = group_words_into_subtitles(words)
+                    print(f"[SRT] Grouped into {len(subtitle_segments)} subtitle segments")
+
+                    # Generate SRT from formatted segments
                     srt_lines = []
-                    for i, seg in enumerate(segments, 1):
-                        start = seg.get('start', 0)
-                        end = seg.get('end', 0)
-                        text = seg.get('text', '').strip()
+                    for segment in subtitle_segments:
+                        start_time = format_srt_timestamp(segment.start_time)
+                        end_time = format_srt_timestamp(segment.end_time)
 
-                        if not text:
-                            continue
-
-                        # Format timestamps as SRT
-                        start_time = format_srt_timestamp(start)
-                        end_time = format_srt_timestamp(end)
-
-                        srt_lines.append(f"{i}")
+                        srt_lines.append(f"{segment.index}")
                         srt_lines.append(f"{start_time} --> {end_time}")
-                        srt_lines.append(text)
+                        srt_lines.append(segment.text)
                         srt_lines.append("")  # Blank line between subtitles
 
                     srt_content = "\n".join(srt_lines)
@@ -499,6 +497,54 @@ def format_srt_timestamp(seconds):
     millis = int((seconds % 1) * 1000)
     return f"{hours:02d}:{minutes:02d}:{secs:02d},{millis:03d}"
 
+def get_speaker_diarization(wav_path):
+    """
+    Get speaker diarization from Pyannote service
+
+    Args:
+        wav_path: Path to WAV file
+
+    Returns:
+        List of speaker segments or None if service unavailable
+        Format: [{"start": 0.5, "end": 3.2, "speaker": "SPEAKER_00"}, ...]
+    """
+    try:
+        url = f"{PYANNOTE_URL}/diarize"
+
+        print(f"[DIARIZATION] Sending request to {url}")
+
+        with open(wav_path, 'rb') as audio_file:
+            files = {'file': (Path(wav_path).name, audio_file, 'audio/wav')}
+
+            response = requests.post(
+                url,
+                files=files,
+                timeout=300
+            )
+
+            print(f"[DIARIZATION] Response status: {response.status_code}")
+
+            if response.status_code == 200:
+                result = response.json()
+                if result.get('success'):
+                    segments = result.get('segments', [])
+                    num_speakers = result.get('num_speakers', 0)
+                    print(f"[DIARIZATION] Detected {num_speakers} speakers in {len(segments)} segments")
+                    return segments
+                else:
+                    print(f"[DIARIZATION] Request failed: {result}")
+                    return None
+            else:
+                print(f"[DIARIZATION] HTTP error {response.status_code}")
+                return None
+
+    except requests.exceptions.ConnectionError:
+        print(f"[DIARIZATION] Service unavailable at {PYANNOTE_URL} - skipping diarization")
+        return None
+    except Exception as e:
+        print(f"[DIARIZATION] Error: {e}")
+        return None
+
 def update_progress(job_id, progress, message):
     """Update progress for a job"""
     progress_tracker[job_id] = {
@@ -512,12 +558,12 @@ def get_progress(job_id):
     """Get current progress for a job"""
     return progress_tracker.get(job_id, {'progress': 0, 'message': 'Initializing...', 'timestamp': time.time()})
 
-def process_transcription_job(job_id, wav_path, original_filename, mode, chunking, language):
+def process_transcription_job(job_id, wav_path, original_filename, mode, chunking, language, use_diarization=False):
     """Process transcription in background thread"""
     chunks = []
 
     try:
-        print(f"[JOB {job_id}] Starting background processing with language: {language}")
+        print(f"[JOB {job_id}] Starting background processing with language: {language}, diarization: {use_diarization}")
         update_progress(job_id, 15, 'Audio prêt, démarrage transcription...')
 
         # MODE: SRT (subtitles with timestamps)
@@ -565,6 +611,37 @@ def process_transcription_job(job_id, wav_path, original_filename, mode, chunkin
             update_progress(job_id, 85, 'Fusion des segments...')
             print(f"[SRT] Merging {len(srt_chunks)} SRT chunks")
             merged_srt = merge_srt_segments(srt_chunks)
+
+            # Apply speaker diarization if requested
+            if use_diarization:
+                update_progress(job_id, 87, 'Détection des changements de locuteurs...')
+                print(f"[SRT] Running speaker diarization")
+
+                # Get speaker segments from Pyannote
+                speaker_segments = get_speaker_diarization(wav_path)
+
+                if speaker_segments:
+                    # Parse merged SRT
+                    srt_segments = parse_srt(merged_srt)
+
+                    # Apply speaker segmentation
+                    srt_segments = apply_speaker_segmentation(srt_segments, speaker_segments)
+
+                    # Re-generate SRT from segments
+                    from srt_utils import format_srt_timestamp
+                    result_lines = []
+                    for i, segment in enumerate(srt_segments, start=1):
+                        start_str = format_srt_timestamp(segment.start_time)
+                        end_str = format_srt_timestamp(segment.end_time)
+
+                        result_lines.append(f"{i}")
+                        result_lines.append(f"{start_str} --> {end_str}")
+                        result_lines.append(segment.text)
+                        result_lines.append("")
+
+                    merged_srt = '\n'.join(result_lines)
+                else:
+                    print(f"[SRT] Diarization unavailable, skipping speaker segmentation")
 
             # Clean hallucinations
             update_progress(job_id, 90, 'Nettoyage des hallucinations...')
@@ -720,7 +797,7 @@ def progress_stream(job_id):
 def index():
     return render_template('index.html')
 
-def prepare_audio_job(job_id, input_path, original_filename, mode, chunking, language):
+def prepare_audio_job(job_id, input_path, original_filename, mode, chunking, language, use_diarization=False):
     """Prepare audio in background thread"""
     try:
         filename = Path(input_path).name
@@ -745,7 +822,7 @@ def prepare_audio_job(job_id, input_path, original_filename, mode, chunking, lan
             os.rename(input_path, wav_path)
 
         # Now start transcription
-        process_transcription_job(job_id, wav_path, original_filename, mode, chunking, language)
+        process_transcription_job(job_id, wav_path, original_filename, mode, chunking, language, use_diarization)
 
     except Exception as e:
         print(f"[JOB {job_id}] Audio preparation error: {e}")
@@ -773,7 +850,9 @@ def transcribe():
     chunking = request.form.get('chunking', 'standard')
     # Get language: 'auto' (default) or specific language code
     language = request.form.get('language', 'auto')
-    print(f"[TRANSCRIBE] Language requested: {language}")
+    # Get diarization option: 'true' or 'false' (default false)
+    use_diarization = request.form.get('diarization', 'false').lower() == 'true'
+    print(f"[TRANSCRIBE] Language requested: {language}, Diarization: {use_diarization}")
 
     # Generate unique job ID
     job_id = str(uuid.uuid4())
@@ -793,7 +872,7 @@ def transcribe():
         # Start background processing (audio extraction + transcription)
         thread = threading.Thread(
             target=prepare_audio_job,
-            args=(job_id, input_path, original_filename, mode, chunking, language),
+            args=(job_id, input_path, original_filename, mode, chunking, language, use_diarization),
             daemon=True
         )
         thread.start()
