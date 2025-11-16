@@ -20,6 +20,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY app.py .
 COPY srt_utils.py .
 COPY video_utils.py .
+COPY ollama_client.py .
+COPY docx_generator.py .
+COPY prompts.py .
 COPY templates ./templates
 
 # Create necessary directories

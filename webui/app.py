@@ -558,16 +558,160 @@ def get_progress(job_id):
     """Get current progress for a job"""
     return progress_tracker.get(job_id, {'progress': 0, 'message': 'Initializing...', 'timestamp': time.time()})
 
-def process_transcription_job(job_id, wav_path, original_filename, mode, chunking, language, use_diarization=False):
+def process_transcription_job(job_id, wav_path, original_filename, mode, chunking, language, use_diarization=False, doc_type='other'):
     """Process transcription in background thread"""
     chunks = []
 
     try:
-        print(f"[JOB {job_id}] Starting background processing with language: {language}, diarization: {use_diarization}")
+        print(f"[JOB {job_id}] Starting background processing - mode: {mode}, language: {language}, diarization: {use_diarization}")
         update_progress(job_id, 15, 'Audio prêt, démarrage transcription...')
 
+        # MODE: SMART DOC (AI-powered document generation)
+        if mode == 'smart_doc':
+            from ollama_client import get_ollama_client
+            from docx_generator import generate_docx_file
+            import datetime
+
+            print(f"[SMART DOC] Starting pipeline - type: {doc_type}, language: {language}")
+
+            # Step 1: Transcribe with Whisper (text mode)
+            update_progress(job_id, 20, 'Transcription audio...')
+            segments = split_wav_file(wav_path, segment_duration=180)
+
+            full_text = ""
+            for i, segment_path in enumerate(segments):
+                segment_progress = 20 + int((i / len(segments)) * 30)
+                update_progress(job_id, segment_progress, f'Transcription segment {i+1}/{len(segments)}...')
+                segment_text = transcribe_text_http(segment_path, forced_language=language)
+                full_text += segment_text + " "
+
+                if segment_path != wav_path:
+                    os.remove(segment_path)
+
+            transcript = full_text.strip()
+            print(f"[SMART DOC] Transcription complete: {len(transcript)} characters")
+
+            # Step 2: Ollama analysis - NEW STRATEGY
+            # Instead of asking Ollama to segment, we split by size and analyze each chunk
+            ollama = get_ollama_client()
+
+            # Check Ollama availability
+            if not ollama.health_check():
+                raise Exception("Ollama service unavailable")
+
+            # Get structure outline from Ollama
+            update_progress(job_id, 55, 'Analyse IA: extraction de la structure...')
+            structure = ollama.segment_transcript(transcript, doc_type, language)
+
+            if not structure:
+                raise Exception("Failed to analyze transcript structure")
+
+            print(f"[SMART DOC] Structure analysis complete")
+            print(f"[DEBUG] Structure type: {type(structure)}")
+
+            # Split transcript into chunks (simple paragraph-based splitting)
+            # This ensures we have actual content instead of relying on Ollama to extract it
+            words = transcript.split()
+            chunk_size = 1000  # words per chunk
+            chunks = []
+            for i in range(0, len(words), chunk_size):
+                chunk_text = ' '.join(words[i:i+chunk_size])
+                chunks.append(chunk_text)
+
+            print(f"[SMART DOC] Split transcript into {len(chunks)} chunks")
+
+            # Extract structured information from each chunk
+            enriched_sections = []
+            for i, chunk_text in enumerate(chunks):
+                if len(chunk_text.strip()) < 100:  # Skip very small chunks
+                    continue
+
+                progress = 60 + int((i / len(chunks)) * 25)
+                update_progress(job_id, progress, f'Analyse du contenu {i+1}/{len(chunks)}...')
+
+                # For each chunk, extract key points
+                section_title = f"Partie {i+1}"
+
+                # Try to extract a better title from structure if available
+                if isinstance(structure, dict):
+                    sections_list = structure.get('sections', [])
+                    if i < len(sections_list) and isinstance(sections_list[i], dict):
+                        section_title = sections_list[i].get('titre', section_title)
+
+                enriched = ollama.enrich_section(chunk_text, section_title, doc_type, language)
+
+                if enriched:
+                    # Use reformulated content from Ollama (not raw transcript)
+                    enriched_sections.append(enriched)
+                else:
+                    # Fallback: use raw content with basic structure
+                    # This happens only if Ollama fails
+                    enriched_sections.append({
+                        'title': section_title,
+                        'content': chunk_text,
+                        'key_points': [],
+                        'definitions': [],
+                        'examples': []
+                    })
+
+            print(f"[SMART DOC] Enriched {len(enriched_sections)} sections")
+
+            # No summary generation - keeping it simple
+            # Summary with Ollama is unreliable and often generic
+
+            # Step 3: Generate DOCX
+            update_progress(job_id, 85, 'Création du document Word...')
+
+            # Extract base name from filename (always needed for output filename)
+            base_name = Path(original_filename).stem
+
+            # Extract title from Ollama structure analysis (or fallback to filename)
+            if isinstance(structure, dict) and 'titre_document' in structure:
+                title = structure['titre_document']
+            else:
+                title = base_name.replace('_', ' ').replace('-', ' ').title()
+
+            # Calculate audio duration
+            duration = get_audio_duration(wav_path)
+            duration_str = f"{int(duration // 60)}min {int(duration % 60)}s"
+
+            metadata = {
+                'date': datetime.datetime.now().strftime('%d/%m/%Y'),
+                'duration': duration_str,
+                'language': language.upper()
+            }
+
+            # Save DOCX
+            output_filename = f"{base_name}.docx"
+            safe_filename_disk = f"{job_id}.docx"
+            docx_path = os.path.join(app.config['OUTPUT_FOLDER'], safe_filename_disk)
+
+            # Generate DOCX (no summary - kept simple)
+            generate_docx_file(title, doc_type, enriched_sections, None, metadata, docx_path)
+
+            # Save backup TXT (raw transcript)
+            txt_filename = f"{job_id}_transcript.txt"
+            txt_path = os.path.join(app.config['OUTPUT_FOLDER'], txt_filename)
+            with open(txt_path, 'w', encoding='utf-8') as f:
+                f.write(transcript)
+
+            # Cleanup WAV
+            if wav_path and os.path.exists(wav_path):
+                os.remove(wav_path)
+
+            update_progress(job_id, 100, 'Document généré !')
+
+            job_results[job_id] = {
+                'success': True,
+                'download_url': f'/download/{job_id}',
+                'download_name': output_filename,
+                'mode': 'smart_doc',
+                'has_transcript': True,
+                'transcript_url': f'/download/{job_id}_transcript'
+            }
+
         # MODE: SRT (subtitles with timestamps)
-        if mode == 'srt':
+        elif mode == 'srt':
             print(f"[SRT MODE] Starting transcription with {chunking} chunking, language: {language}")
 
             # Choose chunking strategy
@@ -797,7 +941,7 @@ def progress_stream(job_id):
 def index():
     return render_template('index.html')
 
-def prepare_audio_job(job_id, input_path, original_filename, mode, chunking, language, use_diarization=False):
+def prepare_audio_job(job_id, input_path, original_filename, mode, chunking, language, use_diarization=False, doc_type='other'):
     """Prepare audio in background thread"""
     try:
         filename = Path(input_path).name
@@ -822,7 +966,7 @@ def prepare_audio_job(job_id, input_path, original_filename, mode, chunking, lan
             os.rename(input_path, wav_path)
 
         # Now start transcription
-        process_transcription_job(job_id, wav_path, original_filename, mode, chunking, language, use_diarization)
+        process_transcription_job(job_id, wav_path, original_filename, mode, chunking, language, use_diarization, doc_type)
 
     except Exception as e:
         print(f"[JOB {job_id}] Audio preparation error: {e}")
@@ -844,15 +988,17 @@ def transcribe():
     if not allowed_file(file.filename):
         return jsonify({'error': f'File type not allowed. Allowed types: {", ".join(ALLOWED_EXTENSIONS)}'}), 400
 
-    # Get transcription mode: 'text' (default) or 'srt'
+    # Get transcription mode: 'text', 'srt', or 'smart_doc'
     mode = request.form.get('mode', 'text')
     # Get chunking strategy: 'standard' (default) or 'strong_head'
     chunking = request.form.get('chunking', 'standard')
     # Get language: 'auto' (default) or specific language code
     language = request.form.get('language', 'auto')
-    # Get diarization option: 'true' or 'false' (default false)
-    use_diarization = request.form.get('diarization', 'false').lower() == 'true'
-    print(f"[TRANSCRIBE] Language requested: {language}, Diarization: {use_diarization}")
+    # Diarization is always enabled for speaker detection
+    use_diarization = True
+    # Get document type for smart_doc mode: 'course', 'meeting', 'conference', 'interview', 'other'
+    doc_type = request.form.get('doc_type', 'other')
+    print(f"[TRANSCRIBE] Mode: {mode}, Language: {language}, Diarization: {use_diarization}, Doc type: {doc_type}")
 
     # Generate unique job ID
     job_id = str(uuid.uuid4())
@@ -872,7 +1018,7 @@ def transcribe():
         # Start background processing (audio extraction + transcription)
         thread = threading.Thread(
             target=prepare_audio_job,
-            args=(job_id, input_path, original_filename, mode, chunking, language, use_diarization),
+            args=(job_id, input_path, original_filename, mode, chunking, language, use_diarization, doc_type),
             daemon=True
         )
         thread.start()
@@ -898,25 +1044,42 @@ def job_result(job_id):
     else:
         return jsonify({'error': 'Job not found or not completed'}), 404
 
-@app.route('/download/<job_id>')
-def download(job_id):
-    """Download file using job_id"""
-    # Get job result to find the file extension and original name
-    result = job_results.get(job_id)
-    if not result:
-        return jsonify({'error': 'Job not found'}), 404
+@app.route('/download/<path:file_id>')
+def download(file_id):
+    """Download file using job_id or job_id_transcript"""
+    # Check if it's a transcript download
+    is_transcript = file_id.endswith('_transcript')
 
-    # Determine file extension from mode
-    extension = '.srt' if result.get('mode') == 'srt' else '.txt'
-    safe_filename_disk = f"{job_id}{extension}"
+    if is_transcript:
+        job_id = file_id.replace('_transcript', '')
+        safe_filename_disk = f"{job_id}_transcript.txt"
+        download_name = "transcript.txt"
+    else:
+        job_id = file_id
+
+        # Get job result to find the file extension and original name
+        result = job_results.get(job_id)
+        if not result:
+            return jsonify({'error': 'Job not found'}), 404
+
+        # Determine file extension from mode
+        mode = result.get('mode', 'text')
+        if mode == 'srt':
+            extension = '.srt'
+        elif mode == 'smart_doc':
+            extension = '.docx'
+        else:
+            extension = '.txt'
+
+        safe_filename_disk = f"{job_id}{extension}"
+        download_name = result.get('download_name', safe_filename_disk)
 
     filepath = os.path.join(app.config['OUTPUT_FOLDER'], safe_filename_disk)
     if not os.path.exists(filepath):
         return jsonify({'error': 'File not found'}), 404
 
     # Use original filename with spaces for download
-    original_name = result.get('download_name', safe_filename_disk)
-    return send_file(filepath, as_attachment=True, download_name=original_name)
+    return send_file(filepath, as_attachment=True, download_name=download_name)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=7860, debug=False)

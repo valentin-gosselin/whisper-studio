@@ -19,6 +19,28 @@ services:
     networks:
       - whisper-network
 
+  # Ollama LLM Service for Smart Document Generation
+  ollama:
+    image: ollama/ollama:latest
+    container_name: whisper-ollama
+    volumes:
+      - ollama-models:/root/.ollama
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    restart: unless-stopped
+    networks:
+      - whisper-network
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
   # Pyannote Speaker Diarization Service
   pyannote-diarization:
     build:
@@ -50,12 +72,16 @@ services:
     environment:
       - WHISPER_HTTP_URL=http://whisper-srt:8000
       - PYANNOTE_URL=http://pyannote-diarization:8001
+      - OLLAMA_URL=http://ollama:11434
+      - OLLAMA_MODEL_PRIMARY=qwen2.5:7b
+      - OLLAMA_MODEL_FALLBACK=llama3.1:8b
     volumes:
       - /docker/whisper/webui-uploads:/tmp/uploads
       - /docker/whisper/webui-outputs:/tmp/outputs
     depends_on:
       - whisper-srt
       - pyannote-diarization
+      - ollama
     restart: unless-stopped
     networks:
       - whisper-network
@@ -63,6 +89,7 @@ services:
 volumes:
   whisper-srt-models:
   pyannote-models:
+  ollama-models:
 
 networks:
   whisper-network:

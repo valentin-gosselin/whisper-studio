@@ -132,7 +132,9 @@
             border-color: #00ffff;
         }
 
-        body.neon-night .language-selector label {
+        body.neon-night .language-selector label,
+        body.neon-night .doc-type-selector-container label,
+        body.neon-night .output-format-selector-container label {
             color: rgba(0,255,255,0.8);
         }
 
@@ -188,6 +190,86 @@
             background: rgba(0,255,255,0.5);
         }
 
+        /* Recording Interface */
+        .recording-interface {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            padding: 20px;
+        }
+
+        .recording-status-display {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            background: rgba(239,68,68,0.15);
+            padding: 15px 30px;
+            border-radius: 50px;
+            border: 2px solid #ef4444;
+        }
+
+        .recording-indicator {
+            width: 12px;
+            height: 12px;
+            background: #ef4444;
+            border-radius: 50%;
+            animation: pulse-recording 1.5s infinite;
+        }
+
+        @keyframes pulse-recording {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(0.9); }
+        }
+
+        .recording-timer {
+            color: white;
+            font-size: 20px;
+            font-weight: 600;
+            font-variant-numeric: tabular-nums;
+            min-width: 70px;
+        }
+
+        .recording-controls {
+            display: flex;
+            gap: 12px;
+        }
+
+        .stop-recording-btn {
+            padding: 10px 28px;
+            background: #ef4444;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
+
+        .stop-recording-btn:hover {
+            background: #dc2626;
+            transform: translateY(-2px);
+        }
+
+        .cancel-recording-btn {
+            padding: 10px 28px;
+            background: rgba(255,255,255,0.1);
+            color: white;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
+
+        .cancel-recording-btn:hover {
+            background: rgba(255,255,255,0.2);
+            transform: translateY(-2px);
+        }
+
+        /* Neon theme for drop zone and recording */
         body.neon-night .drop-zone {
             border-color: rgba(0,255,255,0.4);
             background: rgba(0,255,255,0.05);
@@ -203,10 +285,6 @@
             color: #00ffff;
         }
 
-        body.neon-night .drop-zone-subtext {
-            color: rgba(0,255,255,0.6);
-        }
-
         body.neon-night .browse-btn {
             background: #00ffff;
             color: #0a0a1a;
@@ -214,6 +292,30 @@
 
         body.neon-night .browse-btn:hover {
             transform: translateY(-2px);
+        }
+
+        body.neon-night .record-btn-compact {
+            background: rgba(239,68,68,0.2);
+            border-color: #ef4444;
+        }
+
+        body.neon-night .record-btn-compact:hover {
+            background: rgba(239,68,68,0.3);
+        }
+
+        body.neon-night .recording-status-display {
+            background: rgba(239,68,68,0.2);
+            border-color: #ef4444;
+        }
+
+        body.neon-night .cancel-recording-btn {
+            border-color: rgba(0,255,255,0.4);
+            background: rgba(0,255,255,0.1);
+            color: #00ffff;
+        }
+
+        body.neon-night .cancel-recording-btn:hover {
+            background: rgba(0,255,255,0.2);
         }
 
         body.neon-night .supported-formats {
@@ -337,25 +439,42 @@
             box-shadow: 0 4px 12px rgba(255,255,255,0.3);
         }
 
-        /* Language Selector */
+        /* Options Container - Horizontal Layout for all selectors */
+        .options-container {
+            display: flex;
+            flex-direction: row;
+            gap: 10px;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        /* Language Selector, Document Type, and Output Format Selectors */
+        .doc-type-selector-container,
+        .output-format-selector-container,
         .language-selector {
             text-align: center;
-            margin-bottom: 20px;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 10px;
+            gap: 8px;
+            margin-bottom: 0;
         }
 
+        .doc-type-selector-container label,
+        .output-format-selector-container label,
         .language-selector label {
             color: rgba(255,255,255,0.8);
             font-size: 14px;
             font-weight: 500;
+            min-width: 60px;
+            text-align: right;
         }
 
         .custom-select {
             position: relative;
-            min-width: 280px;
+            min-width: 220px;
         }
 
         .select-trigger {
@@ -552,48 +671,75 @@
             color: #0a0a1a;
         }
 
-        /* Drop Zone */
+        /* Drop Zone - Compact Version */
         .drop-zone {
-            border: 3px dashed rgba(255,255,255,0.4);
-            border-radius: 16px;
-            padding: 60px 20px;
+            border: 2px dashed rgba(255,255,255,0.4);
+            border-radius: 12px;
+            padding: 20px;
             text-align: center;
             cursor: pointer;
             transition: all 0.3s ease;
             background: rgba(255,255,255,0.1);
             backdrop-filter: blur(10px);
             margin-bottom: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .drop-zone.compact {
+            padding: 12px 20px;
+            flex-direction: row;
+            justify-content: space-between;
         }
 
         .drop-zone:hover, .drop-zone.drag-over {
             background: rgba(255,255,255,0.2);
             border-color: white;
-            transform: scale(1.01);
+            transform: scale(1.005);
+        }
+
+        .drop-zone-content {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .drop-zone.compact .drop-zone-content {
+            flex: 1;
+            justify-content: flex-start;
         }
 
         .drop-zone-text {
             color: white;
-            font-size: 20px;
+            font-size: 16px;
             font-weight: 600;
-            margin-bottom: 10px;
         }
 
-        .drop-zone-subtext {
-            color: rgba(255,255,255,0.8);
+        .drop-zone.compact .drop-zone-text {
             font-size: 14px;
-            margin-bottom: 20px;
+        }
+
+        .drop-zone-buttons {
+            display: flex;
+            gap: 10px;
+            align-items: center;
         }
 
         .browse-btn {
             display: inline-block;
-            padding: 12px 32px;
+            padding: 10px 24px;
             background: white;
             color: #667eea;
             border-radius: 8px;
             font-weight: 600;
             transition: all 0.3s ease;
             cursor: pointer;
-            margin-top: 10px;
+            border: none;
+            font-size: 14px;
         }
 
         .browse-btn:hover {
@@ -601,11 +747,40 @@
             box-shadow: 0 6px 20px rgba(255,255,255,0.4);
         }
 
+        .record-btn-compact {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 24px;
+            background: rgba(239,68,68,0.2);
+            color: white;
+            border: 2px solid #ef4444;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .record-btn-compact:hover {
+            background: rgba(239,68,68,0.3);
+            transform: translateY(-2px);
+        }
+
+        .record-btn-compact svg {
+            width: 18px;
+            height: 18px;
+            fill: #ef4444;
+        }
+
         .supported-formats {
             text-align: center;
-            color: rgba(255,255,255,0.7);
+            color: rgba(255,255,255,0.6);
             font-size: 12px;
-            margin-top: 10px;
+        }
+
+        .drop-zone.compact .supported-formats {
+            display: none;
         }
 
         input[type="file"] {
@@ -789,6 +964,45 @@
             font-size: 15px;
         }
 
+        /* Document Options */
+        .doc-options {
+            margin-bottom: 25px;
+        }
+
+        .doc-type-selector {
+            margin-bottom: 20px;
+        }
+
+        .doc-type-selector label {
+            display: block;
+            margin-bottom: 8px;
+            color: rgba(255,255,255,0.9);
+            font-weight: 500;
+        }
+
+        .doc-type-selector select {
+            width: 100%;
+            padding: 12px 16px;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 8px;
+            color: white;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .doc-type-selector select:hover {
+            background: rgba(255,255,255,0.15);
+            border-color: rgba(255,255,255,0.3);
+        }
+
+        .doc-type-selector select option {
+            background: #2c3e50;
+            color: white;
+        }
+
+
         /* Responsive */
         @media (max-width: 768px) {
             h1 { font-size: 24px; }
@@ -796,12 +1010,18 @@
             .mode-btn { width: 100%; }
             .file-header { flex-direction: column; align-items: flex-start; }
             .file-actions { margin-top: 12px; width: 100%; justify-content: space-between; }
+
+            /* Stack options vertically on mobile */
+            .options-container {
+                flex-direction: column;
+                gap: 20px;
+            }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Whisper Web UI</h1>
+        <h1>Whisper Studio</h1>
 
         <!-- Theme Toggle -->
         <div class="theme-toggle-container">
@@ -824,75 +1044,116 @@
             </div>
         </div>
 
-        <!-- Mode Toggle -->
+        <!-- Mode Toggle: Sous-titres / Document -->
         <div class="mode-toggle">
-            <button class="mode-btn active" id="textModeBtn" data-mode="text">
-                Texte
-            </button>
             <button class="mode-btn" id="srtModeBtn" data-mode="srt">
                 Sous-titres
             </button>
+            <button class="mode-btn active" id="docModeBtn" data-mode="document">
+                Document
+            </button>
         </div>
 
-        <!-- Language Selector -->
-        <div class="language-selector">
-            <label>Langue :</label>
-            <div class="custom-select" id="customSelect">
-                <div class="select-trigger">
-                    <span id="selectedLanguage">Auto (détection automatique)</span>
-                    <svg class="select-arrow" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <polyline points="6 9 12 15 18 9"></polyline>
-                    </svg>
+        <!-- Options Container (shown based on active mode) -->
+        <div id="optionsContainer" class="options-container">
+            <!-- Language Selector (always visible - FIRST) -->
+            <div class="language-selector">
+                <label>Langue :</label>
+                <div class="custom-select" id="customSelect">
+                    <div class="select-trigger">
+                        <span id="selectedLanguage">Auto (détection automatique)</span>
+                        <svg class="select-arrow" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                    </div>
+                    <div class="select-options">
+                        <div class="select-option active" data-value="auto">Auto (détection automatique)</div>
+                        <div class="select-option" data-value="fr">Français</div>
+                        <div class="select-option" data-value="en">Anglais</div>
+                        <div class="select-option" data-value="es">Espagnol</div>
+                        <div class="select-option" data-value="de">Allemand</div>
+                        <div class="select-option" data-value="it">Italien</div>
+                        <div class="select-option" data-value="pt">Portugais</div>
+                        <div class="select-option" data-value="nl">Néerlandais</div>
+                        <div class="select-option" data-value="da">Danois</div>
+                        <div class="select-option" data-value="sv">Suédois</div>
+                        <div class="select-option" data-value="no">Norvégien</div>
+                        <div class="select-option" data-value="fi">Finnois</div>
+                        <div class="select-option" data-value="pl">Polonais</div>
+                        <div class="select-option" data-value="cs">Tchèque</div>
+                        <div class="select-option" data-value="sk">Slovaque</div>
+                        <div class="select-option" data-value="ro">Roumain</div>
+                        <div class="select-option" data-value="el">Grec</div>
+                        <div class="select-option" data-value="ru">Russe</div>
+                        <div class="select-option" data-value="uk">Ukrainien</div>
+                        <div class="select-option" data-value="zh">Chinois</div>
+                        <div class="select-option" data-value="ja">Japonais</div>
+                        <div class="select-option" data-value="ko">Coréen</div>
+                        <div class="select-option" data-value="ar">Arabe</div>
+                        <div class="select-option" data-value="tr">Turc</div>
+                        <div class="select-option" data-value="hi">Hindi</div>
+                        <div class="select-option" data-value="vi">Vietnamien</div>
+                        <div class="select-option" data-value="th">Thaï</div>
+                        <div class="select-option" data-value="id">Indonésien</div>
+                    </div>
                 </div>
-                <div class="select-options">
-                    <div class="select-option active" data-value="auto">Auto (détection automatique)</div>
-                    <div class="select-option" data-value="fr">Français</div>
-                    <div class="select-option" data-value="en">Anglais</div>
-                    <div class="select-option" data-value="es">Espagnol</div>
-                    <div class="select-option" data-value="de">Allemand</div>
-                    <div class="select-option" data-value="it">Italien</div>
-                    <div class="select-option" data-value="pt">Portugais</div>
-                    <div class="select-option" data-value="nl">Néerlandais</div>
-                    <div class="select-option" data-value="da">Danois</div>
-                    <div class="select-option" data-value="sv">Suédois</div>
-                    <div class="select-option" data-value="no">Norvégien</div>
-                    <div class="select-option" data-value="fi">Finnois</div>
-                    <div class="select-option" data-value="pl">Polonais</div>
-                    <div class="select-option" data-value="cs">Tchèque</div>
-                    <div class="select-option" data-value="sk">Slovaque</div>
-                    <div class="select-option" data-value="ro">Roumain</div>
-                    <div class="select-option" data-value="el">Grec</div>
-                    <div class="select-option" data-value="ru">Russe</div>
-                    <div class="select-option" data-value="uk">Ukrainien</div>
-                    <div class="select-option" data-value="zh">Chinois</div>
-                    <div class="select-option" data-value="ja">Japonais</div>
-                    <div class="select-option" data-value="ko">Coréen</div>
-                    <div class="select-option" data-value="ar">Arabe</div>
-                    <div class="select-option" data-value="tr">Turc</div>
-                    <div class="select-option" data-value="hi">Hindi</div>
-                    <div class="select-option" data-value="vi">Vietnamien</div>
-                    <div class="select-option" data-value="th">Thaï</div>
-                    <div class="select-option" data-value="id">Indonésien</div>
+            </div>
+
+            <!-- Document Type Selector (shown when Document mode is active) -->
+            <div class="doc-type-selector-container" id="docTypeContainer">
+                <label>Type :</label>
+                <div class="custom-select" id="docTypeCustomSelect">
+                    <div class="select-trigger">
+                        <span id="selectedDocType">Cours</span>
+                        <svg class="select-arrow" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                    </div>
+                    <div class="select-options">
+                        <div class="select-option" data-value="raw">Transcription brute</div>
+                        <div class="select-option active" data-value="course">Cours</div>
+                        <div class="select-option" data-value="meeting">Réunion</div>
+                        <div class="select-option" data-value="conference">Conférence</div>
+                        <div class="select-option" data-value="interview">Interview</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Output Format Selector (shown when Document mode is active) -->
+            <div class="output-format-selector-container" id="outputFormatContainer">
+                <label>Format :</label>
+                <div class="custom-select" id="outputFormatCustomSelect">
+                    <div class="select-trigger">
+                        <span id="selectedOutputFormat">DOCX (document formaté)</span>
+                        <svg class="select-arrow" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                    </div>
+                    <div class="select-options">
+                        <div class="select-option" data-value="txt">TXT (texte brut)</div>
+                        <div class="select-option active" data-value="docx">DOCX (document formaté)</div>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- Diarization Option (only for SRT mode) -->
-        <div class="diarization-option" id="diarizationOption" style="display:none;">
-            <label>
-                <input type="checkbox" id="diarizationCheckbox">
-                <span>Détecter les changements de locuteurs (dialogues)</span>
-            </label>
-        </div>
 
-        <!-- Drop Zone -->
+        <!-- Drop Zone / Recording Interface -->
         <div class="drop-zone" id="dropZone">
-            <div class="drop-zone-text">Glissez-déposez vos fichiers ici</div>
-            <div class="drop-zone-subtext">ou</div>
-            <label for="fileInput" class="browse-btn">Parcourir les fichiers</label>
-            <p class="supported-formats" id="supportedFormats">
-                Audio: MP3, WAV, M4A, OGG, FLAC, AAC, WMA, OPUS<br>
-                Vidéo: MP4, MKV, AVI, MOV, WEBM
+            <div class="drop-zone-content">
+                <span class="drop-zone-text">Déposez un fichier ici</span>
+                <div class="drop-zone-buttons">
+                    <label for="fileInput" class="browse-btn">Parcourir</label>
+                    <button class="record-btn-compact" id="startRecordBtn">
+                        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="12" cy="12" r="8"/>
+                        </svg>
+                        Enregistrer
+                    </button>
+                </div>
+            </div>
+            <p class="supported-formats">
+                Audio: MP3, WAV, M4A, OGG, FLAC, AAC, WMA, OPUS • Vidéo: MP4, MKV, AVI, MOV, WEBM
             </p>
         </div>
 
@@ -920,19 +1181,92 @@
         const filesSection = document.getElementById('filesSection');
         const filesList = document.getElementById('filesList');
         const emptyState = document.getElementById('emptyState');
-        const textModeBtn = document.getElementById('textModeBtn');
-        const srtModeBtn = document.getElementById('srtModeBtn');
         const actionButtons = document.getElementById('actionButtons');
         const startAllBtn = document.getElementById('startAllBtn');
         const themeToggle = document.getElementById('themeToggle');
-        const diarizationOption = document.getElementById('diarizationOption');
-        const diarizationCheckbox = document.getElementById('diarizationCheckbox');
+        const srtModeBtn = document.getElementById('srtModeBtn');
+        const docModeBtn = document.getElementById('docModeBtn');
+        const docTypeContainer = document.getElementById('docTypeContainer');
+        const outputFormatContainer = document.getElementById('outputFormatContainer');
 
-        let currentMode = 'text';
+        // LocalStorage functions (declared first)
+        function saveFilesToLocalStorage() {
+            const filesToSave = files.map(f => ({
+                name: f.file?.name || f.name,
+                size: f.file?.size || f.size,
+                status: f.status,
+                progress: f.progress,
+                message: f.message,
+                downloadUrl: f.downloadUrl,
+                downloadName: f.downloadName
+                // Note: audioUrl is NOT saved (blob URLs are not persistent)
+            }));
+            localStorage.setItem('whisper_files', JSON.stringify(filesToSave));
+        }
+
+        function loadFilesFromLocalStorage() {
+            const savedFiles = localStorage.getItem('whisper_files');
+            if (savedFiles) {
+                try {
+                    const parsed = JSON.parse(savedFiles);
+                    // Only restore completed files, and create proper file objects
+                    return parsed
+                        .filter(f => f.status === 'completed')
+                        .map(f => ({
+                            file: new File([], f.name, { type: 'application/octet-stream' }),
+                            status: f.status,
+                            progress: f.progress,
+                            message: f.message,
+                            downloadUrl: f.downloadUrl,
+                            downloadName: f.downloadName,
+                            audioUrl: null,  // Blob URLs cannot be restored
+                            audioName: null
+                        }));
+                } catch (e) {
+                    console.error('Error loading files from localStorage:', e);
+                }
+            }
+            return [];
+        }
+
+        function saveSettings() {
+            localStorage.setItem('whisper_mode', currentMode);
+            localStorage.setItem('whisper_language', currentLanguage);
+            localStorage.setItem('whisper_docType', currentDocType);
+            localStorage.setItem('whisper_outputFormat', currentOutputFormat);
+        }
+
+        // Detect browser language for default
+        function getDefaultLanguage() {
+            const browserLang = navigator.language || navigator.userLanguage;
+            // Extract language code (e.g., "fr-FR" -> "fr")
+            const langCode = browserLang.split('-')[0].toLowerCase();
+
+            // Map to supported languages
+            const supportedLanguages = [
+                'fr', 'en', 'es', 'de', 'it', 'pt', 'nl', 'da', 'sv', 'no', 'fi',
+                'pl', 'cs', 'sk', 'ro', 'el', 'ru', 'uk', 'zh', 'ja', 'ko', 'ar',
+                'tr', 'hi', 'vi', 'th', 'id'
+            ];
+
+            if (supportedLanguages.includes(langCode)) {
+                return langCode;
+            }
+
+            return 'auto';
+        }
+
+        // Load saved settings from localStorage
+        let currentMode = localStorage.getItem('whisper_mode') || 'document';
         let currentChunking = 'strong_head'; // Always use Strong Head for robustness
-        let currentLanguage = 'auto'; // Default to auto-detection
-        let useDiarization = false; // Default to disabled
-        let files = [];
+        let currentLanguage = localStorage.getItem('whisper_language') || getDefaultLanguage();
+        let currentDocType = localStorage.getItem('whisper_docType') || 'course';
+        let currentOutputFormat = localStorage.getItem('whisper_outputFormat') || 'docx';
+        let files = loadFilesFromLocalStorage(); // Restore saved files
+        let mediaRecorder = null;
+        let audioChunks = [];
+        let recordingStartTime = null;
+        let recordingInterval = null;
 
         // Theme management
         const savedTheme = localStorage.getItem('theme') || 'purple';
@@ -948,28 +1282,209 @@
             localStorage.setItem('theme', theme);
         });
 
-        // Mode toggle
-        textModeBtn.addEventListener('click', () => {
-            currentMode = 'text';
-            textModeBtn.classList.add('active');
-            srtModeBtn.classList.remove('active');
-            // Hide diarization option in text mode
-            diarizationOption.style.display = 'none';
-        });
+        // Render restored files on page load
+        if (files.length > 0) {
+            renderFiles();
+        }
 
+        // Restore saved mode on load
+        if (currentMode === 'srt') {
+            srtModeBtn.classList.add('active');
+            docModeBtn.classList.remove('active');
+            docTypeContainer.style.display = 'none';
+            outputFormatContainer.style.display = 'none';
+            // Hide recording button in SRT mode
+            document.getElementById('startRecordBtn').style.display = 'none';
+        } else {
+            docModeBtn.classList.add('active');
+            srtModeBtn.classList.remove('active');
+            docTypeContainer.style.display = 'flex';
+            outputFormatContainer.style.display = 'flex';
+            // Show recording button in Document mode
+            document.getElementById('startRecordBtn').style.display = 'inline-flex';
+        }
+
+        // Mode toggle: Sous-titres / Document
         srtModeBtn.addEventListener('click', () => {
             currentMode = 'srt';
             srtModeBtn.classList.add('active');
-            textModeBtn.classList.remove('active');
-            // Show diarization option in SRT mode
-            diarizationOption.style.display = 'flex';
+            docModeBtn.classList.remove('active');
+            // Hide document-specific selectors
+            docTypeContainer.style.display = 'none';
+            outputFormatContainer.style.display = 'none';
+            // Hide recording button in SRT mode
+            startRecordBtn.style.display = 'none';
+            saveSettings();
         });
 
-        // Diarization checkbox listener
-        diarizationCheckbox.addEventListener('change', (e) => {
-            useDiarization = e.target.checked;
-            console.log('Diarization enabled:', useDiarization);
+        docModeBtn.addEventListener('click', () => {
+            currentMode = 'document';
+            docModeBtn.classList.add('active');
+            srtModeBtn.classList.remove('active');
+            // Show document-specific selectors
+            docTypeContainer.style.display = 'flex';
+            outputFormatContainer.style.display = 'flex';
+            // Show recording button in Document mode
+            startRecordBtn.style.display = 'inline-flex';
+            saveSettings();
         });
+
+
+        // Recording Interface - Replaces drop zone during recording
+        const startRecordBtn = document.getElementById('startRecordBtn');
+        let currentStream = null;
+
+        function formatTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        function showRecordingInterface() {
+            dropZone.innerHTML = `
+                <div class="recording-interface">
+                    <div class="recording-status-display">
+                        <div class="recording-indicator"></div>
+                        <span class="recording-timer" id="recordingTimer">00:00</span>
+                    </div>
+                    <div class="recording-controls">
+                        <button class="stop-recording-btn" id="stopRecBtn">Arrêter</button>
+                        <button class="cancel-recording-btn" id="cancelRecBtn">Annuler</button>
+                    </div>
+                </div>
+            `;
+
+            // Start timer
+            recordingStartTime = Date.now();
+            recordingInterval = setInterval(() => {
+                const timer = document.getElementById('recordingTimer');
+                if (timer) {
+                    const elapsed = Math.floor((Date.now() - recordingStartTime) / 1000);
+                    timer.textContent = formatTime(elapsed);
+                }
+            }, 1000);
+
+            // Stop button
+            document.getElementById('stopRecBtn').addEventListener('click', stopRecording);
+
+            // Cancel button
+            document.getElementById('cancelRecBtn').addEventListener('click', cancelRecording);
+        }
+
+        function restoreDropZone() {
+            dropZone.innerHTML = `
+                <div class="drop-zone-content">
+                    <span class="drop-zone-text">Déposez un fichier ici</span>
+                    <div class="drop-zone-buttons">
+                        <label for="fileInput" class="browse-btn">Parcourir</label>
+                        <button class="record-btn-compact" id="startRecordBtn">
+                            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <circle cx="12" cy="12" r="8"/>
+                            </svg>
+                            Enregistrer
+                        </button>
+                    </div>
+                </div>
+                <p class="supported-formats">
+                    Audio: MP3, WAV, M4A, OGG, FLAC, AAC, WMA, OPUS • Vidéo: MP4, MKV, AVI, MOV, WEBM
+                </p>
+            `;
+
+            // Re-attach event listener
+            document.getElementById('startRecordBtn').addEventListener('click', startRecording);
+
+            // Re-attach drag and drop
+            setupDropZone();
+        }
+
+        function startRecording() {
+            navigator.mediaDevices.getUserMedia({ audio: true })
+                .then(stream => {
+                    currentStream = stream;
+                    mediaRecorder = new MediaRecorder(stream);
+                    audioChunks = [];
+
+                    mediaRecorder.ondataavailable = (event) => {
+                        audioChunks.push(event.data);
+                    };
+
+                    mediaRecorder.onstop = () => {
+                        const audioBlob = new Blob(audioChunks, { type: 'audio/webm;codecs=opus' });
+                        const fileName = `recording_${Date.now()}.webm`;
+                        const audioFile = new File([audioBlob], fileName, { type: 'audio/webm;codecs=opus' });
+
+                        // Create download URL for the recorded audio
+                        const audioUrl = URL.createObjectURL(audioBlob);
+
+                        // Add to files list with audio URL
+                        const newFile = {
+                            file: audioFile,
+                            status: 'idle',
+                            progress: 0,
+                            message: '',
+                            downloadUrl: null,
+                            downloadName: null,
+                            audioUrl: audioUrl,  // URL to download original recording
+                            audioName: fileName
+                        };
+
+                        files.push(newFile);
+                        renderFiles();
+                        saveFilesToLocalStorage();
+
+                        // Stop all tracks
+                        if (currentStream) {
+                            currentStream.getTracks().forEach(track => track.stop());
+                            currentStream = null;
+                        }
+
+                        // Restore drop zone
+                        restoreDropZone();
+                    };
+
+                    mediaRecorder.start();
+                    showRecordingInterface();
+                })
+                .catch(error => {
+                    console.error('Error accessing microphone:', error);
+                    alert('Impossible d\'accéder au microphone. Vérifiez les permissions.');
+                });
+        }
+
+        function stopRecording() {
+            if (recordingInterval) {
+                clearInterval(recordingInterval);
+                recordingInterval = null;
+            }
+
+            if (mediaRecorder && mediaRecorder.state === 'recording') {
+                mediaRecorder.stop();
+            }
+        }
+
+        function cancelRecording() {
+            if (recordingInterval) {
+                clearInterval(recordingInterval);
+                recordingInterval = null;
+            }
+
+            if (mediaRecorder && mediaRecorder.state === 'recording') {
+                mediaRecorder.stop();
+                // Don't add the file
+                mediaRecorder.ondataavailable = null;
+                mediaRecorder.onstop = null;
+            }
+
+            if (currentStream) {
+                currentStream.getTracks().forEach(track => track.stop());
+                currentStream = null;
+            }
+
+            restoreDropZone();
+        }
+
+        // Initial event listener
+        startRecordBtn.addEventListener('click', startRecording);
 
         // Custom Language Selector
         const customSelect = document.getElementById('customSelect');
@@ -997,11 +1512,20 @@
                 // Update selected value
                 currentLanguage = option.dataset.value;
                 selectedLanguageSpan.textContent = option.textContent;
+                saveSettings();
 
                 // Close dropdown
                 customSelect.classList.remove('open');
             });
         });
+
+        // Restore saved/detected language on load
+        const savedOption = Array.from(selectOptions).find(opt => opt.dataset.value === currentLanguage);
+        if (savedOption) {
+            selectOptions.forEach(opt => opt.classList.remove('active'));
+            savedOption.classList.add('active');
+            selectedLanguageSpan.textContent = savedOption.textContent;
+        }
 
         // Close dropdown when clicking outside
         document.addEventListener('click', (e) => {
@@ -1010,23 +1534,133 @@
             }
         });
 
-        // Drag and drop
-        dropZone.addEventListener('click', () => fileInput.click());
+        // Custom Document Type Selector
+        const docTypeCustomSelect = document.getElementById('docTypeCustomSelect');
+        const docTypeTrigger = docTypeCustomSelect.querySelector('.select-trigger');
+        const docTypeOptions = docTypeCustomSelect.querySelectorAll('.select-option');
+        const selectedDocTypeSpan = document.getElementById('selectedDocType');
 
-        dropZone.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            dropZone.classList.add('drag-over');
+        // Toggle dropdown
+        docTypeTrigger.addEventListener('click', (e) => {
+            e.stopPropagation();
+            docTypeCustomSelect.classList.toggle('open');
+            // Close other dropdowns
+            customSelect.classList.remove('open');
+            outputFormatCustomSelect.classList.remove('open');
         });
 
-        dropZone.addEventListener('dragleave', () => {
-            dropZone.classList.remove('drag-over');
+        // Select option
+        docTypeOptions.forEach(option => {
+            option.addEventListener('click', (e) => {
+                e.stopPropagation();
+
+                // Remove active from all options
+                docTypeOptions.forEach(opt => opt.classList.remove('active'));
+
+                // Add active to clicked option
+                option.classList.add('active');
+
+                // Update selected value
+                currentDocType = option.dataset.value;
+                selectedDocTypeSpan.textContent = option.textContent;
+                saveSettings();
+
+                // Close dropdown
+                docTypeCustomSelect.classList.remove('open');
+            });
         });
 
-        dropZone.addEventListener('drop', (e) => {
-            e.preventDefault();
-            dropZone.classList.remove('drag-over');
-            addFiles(e.dataTransfer.files);
+        // Restore saved docType on load
+        const savedDocOption = Array.from(docTypeOptions).find(opt => opt.dataset.value === currentDocType);
+        if (savedDocOption) {
+            docTypeOptions.forEach(opt => opt.classList.remove('active'));
+            savedDocOption.classList.add('active');
+            selectedDocTypeSpan.textContent = savedDocOption.textContent;
+        }
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!docTypeCustomSelect.contains(e.target)) {
+                docTypeCustomSelect.classList.remove('open');
+            }
         });
+
+        // Custom Output Format Selector
+        const outputFormatCustomSelect = document.getElementById('outputFormatCustomSelect');
+        const outputFormatTrigger = outputFormatCustomSelect.querySelector('.select-trigger');
+        const outputFormatOptions = outputFormatCustomSelect.querySelectorAll('.select-option');
+        const selectedOutputFormatSpan = document.getElementById('selectedOutputFormat');
+
+        // Toggle dropdown
+        outputFormatTrigger.addEventListener('click', (e) => {
+            e.stopPropagation();
+            outputFormatCustomSelect.classList.toggle('open');
+            // Close other dropdowns
+            customSelect.classList.remove('open');
+            docTypeCustomSelect.classList.remove('open');
+        });
+
+        // Select option
+        outputFormatOptions.forEach(option => {
+            option.addEventListener('click', (e) => {
+                e.stopPropagation();
+
+                // Remove active from all options
+                outputFormatOptions.forEach(opt => opt.classList.remove('active'));
+
+                // Add active to clicked option
+                option.classList.add('active');
+
+                // Update selected value
+                currentOutputFormat = option.dataset.value;
+                selectedOutputFormatSpan.textContent = option.textContent;
+                saveSettings();
+
+                // Close dropdown
+                outputFormatCustomSelect.classList.remove('open');
+            });
+        });
+
+        // Restore saved outputFormat on load
+        const savedFormatOption = Array.from(outputFormatOptions).find(opt => opt.dataset.value === currentOutputFormat);
+        if (savedFormatOption) {
+            outputFormatOptions.forEach(opt => opt.classList.remove('active'));
+            savedFormatOption.classList.add('active');
+            selectedOutputFormatSpan.textContent = savedFormatOption.textContent;
+        }
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!outputFormatCustomSelect.contains(e.target)) {
+                outputFormatCustomSelect.classList.remove('open');
+            }
+        });
+
+        // Drag and drop setup
+        function setupDropZone() {
+            dropZone.addEventListener('click', (e) => {
+                if (!e.target.closest('button') && !e.target.closest('label')) {
+                    fileInput.click();
+                }
+            });
+
+            dropZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropZone.classList.add('drag-over');
+            });
+
+            dropZone.addEventListener('dragleave', () => {
+                dropZone.classList.remove('drag-over');
+            });
+
+            dropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropZone.classList.remove('drag-over');
+                addFiles(e.dataTransfer.files);
+            });
+        }
+
+        setupDropZone();
 
         fileInput.addEventListener('change', (e) => {
             addFiles(e.target.files);
@@ -1041,10 +1675,13 @@
                     progress: 0,
                     message: '',
                     downloadUrl: null,
-                    downloadName: null
+                    downloadName: null,
+                    audioUrl: null,  // Explicitly null for uploaded files
+                    audioName: null
                 });
             });
             renderFiles();
+            saveFilesToLocalStorage();
         }
 
         function renderFiles() {
@@ -1052,11 +1689,13 @@
                 filesSection.classList.remove('show');
                 actionButtons.style.display = 'none';
                 emptyState.style.display = 'block';
+                dropZone.classList.remove('compact');
                 return;
             }
 
             filesSection.classList.add('show');
             emptyState.style.display = 'none';
+            dropZone.classList.add('compact');
 
             const idleCount = files.filter(f => f.status === 'idle').length;
             if (idleCount > 0) {
@@ -1079,14 +1718,30 @@
                             </span>
                             ${fileItem.status === 'idle' ? `
                                 <button class="btn btn-start" onclick="processFile(${index})">Démarrer</button>
+                                ${fileItem.audioUrl ? `
+                                    <button class="btn btn-download" onclick="downloadAudioFile(${index})">
+                                        Télécharger source
+                                    </button>
+                                ` : ''}
                                 <button class="btn btn-remove" onclick="removeFile(${index})">×</button>
                             ` : ''}
-                            ${fileItem.status === 'completed' && fileItem.downloadUrl ? `
-                                <button class="btn btn-download" onclick="downloadFile(${index})">
-                                    Télécharger
-                                </button>
+                            ${fileItem.status === 'completed' ? `
+                                ${fileItem.downloadUrl ? `
+                                    <button class="btn btn-download" onclick="downloadFile(${index})">
+                                        Télécharger
+                                    </button>
+                                ` : ''}
+                                ${fileItem.audioUrl ? `
+                                    <button class="btn btn-download" onclick="downloadAudioFile(${index})">
+                                        Télécharger source
+                                    </button>
+                                ` : ''}
+                                <button class="btn btn-remove" onclick="removeFile(${index})">×</button>
                             ` : ''}
                             ${fileItem.status === 'processing' ? `
+                                <button class="btn btn-remove" onclick="removeFile(${index})">×</button>
+                            ` : ''}
+                            ${fileItem.status === 'error' ? `
                                 <button class="btn btn-remove" onclick="removeFile(${index})">×</button>
                             ` : ''}
                         </div>
@@ -1126,10 +1781,31 @@
 
             const formData = new FormData();
             formData.append('file', fileItem.file);
-            formData.append('mode', currentMode);
+
+            // Determine mode based on current toggle
+            let mode, docType;
+
+            if (currentMode === 'srt') {
+                // Sous-titres mode (diarization always enabled in backend)
+                mode = 'srt';
+            } else {
+                // Document mode
+                docType = currentDocType;
+
+                if (docType === 'raw') {
+                    mode = 'text'; // Raw transcription
+                } else if (currentOutputFormat === 'docx') {
+                    mode = 'smart_doc'; // Formatted document with Ollama
+                } else {
+                    mode = 'text'; // TXT output
+                }
+
+                formData.append('doc_type', docType === 'raw' ? 'other' : docType);
+            }
+
+            formData.append('mode', mode);
             formData.append('chunking', currentChunking);
             formData.append('language', currentLanguage);
-            formData.append('diarization', useDiarization ? 'true' : 'false');
 
             try {
                 // Use XMLHttpRequest for real upload progress tracking
@@ -1151,17 +1827,10 @@
                         const data = JSON.parse(xhr.responseText);
 
                         if (data.success && data.job_id) {
-                            console.log(`[SSE] Connecting to progress stream for job ${data.job_id}`);
-
                             // Connect to SSE for real-time progress
                             const eventSource = new EventSource(`/progress/${data.job_id}`);
 
-                            eventSource.onopen = () => {
-                                console.log(`[SSE] Connection opened for job ${data.job_id}`);
-                            };
-
                             eventSource.onmessage = (event) => {
-                                console.log(`[SSE] Message received:`, event.data);
                                 const progressData = JSON.parse(event.data);
                                 fileItem.progress = progressData.progress;
                                 fileItem.message = progressData.message;
@@ -1169,7 +1838,6 @@
 
                                 // Close connection when complete
                                 if (progressData.progress >= 100) {
-                                    console.log(`[SSE] Job complete, fetching result...`);
                                     eventSource.close();
 
                                     // Fetch job result for download info
@@ -1239,8 +1907,14 @@
         }
 
         function removeFile(index) {
+            // Clean up blob URL if it exists
+            const fileItem = files[index];
+            if (fileItem && fileItem.audioUrl) {
+                URL.revokeObjectURL(fileItem.audioUrl);
+            }
             files.splice(index, 1);
             renderFiles();
+            saveFilesToLocalStorage();
         }
 
         function downloadFile(index) {
@@ -1253,6 +1927,35 @@
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
+            }
+        }
+
+        function downloadAudioFile(index) {
+            const fileItem = files[index];
+
+            if (fileItem && fileItem.audioUrl) {
+                const downloadName = fileItem.audioName || fileItem.file.name;
+
+                fetch(fileItem.audioUrl)
+                    .then(response => response.blob())
+                    .then(blob => {
+                        const url = URL.createObjectURL(blob);
+                        const link = document.createElement('a');
+                        link.href = url;
+                        link.download = downloadName;
+                        link.style.display = 'none';
+
+                        document.body.appendChild(link);
+                        link.click();
+
+                        setTimeout(() => {
+                            document.body.removeChild(link);
+                            URL.revokeObjectURL(url);
+                        }, 100);
+                    })
+                    .catch(error => {
+                        console.error('Download error:', error);
+                    });
             }
         }
 
