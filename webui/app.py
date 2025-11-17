@@ -7,23 +7,79 @@ import uuid
 import threading
 import re
 from pathlib import Path
-from flask import Flask, render_template, request, jsonify, send_file, Response, stream_with_context
+from flask import Flask, render_template, request, jsonify, send_file, Response, stream_with_context, redirect, url_for, flash, session
 from werkzeug.utils import secure_filename
 import time
 import json
+from datetime import timedelta, datetime
 
 # Import SRT and video utilities
 from srt_utils import merge_srt_segments, clean_hallucinations, apply_speaker_segmentation, parse_srt
 from video_utils import is_video_file, prepare_audio_for_whisper, get_media_duration
+
+# Import authentication and database
+from flask_login import LoginManager, login_user, logout_user, login_required, current_user
+from flask_session import Session
+from email_utils import mail
+from database import init_db, db_session, SessionLocal
+from models import User, Invitation, Setting, Document, Job
+from auth import hash_password, verify_password, admin_required
 
 # Force immediate stdout/stderr flush for Docker logs
 sys.stdout.reconfigure(line_buffering=True)
 sys.stderr.reconfigure(line_buffering=True)
 
 app = Flask(__name__)
+
+# App Configuration
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
 app.config['UPLOAD_FOLDER'] = '/tmp/uploads'
 app.config['OUTPUT_FOLDER'] = '/tmp/outputs'
 app.config['MAX_CONTENT_LENGTH'] = 2 * 1024 * 1024 * 1024  # 2GB max
+
+# Session Configuration (Filesystem - simple and reliable)
+app.config['SESSION_TYPE'] = 'filesystem'
+app.config['SESSION_FILE_DIR'] = '/tmp/flask_sessions'
+app.config['SESSION_PERMANENT'] = True
+app.config['SESSION_USE_SIGNER'] = True
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=7)
+
+# Mail Configuration
+app.config['MAIL_SERVER'] = os.environ.get('MAIL_SERVER', 'smtp.gmail.com')
+app.config['MAIL_PORT'] = int(os.environ.get('MAIL_PORT', 587))
+app.config['MAIL_USE_TLS'] = os.environ.get('MAIL_USE_TLS', 'true').lower() == 'true'
+app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME')
+app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')
+app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('MAIL_DEFAULT_SENDER', 'noreply@whisper-studio.com')
+
+# Initialize extensions
+Session(app)
+mail.init_app(app)
+
+# Initialize Login Manager
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login'
+login_manager.login_message = 'Veuillez vous connecter pour accéder à cette page.'
+login_manager.login_message_category = 'info'
+
+
+@login_manager.user_loader
+def load_user(user_id):
+    """Load user by ID for Flask-Login"""
+    db = SessionLocal()
+    try:
+        return db.query(User).get(int(user_id))
+    finally:
+        db.close()
+
+
+# Initialize database on first run
+try:
+    init_db()
+    print("[APP] Database initialized successfully")
+except Exception as e:
+    print(f"[APP] Database initialization error: {e}")
 
 # Global progress tracker
 progress_tracker = {}
@@ -559,11 +615,18 @@ def get_progress(job_id):
     """Get current progress for a job"""
     return progress_tracker.get(job_id, {'progress': 0, 'message': 'Initializing...', 'timestamp': time.time()})
 
-def process_transcription_job(job_id, wav_path, original_filename, mode, chunking, language, use_diarization=False, doc_type='other'):
+def process_transcription_job(job_id, wav_path, original_filename, mode, chunking, language, use_diarization=False, doc_type='other', user_id=None):
     """Process transcription in background thread"""
     chunks = []
+    start_time = datetime.utcnow()
 
     try:
+        # Update job status to processing
+        update_job_status(job_id, 'processing', started_at=start_time)
+
+        # Get user-specific output folder
+        user_output_folder = os.path.join(app.config['OUTPUT_FOLDER'], str(user_id)) if user_id else app.config['OUTPUT_FOLDER']
+        os.makedirs(user_output_folder, exist_ok=True)
         print(f"[JOB {job_id}] Starting background processing - mode: {mode}, language: {language}, diarization: {use_diarization}")
         update_progress(job_id, 15, 'Audio prêt, démarrage transcription...')
 
@@ -571,7 +634,6 @@ def process_transcription_job(job_id, wav_path, original_filename, mode, chunkin
         if mode == 'smart_doc':
             from ollama_client import get_ollama_client
             from docx_generator import generate_docx_file
-            import datetime
 
             print(f"[SMART DOC] Starting pipeline - type: {doc_type}, language: {language}")
 
@@ -676,7 +738,7 @@ def process_transcription_job(job_id, wav_path, original_filename, mode, chunkin
             duration_str = f"{int(duration // 60)}min {int(duration % 60)}s"
 
             metadata = {
-                'date': datetime.datetime.now().strftime('%d/%m/%Y'),
+                'date': datetime.now().strftime('%d/%m/%Y'),
                 'duration': duration_str,
                 'language': language.upper()
             }
@@ -684,14 +746,14 @@ def process_transcription_job(job_id, wav_path, original_filename, mode, chunkin
             # Save DOCX
             output_filename = f"{base_name}.docx"
             safe_filename_disk = f"{job_id}.docx"
-            docx_path = os.path.join(app.config['OUTPUT_FOLDER'], safe_filename_disk)
+            docx_path = os.path.join(user_output_folder, safe_filename_disk)
 
             # Generate DOCX (no summary - kept simple)
             generate_docx_file(title, doc_type, enriched_sections, None, metadata, docx_path, language=language)
 
             # Save backup TXT (raw transcript)
             txt_filename = f"{job_id}_transcript.txt"
-            txt_path = os.path.join(app.config['OUTPUT_FOLDER'], txt_filename)
+            txt_path = os.path.join(user_output_folder, txt_filename)
             with open(txt_path, 'w', encoding='utf-8') as f:
                 f.write(transcript)
 
@@ -700,6 +762,12 @@ def process_transcription_job(job_id, wav_path, original_filename, mode, chunkin
                 os.remove(wav_path)
 
             update_progress(job_id, 100, 'Document généré !')
+
+            # Mark job as completed
+            update_job_status(job_id, 'completed', completed_at=datetime.utcnow(), duration_seconds=int(duration))
+
+            # Create document record
+            create_document_record(user_id, job_id, title, docx_path, 'document', language=language, doc_type=doc_type)
 
             job_results[job_id] = {
                 'success': True,
@@ -713,6 +781,9 @@ def process_transcription_job(job_id, wav_path, original_filename, mode, chunkin
         # MODE: SRT (subtitles with timestamps)
         elif mode == 'srt':
             print(f"[SRT MODE] Starting transcription with {chunking} chunking, language: {language}")
+
+            # Get audio duration for job tracking
+            audio_duration = get_audio_duration(wav_path)
 
             # Choose chunking strategy
             if chunking == 'strong_head':
@@ -806,7 +877,7 @@ def process_transcription_job(job_id, wav_path, original_filename, mode, chunkin
 
             # Use job_id as safe filename for storage
             safe_filename_disk = f"{job_id}.srt"
-            output_path = os.path.join(app.config['OUTPUT_FOLDER'], safe_filename_disk)
+            output_path = os.path.join(user_output_folder, safe_filename_disk)
             with open(output_path, 'w', encoding='utf-8') as f:
                 f.write(final_srt)
 
@@ -815,6 +886,12 @@ def process_transcription_job(job_id, wav_path, original_filename, mode, chunkin
                 os.remove(wav_path)
 
             update_progress(job_id, 100, 'Terminé !')
+
+            # Mark job as completed
+            update_job_status(job_id, 'completed', completed_at=datetime.utcnow(), duration_seconds=int(audio_duration))
+
+            # Create document record
+            create_document_record(user_id, job_id, base_name, output_path, 'srt', language=detected_language)
 
             # Store result (use job_id for URL, original name for download)
             job_results[job_id] = {
@@ -828,6 +905,9 @@ def process_transcription_job(job_id, wav_path, original_filename, mode, chunkin
         # MODE: TEXT (default - plain transcription)
         else:
             print(f"[TEXT MODE] Starting transcription with language: {language}")
+
+            # Get audio duration for job tracking
+            audio_duration = get_audio_duration(wav_path)
 
             # Split audio into segments (3 minutes each)
             segments = split_wav_file(wav_path, segment_duration=180)
@@ -857,7 +937,7 @@ def process_transcription_job(job_id, wav_path, original_filename, mode, chunkin
             output_filename = f"{base_name}.txt"  # Original name with spaces
             # Use job_id as safe filename for storage
             safe_filename_disk = f"{job_id}.txt"
-            output_path = os.path.join(app.config['OUTPUT_FOLDER'], safe_filename_disk)
+            output_path = os.path.join(user_output_folder, safe_filename_disk)
             with open(output_path, 'w', encoding='utf-8') as f:
                 f.write(text)
 
@@ -866,6 +946,12 @@ def process_transcription_job(job_id, wav_path, original_filename, mode, chunkin
                 os.remove(wav_path)
 
             update_progress(job_id, 100, 'Terminé !')
+
+            # Mark job as completed
+            update_job_status(job_id, 'completed', completed_at=datetime.utcnow(), duration_seconds=int(audio_duration))
+
+            # Create document record
+            create_document_record(user_id, job_id, base_name, output_path, 'document', language=language)
 
             # Store result (use job_id for URL, original name for download)
             job_results[job_id] = {
@@ -878,6 +964,9 @@ def process_transcription_job(job_id, wav_path, original_filename, mode, chunkin
     except Exception as e:
         print(f"[JOB {job_id}] Error: {e}")
         update_progress(job_id, 0, f'Erreur: {str(e)}')
+
+        # Mark job as error
+        update_job_status(job_id, 'error', error_message=str(e), completed_at=datetime.utcnow())
 
         # Cleanup on error
         if wav_path and os.path.exists(wav_path):
@@ -937,17 +1026,83 @@ def progress_stream(job_id):
     response.headers['Connection'] = 'keep-alive'
     return response
 
+
+# ========== AUTHENTICATION ROUTES ==========
+from auth_routes import register_auth_routes
+register_auth_routes(app)
+
+# ========== ADMIN PANEL (Custom Routes) ==========
+from admin_routes import register_admin_routes
+register_admin_routes(app)
+
+
 @app.route('/')
+@login_required
 def index():
+    """Main transcription interface"""
     return render_template('index.html')
 
-def prepare_audio_job(job_id, input_path, original_filename, mode, chunking, language, use_diarization=False, doc_type='other'):
+def update_job_status(job_id, status, error_message=None, started_at=None, completed_at=None, duration_seconds=None):
+    """Update Job status in database"""
+    try:
+        db = SessionLocal()
+        try:
+            job = db.query(Job).filter(Job.job_id == job_id).first()
+            if job:
+                job.status = status
+                if error_message:
+                    job.error_message = error_message
+                if started_at:
+                    job.started_at = started_at
+                if completed_at:
+                    job.completed_at = completed_at
+                if duration_seconds is not None:
+                    job.duration_seconds = duration_seconds
+                db.commit()
+                print(f"[DB] Job {job_id} status updated to: {status}")
+        finally:
+            db.close()
+    except Exception as e:
+        print(f"[DB] Failed to update job {job_id}: {e}")
+
+def create_document_record(user_id, job_id, title, file_path, mode, language=None, doc_type=None):
+    """Create Document record in database"""
+    try:
+        import os
+        db = SessionLocal()
+        try:
+            # Get file size
+            file_size = os.path.getsize(file_path) if os.path.exists(file_path) else 0
+
+            document = Document(
+                user_id=user_id,
+                title=title,
+                file_path=file_path,
+                file_size_bytes=file_size,
+                document_type=doc_type,
+                language=language,
+                mode=mode
+            )
+            db.add(document)
+            db.commit()
+            print(f"[DB] Document record created for job {job_id}: {title}")
+        finally:
+            db.close()
+    except Exception as e:
+        print(f"[DB] Failed to create document for job {job_id}: {e}")
+
+def prepare_audio_job(job_id, input_path, original_filename, mode, chunking, language, use_diarization=False, doc_type='other', user_id=None):
     """Prepare audio in background thread"""
     try:
         filename = Path(input_path).name
 
+        # Get user-specific folders
+        user_upload_folder = os.path.join(app.config['UPLOAD_FOLDER'], str(user_id)) if user_id else app.config['UPLOAD_FOLDER']
+        user_output_folder = os.path.join(app.config['OUTPUT_FOLDER'], str(user_id)) if user_id else app.config['OUTPUT_FOLDER']
+        os.makedirs(user_output_folder, exist_ok=True)
+
         # Prepare audio (extract from video if needed, convert to WAV)
-        wav_path = os.path.join(app.config['UPLOAD_FOLDER'], f"{Path(filename).stem}_{job_id}.wav")
+        wav_path = os.path.join(user_upload_folder, f"{Path(filename).stem}_{job_id}.wav")
 
         if is_video_file(filename):
             # Extract audio from video
@@ -966,22 +1121,33 @@ def prepare_audio_job(job_id, input_path, original_filename, mode, chunking, lan
             os.rename(input_path, wav_path)
 
         # Now start transcription
-        process_transcription_job(job_id, wav_path, original_filename, mode, chunking, language, use_diarization, doc_type)
+        process_transcription_job(job_id, wav_path, original_filename, mode, chunking, language, use_diarization, doc_type, user_id)
 
     except Exception as e:
         print(f"[JOB {job_id}] Audio preparation error: {e}")
         update_progress(job_id, 0, f'Erreur: {str(e)}')
+
+        # Mark job as error
+        update_job_status(job_id, 'error', error_message=str(e), completed_at=datetime.utcnow())
+
         job_results[job_id] = {
             'success': False,
             'error': str(e)
         }
 
-def process_merged_files_job(job_id, file_paths, original_filenames, mode, chunking, language, use_diarization, doc_type):
+def process_merged_files_job(job_id, file_paths, original_filenames, mode, chunking, language, use_diarization, doc_type, user_id=None):
     """Process multiple files and merge their transcriptions"""
     wav_paths = []
     transcripts = []
+    start_time = datetime.utcnow()
 
     try:
+        # Update job status to processing
+        update_job_status(job_id, 'processing', started_at=start_time)
+
+        # Get user-specific output folder
+        user_output_folder = os.path.join(app.config['OUTPUT_FOLDER'], str(user_id)) if user_id else app.config['OUTPUT_FOLDER']
+        os.makedirs(user_output_folder, exist_ok=True)
         # Step 1: Convert all files to WAV
         update_progress(job_id, 10, f'Conversion de {len(file_paths)} fichiers...')
 
@@ -1061,7 +1227,6 @@ def process_merged_files_job(job_id, file_paths, original_filenames, mode, chunk
         if mode == 'smart_doc':
             from ollama_client import get_ollama_client
             from docx_generator import generate_docx_file
-            import datetime
 
             update_progress(job_id, 75, 'Analyse IA du contenu fusionné...')
 
@@ -1124,7 +1289,7 @@ def process_merged_files_job(job_id, file_paths, original_filenames, mode, chunk
             duration_str = f"{int(total_duration // 60)}min {int(total_duration % 60)}s"
 
             metadata = {
-                'date': datetime.datetime.now().strftime('%d/%m/%Y'),
+                'date': datetime.now().strftime('%d/%m/%Y'),
                 'duration': duration_str,
                 'language': language.upper(),
                 'files_count': len(file_paths)
@@ -1135,13 +1300,13 @@ def process_merged_files_job(job_id, file_paths, original_filenames, mode, chunk
             safe_title = safe_title[:100]  # Limit length but keep spaces
             output_filename = f"{safe_title}.docx" if safe_title else "document_fusionne.docx"
             safe_filename_disk = f"{job_id}.docx"
-            docx_path = os.path.join(app.config['OUTPUT_FOLDER'], safe_filename_disk)
+            docx_path = os.path.join(user_output_folder, safe_filename_disk)
 
             generate_docx_file(title, doc_type, enriched_sections, None, metadata, docx_path, language=language)
 
             # Save backup TXT
             txt_filename = f"{job_id}_transcript.txt"
-            txt_path = os.path.join(app.config['OUTPUT_FOLDER'], txt_filename)
+            txt_path = os.path.join(user_output_folder, txt_filename)
             with open(txt_path, 'w', encoding='utf-8') as f:
                 f.write(merged_transcript)
 
@@ -1151,6 +1316,12 @@ def process_merged_files_job(job_id, file_paths, original_filenames, mode, chunk
                     os.remove(wav_path)
 
             update_progress(job_id, 100, 'Document fusionné généré !')
+
+            # Mark job as completed
+            update_job_status(job_id, 'completed', completed_at=datetime.utcnow(), duration_seconds=int(total_duration))
+
+            # Create document record
+            create_document_record(user_id, job_id, title, docx_path, 'document', language=language, doc_type=doc_type)
 
             job_results[job_id] = {
                 'success': True,
@@ -1165,8 +1336,11 @@ def process_merged_files_job(job_id, file_paths, original_filenames, mode, chunk
             # Text mode: just save merged transcript
             update_progress(job_id, 95, 'Sauvegarde de la transcription fusionnée...')
 
+            # Calculate total duration for text mode too
+            total_duration = sum([get_audio_duration(wp) for wp in wav_paths])
+
             txt_filename = f"{job_id}.txt"
-            txt_path = os.path.join(app.config['OUTPUT_FOLDER'], txt_filename)
+            txt_path = os.path.join(user_output_folder, txt_filename)
             with open(txt_path, 'w', encoding='utf-8') as f:
                 f.write(merged_transcript)
 
@@ -1176,6 +1350,12 @@ def process_merged_files_job(job_id, file_paths, original_filenames, mode, chunk
                     os.remove(wav_path)
 
             update_progress(job_id, 100, 'Transcription fusionnée terminée !')
+
+            # Mark job as completed
+            update_job_status(job_id, 'completed', completed_at=datetime.utcnow(), duration_seconds=int(total_duration))
+
+            # Create document record
+            create_document_record(user_id, job_id, "Transcription fusionnée", txt_path, 'document', language=language)
 
             job_results[job_id] = {
                 'success': True,
@@ -1189,6 +1369,9 @@ def process_merged_files_job(job_id, file_paths, original_filenames, mode, chunk
         import traceback
         traceback.print_exc()
 
+        # Mark job as error
+        update_job_status(job_id, 'error', error_message=str(e), completed_at=datetime.utcnow())
+
         update_progress(job_id, 0, f'Erreur: {str(e)}')
         job_results[job_id] = {
             'success': False,
@@ -1201,6 +1384,7 @@ def process_merged_files_job(job_id, file_paths, original_filenames, mode, chunk
                 os.remove(wav_path)
 
 @app.route('/transcribe', methods=['POST'])
+@login_required
 def transcribe():
     if 'file' not in request.files:
         return jsonify({'error': 'No file provided'}), 400
@@ -1228,13 +1412,34 @@ def transcribe():
     job_id = str(uuid.uuid4())
 
     try:
+        # Create user-specific upload folder
+        user_upload_folder = os.path.join(app.config['UPLOAD_FOLDER'], str(current_user.id))
+        os.makedirs(user_upload_folder, exist_ok=True)
+
         # Save uploaded file
         original_filename = file.filename  # Keep original name with spaces
         filename = secure_filename(file.filename)  # Secure name for storage
-        input_path = os.path.join(app.config['UPLOAD_FOLDER'], f"{job_id}_{filename}")
+        input_path = os.path.join(user_upload_folder, f"{job_id}_{filename}")
         file.save(input_path)
 
         print(f"[JOB {job_id}] File uploaded: {original_filename}")
+
+        # Create Job record in database
+        db = SessionLocal()
+        try:
+            job_record = Job(
+                user_id=current_user.id,
+                job_id=job_id,
+                status='pending',
+                mode='document' if mode in ['text', 'smart_doc'] else 'srt',
+                file_count=1,
+                filename=original_filename
+            )
+            db.add(job_record)
+            db.commit()
+            print(f"[JOB {job_id}] Job record created in database")
+        finally:
+            db.close()
 
         # Initialize progress
         update_progress(job_id, 5, 'Fichier uploadé, préparation...')
@@ -1242,7 +1447,7 @@ def transcribe():
         # Start background processing (audio extraction + transcription)
         thread = threading.Thread(
             target=prepare_audio_job,
-            args=(job_id, input_path, original_filename, mode, chunking, language, use_diarization, doc_type),
+            args=(job_id, input_path, original_filename, mode, chunking, language, use_diarization, doc_type, current_user.id),
             daemon=True
         )
         thread.start()
@@ -1260,6 +1465,7 @@ def transcribe():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/transcribe_batch', methods=['POST'])
+@login_required
 def transcribe_batch():
     """Handle multiple files for merged transcription"""
     if 'files' not in request.files:
@@ -1297,6 +1503,10 @@ def transcribe_batch():
     update_progress(job_id, 5, f'Préparation de {len(uploaded_files)} fichiers...')
 
     try:
+        # Create user-specific upload folder
+        user_upload_folder = os.path.join(app.config['UPLOAD_FOLDER'], str(current_user.id))
+        os.makedirs(user_upload_folder, exist_ok=True)
+
         # Save all uploaded files
         file_paths = []
         original_filenames = []
@@ -1308,16 +1518,33 @@ def transcribe_batch():
             # Create unique filename with job_id and index
             filename_parts = original_filename.rsplit('.', 1)
             safe_filename = f"{job_id}_{idx}.{filename_parts[1] if len(filename_parts) > 1 else 'tmp'}"
-            input_path = os.path.join(app.config['UPLOAD_FOLDER'], safe_filename)
+            input_path = os.path.join(user_upload_folder, safe_filename)
 
             file.save(input_path)
             file_paths.append(input_path)
             print(f"[BATCH {job_id}] Saved file {idx+1}/{len(uploaded_files)}: {original_filename} -> {safe_filename}")
 
+        # Create Job record in database
+        db = SessionLocal()
+        try:
+            job_record = Job(
+                user_id=current_user.id,
+                job_id=job_id,
+                status='pending',
+                mode='document' if mode in ['text', 'smart_doc'] else 'srt',
+                file_count=len(uploaded_files),
+                filename=', '.join(original_filenames[:3]) + ('...' if len(original_filenames) > 3 else '')
+            )
+            db.add(job_record)
+            db.commit()
+            print(f"[BATCH {job_id}] Job record created in database with {len(uploaded_files)} files")
+        finally:
+            db.close()
+
         # Start background processing
         thread = threading.Thread(
             target=process_merged_files_job,
-            args=(job_id, file_paths, original_filenames, mode, chunking, language, use_diarization, doc_type),
+            args=(job_id, file_paths, original_filenames, mode, chunking, language, use_diarization, doc_type, current_user.id),
             daemon=True
         )
         thread.start()
@@ -1343,6 +1570,7 @@ def job_result(job_id):
         return jsonify({'error': 'Job not found or not completed'}), 404
 
 @app.route('/download/<path:file_id>')
+@login_required
 def download(file_id):
     """Download file using job_id or job_id_transcript"""
     # Check if it's a transcript download
@@ -1372,9 +1600,15 @@ def download(file_id):
         safe_filename_disk = f"{job_id}{extension}"
         download_name = result.get('download_name', safe_filename_disk)
 
-    filepath = os.path.join(app.config['OUTPUT_FOLDER'], safe_filename_disk)
+    # Try user-specific folder first, fallback to global folder (for backward compatibility)
+    user_output_folder = os.path.join(app.config['OUTPUT_FOLDER'], str(current_user.id))
+    filepath = os.path.join(user_output_folder, safe_filename_disk)
+
     if not os.path.exists(filepath):
-        return jsonify({'error': 'File not found'}), 404
+        # Fallback to global folder (for old files created before multi-user)
+        filepath = os.path.join(app.config['OUTPUT_FOLDER'], safe_filename_disk)
+        if not os.path.exists(filepath):
+            return jsonify({'error': 'File not found'}), 404
 
     # Use original filename with spaces for download
     return send_file(filepath, as_attachment=True, download_name=download_name)

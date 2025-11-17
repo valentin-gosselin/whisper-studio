@@ -1,0 +1,133 @@
+{% extends 'admin/master.html' %}
+
+{% block body %}
+<h1>Inviter un utilisateur</h1>
+
+<div class="row" style="margin-top: 20px;">
+    <div class="col-md-6">
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <h3 class="panel-title">Envoyer une invitation</h3>
+            </div>
+            <div class="panel-body">
+                <form method="POST" action="{{ url_for('admin.invite_user') }}">
+                    <div class="form-group">
+                        <label for="email">Email de l'utilisateur</label>
+                        <input type="email"
+                               class="form-control"
+                               id="email"
+                               name="email"
+                               required
+                               placeholder="utilisateur@example.com">
+                        <p class="help-block">L'utilisateur recevra un email avec un lien d'inscription.</p>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="expiry_days">Validité de l'invitation (jours)</label>
+                        <input type="number"
+                               class="form-control"
+                               id="expiry_days"
+                               name="expiry_days"
+                               value="7"
+                               min="1"
+                               max="30"
+                               required>
+                        <p class="help-block">Par défaut: 7 jours</p>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">
+                        <span class="glyphicon glyphicon-envelope"></span> Envoyer l'invitation
+                    </button>
+                    <a href="{{ url_for('admin.index') }}" class="btn btn-default">
+                        <span class="glyphicon glyphicon-arrow-left"></span> Retour
+                    </a>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="panel panel-info">
+            <div class="panel-heading">
+                <h3 class="panel-title">Informations</h3>
+            </div>
+            <div class="panel-body">
+                <h4>Comment ça fonctionne ?</h4>
+                <ol>
+                    <li>Vous entrez l'email de la personne à inviter</li>
+                    <li>Un email avec un lien d'inscription unique lui est envoyé</li>
+                    <li>L'utilisateur clique sur le lien et crée son compte</li>
+                    <li>L'invitation devient invalide après utilisation</li>
+                </ol>
+
+                <h4 style="margin-top: 20px;">Paramètres par défaut</h4>
+                <ul>
+                    <li><strong>Rôle:</strong> Utilisateur standard</li>
+                    <li><strong>Limite de stockage:</strong> 2 GB</li>
+                    <li><strong>Validité:</strong> 7 jours</li>
+                </ul>
+
+                <div class="alert alert-warning" style="margin-top: 20px;">
+                    <strong>Note:</strong> Assurez-vous que votre configuration email est correcte dans les variables d'environnement.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row" style="margin-top: 20px;">
+    <div class="col-md-12">
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <h3 class="panel-title">Invitations récentes</h3>
+            </div>
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Email</th>
+                        <th>Créée le</th>
+                        <th>Expire le</th>
+                        <th>Statut</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if recent_invitations %}
+                        {% for inv in recent_invitations %}
+                        <tr>
+                            <td>{{ inv.email }}</td>
+                            <td>{{ inv.created_at.strftime('%d/%m/%Y %H:%M') }}</td>
+                            <td>{{ inv.expires_at.strftime('%d/%m/%Y %H:%M') }}</td>
+                            <td>
+                                {% if inv.status == 'pending' %}
+                                    <span class="label label-warning">En attente</span>
+                                {% elif inv.status == 'accepted' %}
+                                    <span class="label label-success">Acceptée</span>
+                                {% elif inv.status == 'expired' %}
+                                    <span class="label label-default">Expirée</span>
+                                {% elif inv.status == 'revoked' %}
+                                    <span class="label label-danger">Révoquée</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if inv.status == 'pending' %}
+                                    <a href="{{ url_for('invitation.delete_view', id=inv.id, url=url_for('admin.invite_user')) }}"
+                                       class="btn btn-xs btn-danger"
+                                       onclick="return confirm('Révoquer cette invitation ?');">
+                                        <span class="glyphicon glyphicon-remove"></span> Révoquer
+                                    </a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="5" class="text-center text-muted">Aucune invitation récente</td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

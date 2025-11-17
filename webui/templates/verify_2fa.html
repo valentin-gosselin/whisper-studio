@@ -1,0 +1,95 @@
+{% extends "base_auth.html" %}
+
+{% block title %}Vérification 2FA - Whisper Studio{% endblock %}
+{% block subtitle %}Authentification à deux facteurs{% endblock %}
+
+{% block extra_styles %}
+<style>
+    .email-info-box {
+        background: rgba(102, 126, 234, 0.15);
+        border: 1px solid rgba(102, 126, 234, 0.4);
+        padding: 20px;
+        border-radius: 10px;
+        margin-bottom: 20px;
+        backdrop-filter: blur(10px);
+        text-align: center;
+    }
+
+    .email-display {
+        font-size: 16px;
+        font-weight: 600;
+        margin: 10px 0;
+        color: inherit;
+    }
+
+    .help-box {
+        margin-top: 30px;
+        padding: 20px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+        backdrop-filter: blur(5px);
+    }
+
+    .help-box p {
+        font-size: 14px;
+        margin-bottom: 15px;
+    }
+
+    .help-link {
+        color: #ffc107;
+        text-decoration: underline;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Email method info -->
+{% if method == 'email' %}
+<div class="email-info-box">
+    <p style="margin: 0 0 10px 0;">Code envoyé à :</p>
+    <div class="email-display">{{ user_email }}</div>
+    <p class="help-text" style="margin: 10px 0 0 0; font-size: 13px;">
+        Le code expire dans 10 minutes
+    </p>
+</div>
+{% endif %}
+
+<form method="POST" action="{{ url_for('verify_2fa') }}">
+    <div class="form-group">
+        <label for="code">Code d'authentification</label>
+        <input type="text" id="code" name="code" required autofocus maxlength="6" pattern="[0-9]{6}" placeholder="000000">
+        {% if method == 'email' %}
+        <p class="help-text">Saisissez le code à 6 chiffres reçu par email</p>
+        {% else %}
+        <p class="help-text">Saisissez le code à 6 chiffres de votre application d'authentification</p>
+        {% endif %}
+    </div>
+
+    <button type="submit" class="btn">Vérifier</button>
+</form>
+
+<!-- Resend email code -->
+{% if method == 'email' %}
+<div style="text-align: center; margin-top: 20px;">
+    <a href="{{ url_for('verify_2fa') }}" class="help-link" style="font-size: 14px;">
+        Renvoyer le code
+    </a>
+</div>
+{% endif %}
+
+<!-- Help section -->
+<div class="help-box">
+    {% if method == 'email' %}
+    <p>Vous n'avez pas reçu le code ou vous n'avez plus accès à votre email ?</p>
+    {% else %}
+    <p>Vous n'avez pas accès à votre application d'authentification ?</p>
+    {% endif %}
+    <a href="{{ url_for('verify_2fa_recovery') }}" class="help-link">
+        Utiliser un code de récupération
+    </a>
+</div>
+
+<div class="links" style="margin-top: 20px;">
+    <a href="{{ url_for('logout') }}">← Se déconnecter</a>
+</div>
+{% endblock %}

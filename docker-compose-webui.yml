@@ -62,6 +62,41 @@ services:
     networks:
       - whisper-network
 
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: whisper-postgres
+    environment:
+      - POSTGRES_DB=whisper_studio
+      - POSTGRES_USER=whisper
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-changeme123}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    restart: unless-stopped
+    networks:
+      - whisper-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U whisper"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis for sessions and queue
+  redis:
+    image: redis:7-alpine
+    container_name: whisper-redis
+    command: redis-server --appendonly yes
+    volumes:
+      - redis-data:/data
+    restart: unless-stopped
+    networks:
+      - whisper-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   whisper-webui:
     build:
       context: ./webui
@@ -75,13 +110,29 @@ services:
       - OLLAMA_URL=http://ollama:11434
       - OLLAMA_MODEL_PRIMARY=qwen2.5:7b
       - OLLAMA_MODEL_FALLBACK=llama3.1:8b
+      - DATABASE_URL=postgresql://whisper:${POSTGRES_PASSWORD:-changeme123}@postgres:5432/whisper_studio
+      - REDIS_URL=redis://redis:6379/0
+      - SECRET_KEY=${SECRET_KEY:-dev-secret-key-change-in-production}
+      - MAIL_SERVER=${MAIL_SERVER}
+      - MAIL_PORT=${MAIL_PORT:-587}
+      - MAIL_USERNAME=${MAIL_USERNAME}
+      - MAIL_PASSWORD=${MAIL_PASSWORD}
+      - MAIL_USE_TLS=${MAIL_USE_TLS:-true}
+      - MAIL_DEFAULT_SENDER=${MAIL_DEFAULT_SENDER}
     volumes:
       - /docker/whisper/webui-uploads:/tmp/uploads
       - /docker/whisper/webui-outputs:/tmp/outputs
     depends_on:
-      - whisper-srt
-      - pyannote-diarization
-      - ollama
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      whisper-srt:
+        condition: service_started
+      pyannote-diarization:
+        condition: service_started
+      ollama:
+        condition: service_started
     restart: unless-stopped
     networks:
       - whisper-network
@@ -90,6 +141,8 @@ volumes:
   whisper-srt-models:
   pyannote-models:
   ollama-models:
+  postgres-data:
+  redis-data:
 
 networks:
   whisper-network:

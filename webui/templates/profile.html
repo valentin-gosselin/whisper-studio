@@ -1,0 +1,350 @@
+{% extends "base_auth.html" %}
+
+{% block title %}Mon Profil - Whisper Studio{% endblock %}
+{% block subtitle %}Gérez votre compte{% endblock %}
+
+{% block extra_styles %}
+<style>
+    /* Profile-specific styles - Everything else is in centralized CSS */
+    .auth-container {
+        max-width: 600px;
+    }
+</style>
+{% endblock %}
+
+{% block navigation %}
+<div class="top-navigation">
+    <a href="{{ url_for('index') }}" class="nav-link">← Retour à l'app</a>
+    {% if current_user.is_admin %}
+    <a href="/admin" class="nav-link">Administration →</a>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block content %}
+<!-- User Info Section -->
+<div class="section">
+    <h2>Informations du compte</h2>
+    <div class="info-row">
+        <span class="info-label">Email</span>
+        <span class="info-value">{{ current_user.email }}</span>
+    </div>
+    <div class="info-row">
+        <span class="info-label">Nom d'utilisateur</span>
+        <span class="info-value">{{ current_user.username or 'Non défini' }}</span>
+    </div>
+    <div class="info-row">
+        <span class="info-label">Rôle</span>
+        <span class="badge {% if current_user.is_admin %}badge-admin{% else %}badge-user{% endif %}">
+            {% if current_user.is_admin %}Administrateur{% else %}Utilisateur{% endif %}
+        </span>
+    </div>
+    <div class="info-row">
+        <span class="info-label">Membre depuis</span>
+        <span class="info-value">{{ current_user.created_at.strftime('%d/%m/%Y') }}</span>
+    </div>
+    <div class="info-row">
+        <span class="info-label">Documents créés</span>
+        <span class="info-value">{{ doc_count }}</span>
+    </div>
+    <div class="info-row">
+        <span class="info-label">Espace de stockage</span>
+        <span class="info-value">{{ "%.2f"|format(total_storage / 1024 / 1024) }} Mo / {{ "%.2f"|format(current_user.storage_limit_bytes / 1024 / 1024 / 1024) }} Go</span>
+    </div>
+    <div class="progress-bar">
+        <div class="progress-fill" style="width: {{ storage_percent }}%">
+            {{ "%.1f"|format(storage_percent) }}%
+        </div>
+    </div>
+</div>
+
+<!-- Notifications Section -->
+<div class="section">
+    <h2>Préférences de notification</h2>
+    <form method="POST" action="{{ url_for('profile') }}">
+        <input type="hidden" name="action" value="update_notifications">
+
+        <div class="checkbox-group">
+            <input type="checkbox"
+                   id="email_notifications"
+                   name="email_notifications"
+                   {% if current_user.email_notifications %}checked{% endif %}>
+            <label for="email_notifications">Recevoir des emails de notification</label>
+        </div>
+
+        <div class="checkbox-group">
+            <input type="checkbox"
+                   id="inapp_notifications"
+                   name="inapp_notifications"
+                   {% if current_user.inapp_notifications %}checked{% endif %}>
+            <label for="inapp_notifications">Afficher les notifications dans l'application</label>
+        </div>
+
+        <button type="submit" class="btn">Sauvegarder les préférences</button>
+    </form>
+</div>
+
+<!-- Theme Section -->
+<div class="section">
+    <h2>Apparence</h2>
+    <div class="info-row">
+        <span class="info-label">Thème de l'interface</span>
+        <label class="theme-toggle">
+            <span class="toggle-label">Clair</span>
+            <input type="checkbox" id="themeToggle">
+            <span class="toggle-slider"></span>
+            <span class="toggle-label">Sombre</span>
+        </label>
+    </div>
+    <p class="help-text" style="margin-top: 10px;">
+        Votre choix sera sauvegardé automatiquement et appliqué à toute l'application.
+    </p>
+</div>
+
+<!-- Edit Username Section -->
+<div class="section">
+    <h2>Modifier le nom d'utilisateur</h2>
+    <form method="POST" action="{{ url_for('profile') }}">
+        <input type="hidden" name="action" value="update_username">
+
+        <div class="form-group">
+            <label for="username">Nom d'utilisateur</label>
+            <input type="text"
+                   id="username"
+                   name="username"
+                   pattern="[a-zA-Z0-9_-]{3,30}"
+                   maxlength="30"
+                   value="{{ current_user.username or '' }}"
+                   placeholder="Choisissez un nom d'utilisateur">
+            <p class="help-text">3-30 caractères : lettres, chiffres, tirets et underscores uniquement. Laissez vide pour utiliser votre email.</p>
+        </div>
+
+        <button type="submit" class="btn">Mettre à jour</button>
+    </form>
+</div>
+
+<!-- 2FA Section -->
+<div class="section">
+    <h2>Authentification à deux facteurs (2FA)</h2>
+    <div class="info-row">
+        <span class="info-label">Statut 2FA</span>
+        {% if current_user.is_2fa_enabled %}
+            <span class="badge badge-active">Activé</span>
+        {% else %}
+            <span class="badge badge-inactive">Désactivé</span>
+        {% endif %}
+    </div>
+
+    {% if current_user.is_2fa_enabled %}
+        <div class="info-row" style="margin-top: 15px;">
+            <span class="info-label">Méthode active</span>
+            <span class="info-value">
+                {% if current_user.twofa_method == 'email' %}
+                    Email ({{ current_user.email }})
+                {% elif current_user.twofa_method == 'totp' %}
+                    Application d'authentification
+                {% else %}
+                    Application d'authentification (ancienne configuration)
+                {% endif %}
+            </span>
+        </div>
+
+        <p class="help-text" style="margin: 15px 0;">
+            Vous pouvez changer de méthode de vérification ou désactiver complètement le 2FA.
+        </p>
+
+        <!-- Change Method Form -->
+        <form method="GET" action="{{ url_for('change_2fa_method') }}" style="margin-bottom: 20px;">
+            <div class="form-group">
+                <label for="new_method">Changer de méthode de vérification</label>
+                <select name="new_method" id="new_method" required>
+                    <option value="">-- Sélectionnez une nouvelle méthode --</option>
+                    {% if current_user.twofa_method != 'email' %}
+                    <option value="email">Email - Recevoir un code par email</option>
+                    {% endif %}
+                    {% if current_user.twofa_method != 'totp' %}
+                    <option value="totp">Application d'authentification (Google Authenticator, Authy, etc.)</option>
+                    {% endif %}
+                </select>
+                <p class="help-text">Vous devrez vérifier la nouvelle méthode pour confirmer le changement.</p>
+            </div>
+            <button type="submit" class="btn btn-purple">Modifier la méthode 2FA</button>
+        </form>
+
+        <!-- Recovery Codes -->
+        <div style="margin-bottom: 20px;">
+            <a href="{{ url_for('view_recovery_codes') }}" class="btn btn-orange" style="display: inline-block; text-decoration: none;">
+                Voir/Régénérer les codes de récupération
+            </a>
+            <p class="help-text" style="margin-top: 10px;">
+                Les codes de récupération vous permettent de vous connecter si vous perdez l'accès à votre méthode 2FA.
+            </p>
+        </div>
+
+        <!-- Disable 2FA Form -->
+        <form method="POST" action="{{ url_for('disable_2fa') }}" id="disable2faForm">
+            <div class="form-group">
+                <label for="disable_2fa_password">Mot de passe actuel (requis pour désactiver le 2FA)</label>
+                <input type="password" id="disable_2fa_password" name="password" required>
+            </div>
+            <button type="button" class="btn btn-danger" onclick="showDisable2FAModal()">Désactiver le 2FA</button>
+        </form>
+    {% else %}
+        <p class="help-text" style="margin: 15px 0;">
+            L'authentification à deux facteurs ajoute une couche de sécurité supplémentaire à votre compte.
+        </p>
+
+        <form method="GET" action="{{ url_for('setup_2fa') }}">
+            <div class="form-group">
+                <label for="twofa_method">Choisissez votre méthode de vérification</label>
+                <select name="method" id="twofa_method" required>
+                    <option value="">-- Sélectionnez une méthode --</option>
+                    <option value="email">Email - Recevoir un code par email</option>
+                    <option value="totp">Application d'authentification (Google Authenticator, Authy, etc.)</option>
+                </select>
+                <p class="help-text">L'option par email est plus simple mais l'application est plus sécurisée.</p>
+            </div>
+            <button type="submit" class="btn">Activer le 2FA</button>
+        </form>
+    {% endif %}
+</div>
+
+<!-- Change Password Section -->
+<div class="section">
+    <h2>Changer le mot de passe</h2>
+    <form method="POST" action="{{ url_for('profile') }}">
+        <input type="hidden" name="action" value="change_password">
+
+        <div class="form-group">
+            <label for="current_password">Mot de passe actuel</label>
+            <input type="password" id="current_password" name="current_password" required>
+        </div>
+
+        <div class="form-group">
+            <label for="new_password">Nouveau mot de passe</label>
+            <input type="password" id="new_password" name="new_password" required minlength="8">
+        </div>
+
+        <div class="form-group">
+            <label for="confirm_password">Confirmer le nouveau mot de passe</label>
+            <input type="password" id="confirm_password" name="confirm_password" required minlength="8">
+        </div>
+
+        <button type="submit" class="btn">Modifier le mot de passe</button>
+    </form>
+</div>
+
+<!-- Modale de confirmation désactivation 2FA -->
+<div id="disable2faModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; align-items: center; justify-content: center;">
+    <div class="glass-container" style="max-width: 450px; margin: 20px;">
+        <h2 style="margin-top: 0;">Désactiver le 2FA ?</h2>
+        <p class="help-text" style="margin: 20px 0;">
+            Êtes-vous sûr de vouloir désactiver l'authentification à deux facteurs ?
+            Cela réduira la sécurité de votre compte.
+        </p>
+        <div style="display: flex; gap: 10px; margin-top: 25px;">
+            <button type="button" class="btn btn-secondary" onclick="closeDisable2FAModal()" style="flex: 1;">Annuler</button>
+            <button type="button" class="btn" onclick="confirmDisable2FA()" style="flex: 1; background: #ef4444;">Désactiver</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Theme toggle functionality
+    const themeToggle = document.getElementById('themeToggle');
+
+    // Get current theme from localStorage (already loaded by base_auth.html)
+    let currentTheme = localStorage.getItem('theme') || 'light';
+
+    // Set checkbox state based on current theme
+    if (currentTheme === 'dark') {
+        themeToggle.checked = true;
+    }
+
+    // Toggle theme on change with smooth transition effect
+    themeToggle.addEventListener('change', () => {
+        // Create overlay for smooth transition
+        const overlay = document.createElement('div');
+        overlay.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 9999;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        `;
+
+        if (themeToggle.checked) {
+            // Dark theme transition effect
+            overlay.style.background = 'radial-gradient(circle at center, rgba(0, 255, 255, 0.15), transparent)';
+            document.body.appendChild(overlay);
+
+            // Trigger animation
+            setTimeout(() => {
+                overlay.style.opacity = '1';
+            }, 10);
+
+            setTimeout(() => {
+                document.body.classList.add('neon-night');
+                localStorage.setItem('theme', 'dark');
+
+                // Fade out overlay
+                overlay.style.opacity = '0';
+                setTimeout(() => {
+                    document.body.removeChild(overlay);
+                }, 300);
+            }, 300);
+        } else {
+            // Light theme transition effect
+            overlay.style.background = 'radial-gradient(circle at center, rgba(255, 255, 255, 0.3), transparent)';
+            document.body.appendChild(overlay);
+
+            // Trigger animation
+            setTimeout(() => {
+                overlay.style.opacity = '1';
+            }, 10);
+
+            setTimeout(() => {
+                document.body.classList.remove('neon-night');
+                localStorage.setItem('theme', 'light');
+
+                // Fade out overlay
+                overlay.style.opacity = '0';
+                setTimeout(() => {
+                    document.body.removeChild(overlay);
+                }, 300);
+            }, 300);
+        }
+    });
+
+    // 2FA disable modal functions
+    function showDisable2FAModal() {
+        const password = document.getElementById('disable_2fa_password').value;
+        if (!password) {
+            alert('Veuillez saisir votre mot de passe avant de désactiver le 2FA.');
+            return;
+        }
+        const modal = document.getElementById('disable2faModal');
+        modal.style.display = 'flex';
+    }
+
+    function closeDisable2FAModal() {
+        const modal = document.getElementById('disable2faModal');
+        modal.style.display = 'none';
+    }
+
+    function confirmDisable2FA() {
+        document.getElementById('disable2faForm').submit();
+    }
+
+    // Close modal on click outside
+    document.getElementById('disable2faModal').addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeDisable2FAModal();
+        }
+    });
+</script>
+{% endblock %}

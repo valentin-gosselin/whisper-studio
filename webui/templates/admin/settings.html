@@ -1,0 +1,364 @@
+{% extends "admin/base.html" %}
+{% block title %}Paramètres{% endblock %}
+
+{% block extra_css %}
+<style>
+    .settings-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+
+    .settings-title {
+        color: white;
+        font-size: 24px;
+        font-weight: 600;
+    }
+
+    body.neon-night .settings-title {
+        color: #00ffff;
+    }
+
+    .settings-section {
+        background: rgba(255,255,255,0.1);
+        padding: 20px;
+        border-radius: 10px;
+        margin-bottom: 20px;
+    }
+
+    body.neon-night .settings-section {
+        background: rgba(0,255,255,0.05);
+        border: 1px solid rgba(0,255,255,0.15);
+    }
+
+    .section-title {
+        color: white;
+        font-size: 18px;
+        font-weight: 600;
+        margin-bottom: 15px;
+        padding-bottom: 10px;
+        border-bottom: 2px solid rgba(255,255,255,0.2);
+    }
+
+    body.neon-night .section-title {
+        color: #00ffff;
+        border-bottom-color: rgba(0,255,255,0.3);
+    }
+
+    .setting-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 15px 0;
+        border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .setting-item:last-child {
+        border-bottom: none;
+    }
+
+    body.neon-night .setting-item {
+        border-bottom-color: rgba(0,255,255,0.1);
+    }
+
+    .setting-info {
+        flex: 1;
+    }
+
+    .setting-label {
+        color: white;
+        font-size: 15px;
+        font-weight: 500;
+        margin-bottom: 5px;
+    }
+
+    body.neon-night .setting-label {
+        color: #00ffff;
+    }
+
+    .setting-description {
+        color: white;
+        opacity: 0.7;
+        font-size: 13px;
+    }
+
+    .setting-control {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .toggle-switch {
+        position: relative;
+        width: 50px;
+        height: 26px;
+        background: rgba(255,255,255,0.2);
+        border-radius: 13px;
+        cursor: pointer;
+        border: 2px solid rgba(255,255,255,0.3);
+        transition: all 0.3s ease;
+    }
+
+    .toggle-switch.active {
+        background: #27ae60;
+        border-color: #27ae60;
+    }
+
+    .toggle-slider {
+        position: absolute;
+        top: 2px;
+        left: 2px;
+        width: 18px;
+        height: 18px;
+        background: white;
+        border-radius: 50%;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+
+    .toggle-switch.active .toggle-slider {
+        transform: translateX(24px);
+    }
+
+    body.neon-night .toggle-switch {
+        background: rgba(0,255,255,0.15);
+        border-color: rgba(0,255,255,0.3);
+    }
+
+    body.neon-night .toggle-switch.active {
+        background: #00ffff;
+        border-color: #00ffff;
+    }
+
+    body.neon-night .toggle-switch.active .toggle-slider {
+        background: #0a0a1a;
+    }
+
+    .setting-input {
+        padding: 8px 12px;
+        border-radius: 6px;
+        border: 2px solid rgba(255,255,255,0.2);
+        background: rgba(255,255,255,0.1);
+        color: white;
+        font-size: 14px;
+        width: 150px;
+    }
+
+    body.neon-night .setting-input {
+        border-color: rgba(0,255,255,0.3);
+        background: rgba(0,255,255,0.1);
+        color: #00ffff;
+    }
+
+    .save-section {
+        margin-top: 30px;
+        text-align: right;
+    }
+
+    .btn-save {
+        padding: 12px 30px;
+        background: white;
+        color: #667eea;
+        border: none;
+        border-radius: 8px;
+        font-size: 15px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .btn-save:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+
+    body.neon-night .btn-save {
+        background: #00ffff;
+        color: #0a0a1a;
+    }
+
+    .success-message {
+        background: rgba(39, 174, 96, 0.2);
+        border: 2px solid #27ae60;
+        color: white;
+        padding: 12px 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        display: none;
+    }
+
+    .success-message.show {
+        display: block;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="settings-header">
+    <h2 class="settings-title">Paramètres globaux</h2>
+</div>
+
+<div class="success-message" id="successMessage">
+    Paramètres sauvegardés avec succès !
+</div>
+
+<!-- Security Settings -->
+<div class="settings-section">
+    <h3 class="section-title">Sécurité</h3>
+
+    <div class="setting-item">
+        <div class="setting-info">
+            <div class="setting-label">Enregistrement sur invitation uniquement</div>
+            <div class="setting-description">Les nouveaux utilisateurs doivent avoir un lien d'invitation valide</div>
+        </div>
+        <div class="setting-control">
+            <div class="toggle-switch active" id="toggleInviteOnly" onclick="toggleSetting('invite_only_registration', this)">
+                <div class="toggle-slider"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="setting-item">
+        <div class="setting-info">
+            <div class="setting-label">2FA obligatoire</div>
+            <div class="setting-description">Tous les utilisateurs doivent activer l'authentification à deux facteurs</div>
+        </div>
+        <div class="setting-control">
+            <div class="toggle-switch" id="toggle2FARequired" onclick="toggleSetting('require_2fa', this)">
+                <div class="toggle-slider"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="setting-item">
+        <div class="setting-info">
+            <div class="setting-label">Durée de session (jours)</div>
+            <div class="setting-description">Durée de validité des sessions utilisateur</div>
+        </div>
+        <div class="setting-control">
+            <input type="number" class="setting-input" id="sessionDuration" value="7" min="1" max="30">
+        </div>
+    </div>
+</div>
+
+<!-- Storage Settings -->
+<div class="settings-section">
+    <h3 class="section-title">Stockage</h3>
+
+    <div class="setting-item">
+        <div class="setting-info">
+            <div class="setting-label">Limite de stockage par défaut (Go)</div>
+            <div class="setting-description">Espace de stockage alloué aux nouveaux utilisateurs</div>
+        </div>
+        <div class="setting-control">
+            <input type="number" class="setting-input" id="defaultStorageLimit" value="10" min="1" max="1000">
+        </div>
+    </div>
+
+    <div class="setting-item">
+        <div class="setting-info">
+            <div class="setting-label">Nettoyage automatique</div>
+            <div class="setting-description">Supprimer les fichiers temporaires après traitement</div>
+        </div>
+        <div class="setting-control">
+            <div class="toggle-switch active" id="toggleAutoCleanup" onclick="toggleSetting('auto_cleanup', this)">
+                <div class="toggle-slider"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="setting-item">
+        <div class="setting-info">
+            <div class="setting-label">Rétention des fichiers (jours)</div>
+            <div class="setting-description">Durée avant suppression automatique des transcriptions</div>
+        </div>
+        <div class="setting-control">
+            <input type="number" class="setting-input" id="fileRetention" value="30" min="1" max="365">
+        </div>
+    </div>
+</div>
+
+<!-- Notifications -->
+<div class="settings-section">
+    <h3 class="section-title">Notifications</h3>
+
+    <div class="setting-item">
+        <div class="setting-info">
+            <div class="setting-label">Notifications par email</div>
+            <div class="setting-description">Envoyer des notifications aux utilisateurs pour les événements importants (transcription terminée, etc.)</div>
+        </div>
+        <div class="setting-control">
+            <div class="toggle-switch active" id="toggleEmailNotifications" onclick="toggleSetting('email_notifications', this)">
+                <div class="toggle-slider"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="save-section">
+    <button class="btn-save" onclick="saveSettings()">Sauvegarder les modifications</button>
+</div>
+
+<script>
+// Toggle setting
+function toggleSetting(key, element) {
+    element.classList.toggle('active');
+}
+
+// Save all settings
+function saveSettings() {
+    const settings = {
+        invite_only_registration: document.getElementById('toggleInviteOnly').classList.contains('active'),
+        require_2fa: document.getElementById('toggle2FARequired').classList.contains('active'),
+        session_duration_days: parseInt(document.getElementById('sessionDuration').value),
+        default_storage_limit_gb: parseInt(document.getElementById('defaultStorageLimit').value),
+        auto_cleanup: document.getElementById('toggleAutoCleanup').classList.contains('active'),
+        file_retention_days: parseInt(document.getElementById('fileRetention').value),
+        email_notifications: document.getElementById('toggleEmailNotifications').classList.contains('active')
+    };
+
+    fetch('/admin/settings/update', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(settings)
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            const msg = document.getElementById('successMessage');
+            msg.classList.add('show');
+            setTimeout(() => msg.classList.remove('show'), 3000);
+            showToast('Paramètres enregistrés', 'success');
+        } else {
+            showToast('Erreur: ' + data.error, 'error');
+        }
+    })
+    .catch(() => {
+        showToast('Erreur réseau', 'error');
+    });
+}
+
+// Load settings on page load
+window.addEventListener('DOMContentLoaded', () => {
+    fetch('/admin/settings/current')
+    .then(res => res.json())
+    .then(data => {
+        if (data.settings) {
+            const s = data.settings;
+
+            // Set toggles
+            if (s.invite_only_registration === 'true') document.getElementById('toggleInviteOnly').classList.add('active');
+            if (s.require_2fa === 'true') document.getElementById('toggle2FARequired').classList.add('active');
+            if (s.auto_cleanup === 'true') document.getElementById('toggleAutoCleanup').classList.add('active');
+            if (s.email_notifications === 'true') document.getElementById('toggleEmailNotifications').classList.add('active');
+
+            // Set inputs
+            if (s.session_duration_days) document.getElementById('sessionDuration').value = s.session_duration_days;
+            if (s.default_storage_limit_gb) document.getElementById('defaultStorageLimit').value = s.default_storage_limit_gb;
+            if (s.file_retention_days) document.getElementById('fileRetention').value = s.file_retention_days;
+        }
+    });
+});
+</script>
+{% endblock %}

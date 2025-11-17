@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Admin Panel{% endblock %} - Whisper Studio</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%23667eea' width='100' height='100' rx='20'/><text x='50' y='70' font-size='60' text-anchor='middle' fill='white' font-family='Arial'>W</text></svg>">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        body.neon-night {
+            background: linear-gradient(135deg, #0a0a1a 0%, #1a0a2e 50%, #16213e 100%);
+        }
+
+        .admin-container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        .admin-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .admin-title {
+            color: white;
+            font-size: 32px;
+            font-weight: 700;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        body.neon-night .admin-title {
+            color: #00ffff;
+            text-shadow: 0 0 20px rgba(0,255,255,0.5);
+        }
+
+        .admin-actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: white;
+            color: #667eea;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+
+        .btn-secondary {
+            background: rgba(255,255,255,0.15);
+            color: white;
+            border: 2px solid rgba(255,255,255,0.25);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255,255,255,0.25);
+        }
+
+        body.neon-night .btn-primary {
+            background: #00ffff;
+            color: #0a0a1a;
+        }
+
+        body.neon-night .btn-secondary {
+            background: rgba(0,255,255,0.15);
+            color: #00ffff;
+            border-color: rgba(0,255,255,0.3);
+        }
+
+        /* Navigation */
+        .admin-nav {
+            background: rgba(255,255,255,0.15);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 30px;
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .nav-item {
+            padding: 10px 20px;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .nav-item:hover {
+            background: rgba(255,255,255,0.2);
+        }
+
+        .nav-item.active {
+            background: white;
+            color: #667eea;
+        }
+
+        body.neon-night .admin-nav {
+            background: rgba(0,255,255,0.1);
+            border: 1px solid rgba(0,255,255,0.2);
+        }
+
+        body.neon-night .nav-item {
+            color: #00ffff;
+        }
+
+        body.neon-night .nav-item.active {
+            background: #00ffff;
+            color: #0a0a1a;
+        }
+
+        /* Stats Grid for Dashboard */
+        .stats-grid {
+            display: grid !important;
+            grid-template-columns: repeat(4, 1fr) !important;
+            gap: 15px;
+            margin-bottom: 30px;
+            width: 100%;
+        }
+
+        @media (max-width: 1200px) {
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr) !important;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .stats-grid {
+                grid-template-columns: 1fr !important;
+            }
+        }
+
+        .stat-card {
+            background: rgba(255,255,255,0.2);
+            backdrop-filter: blur(10px);
+            border-radius: 10px;
+            padding: 15px;
+            color: white;
+        }
+
+        .stat-value {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .stat-label {
+            font-size: 13px;
+            opacity: 0.9;
+            margin-bottom: 4px;
+        }
+
+        .stat-detail {
+            font-size: 11px;
+            opacity: 0.7;
+        }
+
+        body.neon-night .stat-card {
+            background: rgba(0,255,255,0.1);
+            border: 1px solid rgba(0,255,255,0.2);
+        }
+
+        /* Main Content */
+        .admin-content {
+            background: rgba(255,255,255,0.15);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+        }
+
+        body.neon-night .admin-content {
+            background: rgba(0,255,255,0.05);
+            border: 1px solid rgba(0,255,255,0.2);
+        }
+
+        /* Table Styles */
+        .table-container {
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        body.neon-night .table-container {
+            background: rgba(0,255,255,0.05);
+            border: 1px solid rgba(0,255,255,0.15);
+        }
+
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .table th {
+            background: rgba(255,255,255,0.15);
+            color: white;
+            padding: 12px 15px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 13px;
+        }
+
+        .table td {
+            padding: 12px 15px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            color: white;
+            font-size: 14px;
+        }
+
+        .table tr:last-child td {
+            border-bottom: none;
+        }
+
+        body.neon-night .table th {
+            background: rgba(0,255,255,0.15);
+            color: #00ffff;
+        }
+
+        body.neon-night .table td {
+            border-bottom-color: rgba(0,255,255,0.1);
+            color: #00ffff;
+        }
+
+        /* Badge Styles */
+        .badge {
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+            display: inline-block;
+        }
+
+        .badge-admin {
+            background: #f39c12;
+            color: white;
+        }
+
+        .badge-user {
+            background: #3498db;
+            color: white;
+        }
+
+        .badge-active {
+            background: #27ae60;
+            color: white;
+        }
+
+        .badge-inactive {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .badge-warning {
+            background: #f39c12;
+            color: white;
+        }
+
+        /* Button Styles */
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 12px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-right: 5px;
+        }
+
+        .btn-toggle {
+            background: #f39c12;
+            color: white;
+        }
+
+        .btn-toggle:hover {
+            background: #e67e22;
+        }
+
+        .btn-delete {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .btn-delete:hover {
+            background: #c0392b;
+        }
+
+        /* Toast Notifications */
+        #toastContainer {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 10000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .toast {
+            background: white;
+            color: #333;
+            padding: 15px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            min-width: 300px;
+            max-width: 400px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            animation: slideIn 0.3s ease-out;
+            border-left: 4px solid #667eea;
+        }
+
+        .toast.success {
+            border-left-color: #27ae60;
+        }
+
+        .toast.error {
+            border-left-color: #e74c3c;
+        }
+
+        .toast.warning {
+            border-left-color: #f39c12;
+        }
+
+        .toast.info {
+            border-left-color: #3498db;
+        }
+
+        .toast-icon {
+            font-size: 20px;
+            flex-shrink: 0;
+        }
+
+        .toast-message {
+            flex: 1;
+            font-size: 14px;
+        }
+
+        .toast-close {
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            color: #999;
+            padding: 0;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .toast-close:hover {
+            color: #333;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideOut {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+        }
+
+        /* Modal Confirmation */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(4px);
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.2s ease-out;
+        }
+
+        .modal-dialog {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            animation: scaleIn 0.2s ease-out;
+        }
+
+        .modal-dialog h3 {
+            margin: 0 0 15px 0;
+            font-size: 20px;
+            color: #333;
+        }
+
+        .modal-dialog p {
+            margin: 0 0 25px 0;
+            color: #666;
+            line-height: 1.5;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        /* Modal button styles - use dedicated classes to avoid conflicts */
+        .modal-btn-cancel {
+            background: #95a5a6;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .modal-btn-cancel:hover {
+            background: #7f8c8d;
+        }
+
+        .modal-btn-confirm {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .modal-btn-confirm:hover {
+            background: #5568d3;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes scaleIn {
+            from {
+                transform: scale(0.9);
+                opacity: 0;
+            }
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        {% block extra_css %}{% endblock %}
+    </style>
+</head>
+<body>
+    <div class="admin-container">
+        <!-- Header -->
+        <div class="admin-header">
+            <h1 class="admin-title">Panneau d'administration</h1>
+            <div class="admin-actions">
+                <a href="/" class="btn btn-secondary">← Retour à l'app</a>
+                <a href="/profile" class="btn btn-secondary">Mon profil</a>
+            </div>
+        </div>
+
+        <!-- Navigation -->
+        <nav class="admin-nav">
+            <a href="/admin" class="nav-item {% if request.path == '/admin' %}active{% endif %}">Dashboard</a>
+            <a href="/admin/users" class="nav-item {% if '/users' in request.path %}active{% endif %}">Utilisateurs</a>
+            <a href="/admin/invitations" class="nav-item {% if '/invitations' in request.path %}active{% endif %}">Invitations</a>
+            <a href="/admin/jobs" class="nav-item {% if '/jobs' in request.path %}active{% endif %}">Transcriptions</a>
+            <a href="/admin/settings" class="nav-item {% if '/settings' in request.path %}active{% endif %}">Paramètres</a>
+        </nav>
+
+        <!-- Main Content -->
+        <div class="admin-content">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }}">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            {% block content %}{% endblock %}
+        </div>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div id="toastContainer"></div>
+
+    <!-- Modal Confirmation Dialog -->
+    <div id="confirmModal" class="modal-overlay" style="display: none;">
+        <div class="modal-dialog">
+            <h3 id="confirmTitle">Confirmation</h3>
+            <p id="confirmMessage"></p>
+            <div class="modal-actions">
+                <button id="confirmCancel" class="modal-btn-cancel">Annuler</button>
+                <button id="confirmOk" class="modal-btn-confirm">Confirmer</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Prompt Dialog -->
+    <div id="promptModal" class="modal-overlay" style="display: none;">
+        <div class="modal-dialog">
+            <h3 id="promptTitle">Saisie</h3>
+            <p id="promptMessage"></p>
+            <input type="text" id="promptInput" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; margin-bottom: 20px; font-size: 14px;">
+            <div class="modal-actions">
+                <button id="promptCancel" class="modal-btn-cancel">Annuler</button>
+                <button id="promptOk" class="modal-btn-confirm">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Load global theme from localStorage (controlled from profile page)
+        const savedTheme = localStorage.getItem('theme') || 'light';
+
+        if (savedTheme === 'dark') {
+            document.body.classList.add('neon-night');
+        }
+
+        // Toast Notification System
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+
+            const icons = {
+                success: '✓',
+                error: '✗',
+                warning: '!',
+                info: 'i'
+            };
+
+            toast.innerHTML = `
+                <span class="toast-icon">${icons[type] || icons.info}</span>
+                <span class="toast-message">${message}</span>
+                <button class="toast-close" onclick="this.parentElement.remove()">×</button>
+            `;
+
+            container.appendChild(toast);
+
+            // Auto remove after 5 seconds
+            setTimeout(() => {
+                if (toast.parentElement) {
+                    toast.style.animation = 'slideOut 0.3s ease-out';
+                    setTimeout(() => toast.remove(), 300);
+                }
+            }, 5000);
+        }
+
+        // Confirm Dialog System
+        function showConfirm(message, title = 'Confirmation') {
+            return new Promise((resolve) => {
+                const modal = document.getElementById('confirmModal');
+                const titleEl = document.getElementById('confirmTitle');
+                const messageEl = document.getElementById('confirmMessage');
+                const okBtn = document.getElementById('confirmOk');
+                const cancelBtn = document.getElementById('confirmCancel');
+
+                titleEl.textContent = title;
+                messageEl.textContent = message;
+                modal.style.display = 'flex';
+
+                function cleanup() {
+                    modal.style.display = 'none';
+                    okBtn.onclick = null;
+                    cancelBtn.onclick = null;
+                    modal.onclick = null;
+                }
+
+                okBtn.onclick = () => {
+                    cleanup();
+                    resolve(true);
+                };
+
+                cancelBtn.onclick = () => {
+                    cleanup();
+                    resolve(false);
+                };
+
+                // Close on backdrop click
+                modal.onclick = (e) => {
+                    if (e.target === modal) {
+                        cleanup();
+                        resolve(false);
+                    }
+                };
+            });
+        }
+
+        // Prompt Dialog System
+        function showPrompt(message, defaultValue = '', title = 'Saisie') {
+            return new Promise((resolve) => {
+                const modal = document.getElementById('promptModal');
+                const titleEl = document.getElementById('promptTitle');
+                const messageEl = document.getElementById('promptMessage');
+                const inputEl = document.getElementById('promptInput');
+                const okBtn = document.getElementById('promptOk');
+                const cancelBtn = document.getElementById('promptCancel');
+
+                titleEl.textContent = title;
+                messageEl.textContent = message;
+                inputEl.value = defaultValue;
+                modal.style.display = 'flex';
+
+                // Focus input
+                setTimeout(() => inputEl.focus(), 100);
+
+                function cleanup() {
+                    modal.style.display = 'none';
+                    okBtn.onclick = null;
+                    cancelBtn.onclick = null;
+                    modal.onclick = null;
+                    inputEl.onkeydown = null;
+                }
+
+                okBtn.onclick = () => {
+                    cleanup();
+                    resolve(inputEl.value);
+                };
+
+                cancelBtn.onclick = () => {
+                    cleanup();
+                    resolve(null);
+                };
+
+                // Enter key to submit
+                inputEl.onkeydown = (e) => {
+                    if (e.key === 'Enter') {
+                        cleanup();
+                        resolve(inputEl.value);
+                    } else if (e.key === 'Escape') {
+                        cleanup();
+                        resolve(null);
+                    }
+                };
+
+                // Close on backdrop click
+                modal.onclick = (e) => {
+                    if (e.target === modal) {
+                        cleanup();
+                        resolve(null);
+                    }
+                };
+            });
+        }
+
+        // Make functions globally available
+        window.showToast = showToast;
+        window.showConfirm = showConfirm;
+        window.showPrompt = showPrompt;
+
+        {% block extra_js %}{% endblock %}
+    </script>
+</body>
+</html>

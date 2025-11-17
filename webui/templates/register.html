@@ -1,0 +1,77 @@
+{% extends "base_auth.html" %}
+
+{% block title %}Inscription - Whisper Studio{% endblock %}
+{% block subtitle %}Créez votre compte{% endblock %}
+
+{% block content %}
+<form method="POST" action="{{ url_for('register') }}">
+    {% if token %}
+        <input type="hidden" name="token" value="{{ token }}">
+
+        {% if invitation %}
+        <div class="alert alert-info" style="margin-bottom: 25px;">
+            <strong>Invitation pour :</strong> {{ invitation.email }}
+        </div>
+        {% endif %}
+    {% endif %}
+
+    <div class="form-group">
+        <label for="email">Email</label>
+        <input type="email"
+               id="email"
+               name="email"
+               required
+               autofocus
+               {% if invitation %}value="{{ invitation.email }}" readonly{% endif %}>
+        {% if invitation %}
+            <p class="help-text">Email pré-rempli depuis votre invitation</p>
+        {% endif %}
+    </div>
+
+    <div class="form-group">
+        <label for="username">Nom d'utilisateur (optionnel)</label>
+        <input type="text"
+               id="username"
+               name="username"
+               pattern="[a-zA-Z0-9_-]{3,30}"
+               maxlength="30">
+        <p class="help-text">3-30 caractères : lettres, chiffres, tirets et underscores uniquement</p>
+    </div>
+
+    <div class="form-group">
+        <label for="password">Mot de passe</label>
+        <input type="password" id="password" name="password" required minlength="8">
+        <p class="help-text">Minimum 8 caractères</p>
+    </div>
+
+    <div class="form-group">
+        <label for="password_confirm">Confirmer le mot de passe</label>
+        <input type="password" id="password_confirm" name="password_confirm" required minlength="8">
+    </div>
+
+    <button type="submit" class="btn">Créer mon compte</button>
+</form>
+
+<div class="links">
+    <a href="{{ url_for('login') }}">← Retour à la connexion</a>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    // Validate password match
+    const password = document.getElementById('password');
+    const confirmPassword = document.getElementById('password_confirm');
+
+    function validatePassword() {
+        if (password.value !== confirmPassword.value) {
+            confirmPassword.setCustomValidity('Les mots de passe ne correspondent pas');
+        } else {
+            confirmPassword.setCustomValidity('');
+        }
+    }
+
+    password.addEventListener('change', validatePassword);
+    confirmPassword.addEventListener('keyup', validatePassword);
+</script>
+{% endblock %}

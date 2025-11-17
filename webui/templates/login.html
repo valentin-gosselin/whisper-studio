@@ -1,0 +1,32 @@
+{% extends "base_auth.html" %}
+
+{% block title %}Connexion - Whisper Studio{% endblock %}
+{% block subtitle %}Connectez-vous à votre compte{% endblock %}
+
+{% block content %}
+<form method="POST" action="{{ url_for('login') }}">
+    <div class="form-group">
+        <label for="email">Email</label>
+        <input type="email" id="email" name="email" required autofocus>
+    </div>
+
+    <div class="form-group">
+        <label for="password">Mot de passe</label>
+        <input type="password" id="password" name="password" required>
+    </div>
+
+    <div class="checkbox-group">
+        <input type="checkbox" id="remember" name="remember">
+        <label for="remember">Se souvenir de moi</label>
+    </div>
+
+    <button type="submit" class="btn">Se connecter</button>
+</form>
+
+<div class="links">
+    <a href="{{ url_for('reset_password_request') }}">Mot de passe oublié ?</a>
+    <p class="help-text" style="margin-top: 15px;">
+        Pas encore de compte ? Contactez un administrateur pour obtenir une invitation.
+    </p>
+</div>
+{% endblock %}

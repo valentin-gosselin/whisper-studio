@@ -1,0 +1,133 @@
+{% extends "base_auth.html" %}
+
+{% block title %}Codes de récupération 2FA - Whisper Studio{% endblock %}
+{% block subtitle %}Codes de récupération{% endblock %}
+
+{% block extra_styles %}
+<style>
+    .warning-box {
+        background: rgba(231, 76, 60, 0.2);
+        border: 1px solid rgba(231, 76, 60, 0.5);
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 20px;
+        backdrop-filter: blur(5px);
+    }
+
+    .info-box {
+        background: rgba(102, 126, 234, 0.15);
+        border: 1px solid rgba(102, 126, 234, 0.4);
+        padding: 20px;
+        border-radius: 10px;
+        margin: 20px 0;
+        backdrop-filter: blur(10px);
+    }
+
+    .codes-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+        margin: 20px 0;
+    }
+
+    .code-item {
+        background: rgba(255, 255, 255, 0.1);
+        padding: 12px;
+        border-radius: 5px;
+        font-family: monospace;
+        font-size: 14px;
+        text-align: center;
+        font-weight: 600;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+    }
+
+    @media (max-width: 480px) {
+        .codes-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="max-width: 600px; margin: 0 auto;">
+    {% if recovery_codes %}
+        <!-- Codes générés -->
+        {% if newly_generated %}
+        <div class="warning-box">
+            <strong>Important :</strong> Ces nouveaux codes ont remplacé vos anciens codes de récupération. Les anciens codes ne fonctionnent plus.
+        </div>
+        {% endif %}
+
+        <div class="info-box">
+            <h3 style="margin-top: 0; margin-bottom: 15px;">Vos codes de récupération</h3>
+            <p class="help-text">
+                Chaque code ne peut être utilisé qu'une seule fois. Conservez-les dans un endroit sûr.
+            </p>
+
+            <div class="codes-grid">
+                {% for code in recovery_codes %}
+                <div class="code-item">{{ code }}</div>
+                {% endfor %}
+            </div>
+
+            <button type="button" onclick="downloadRecoveryCodes()" class="btn" style="width: 100%;">
+                Télécharger les codes
+            </button>
+        </div>
+
+        <div class="warning-box">
+            <strong>Attention :</strong> Après avoir quitté cette page, vous ne pourrez plus voir ces codes. Assurez-vous de les avoir sauvegardés avant de continuer.
+        </div>
+
+        <div class="links">
+            <a href="{{ url_for('profile') }}">← Retour au profil</a>
+        </div>
+
+    {% else %}
+        <!-- Demande de mot de passe -->
+        <div class="warning-box">
+            <strong>Attention :</strong> La régénération de nouveaux codes invalidera tous vos codes de récupération actuels.
+        </div>
+
+        <p class="help-text" style="text-align: center; margin: 20px 0;">
+            Pour des raisons de sécurité, veuillez confirmer votre identité avec votre mot de passe.
+        </p>
+
+        <form method="POST" action="{{ url_for('view_recovery_codes') }}">
+            <div class="form-group">
+                <label for="password">Mot de passe actuel</label>
+                <input type="password" id="password" name="password" required autofocus>
+                <p class="help-text">Saisissez votre mot de passe pour régénérer vos codes de récupération</p>
+            </div>
+
+            <button type="submit" class="btn">Régénérer les codes de récupération</button>
+        </form>
+
+        <div class="links" style="margin-top: 20px;">
+            <a href="{{ url_for('profile') }}">← Annuler</a>
+        </div>
+    {% endif %}
+</div>
+
+<script>
+function downloadRecoveryCodes() {
+    const codes = {{ recovery_codes | tojson }};
+    const text = "Codes de récupération 2FA - Whisper Studio\n\n" +
+                 "IMPORTANT: Conservez ces codes en lieu sûr !\n\n" +
+                 codes.join('\n') +
+                 "\n\n---\n" +
+                 "Ces codes ne peuvent être utilisés qu'une seule fois.\n" +
+                 "Gardez-les dans un endroit sûr et accessible uniquement par vous.\n" +
+                 "Date de génération : " + new Date().toLocaleString('fr-FR');
+
+    const blob = new Blob([text], { type: 'text/plain' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'whisper-studio-recovery-codes.txt';
+    a.click();
+    window.URL.revokeObjectURL(url);
+}
+</script>
+{% endblock %}

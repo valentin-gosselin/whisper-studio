@@ -1,0 +1,153 @@
+{% extends "admin/base.html" %}
+{% block title %}Invitations{% endblock %}
+
+{% block content %}
+<h2 style="color: white; font-size: 24px; font-weight: 600; margin-bottom: 20px;">Gestion des invitations</h2>
+
+<!-- Formulaire d'invitation -->
+<div style="background: rgba(255,255,255,0.15); padding: 20px; border-radius: 10px; margin-bottom: 30px;">
+    <h3 style="color: white; font-size: 18px; margin-bottom: 15px;">Inviter un utilisateur</h3>
+    <form id="inviteForm" style="display: flex; gap: 10px; align-items: end;">
+        <div style="flex: 1;">
+            <label style="color: white; font-size: 13px; display: block; margin-bottom: 5px;">Email</label>
+            <input type="email" id="inviteEmail" required
+                   style="width: 100%; padding: 10px; border-radius: 8px; border: 2px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.1); color: white; font-size: 14px;">
+        </div>
+        <div style="width: 150px;">
+            <label style="color: white; font-size: 13px; display: block; margin-bottom: 5px;">Validité (jours)</label>
+            <input type="number" id="expiryDays" value="7" min="1" max="30" required
+                   style="width: 100%; padding: 10px; border-radius: 8px; border: 2px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.1); color: white; font-size: 14px;">
+        </div>
+        <button type="submit" class="btn btn-primary" style="padding: 10px 20px;">Envoyer</button>
+    </form>
+</div>
+
+<!-- Liste des invitations -->
+<div class="table-container">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Email</th>
+                <th>Créée le</th>
+                <th>Expire le</th>
+                <th>Statut</th>
+                <th>Invité par</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for inv in invitations %}
+            <tr>
+                <td>{{ inv.email }}</td>
+                <td>{{ inv.created_at.strftime('%d/%m/%Y %H:%M') }}</td>
+                <td>{{ inv.expires_at.strftime('%d/%m/%Y %H:%M') }}</td>
+                <td>
+                    {% if inv.status == 'pending' %}
+                        <span class="badge badge-warning">En attente</span>
+                    {% elif inv.status == 'accepted' %}
+                        <span class="badge badge-active">Acceptée</span>
+                    {% elif inv.status == 'expired' %}
+                        <span class="badge" style="background: #95a5a6;">Expirée</span>
+                    {% elif inv.status == 'revoked' %}
+                        <span class="badge badge-inactive">Révoquée</span>
+                    {% endif %}
+                </td>
+                <td style="opacity: 0.7; font-size: 12px;">Admin</td>
+                <td>
+                    {% if inv.status == 'pending' %}
+                        <button class="btn-small" style="background: #3498db; color: white; margin-right: 5px;" onclick="resendInvitation({{ inv.id }}, '{{ inv.email }}')">
+                            Renvoyer
+                        </button>
+                        <button class="btn-small btn-delete" onclick="revokeInvitation({{ inv.id }})">
+                            Révoquer
+                        </button>
+                    {% else %}
+                        <span style="opacity: 0.5; font-size: 12px;">-</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="6" style="text-align: center; opacity: 0.5; padding: 30px;">
+                    Aucune invitation
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<script>
+document.getElementById('inviteForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    const email = document.getElementById('inviteEmail').value;
+    const expiryDays = document.getElementById('expiryDays').value;
+
+    const formData = new FormData();
+    formData.append('email', email);
+    formData.append('expiry_days', expiryDays);
+
+    try {
+        const res = await fetch('/admin/invitations/send', {
+            method: 'POST',
+            body: formData
+        });
+        const data = await res.json();
+
+        if (data.success) {
+            showToast('Invitation envoyée avec succès !', 'success');
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            showToast('Erreur: ' + data.error, 'error');
+        }
+    } catch (error) {
+        showToast('Erreur réseau', 'error');
+    }
+});
+
+async function revokeInvitation(invId) {
+    const confirmed = await showConfirm('Révoquer cette invitation ?');
+    if (!confirmed) return;
+
+    try {
+        const res = await fetch(`/admin/invitations/${invId}/revoke`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'}
+        });
+        const data = await res.json();
+
+        if (data.success) {
+            showToast('Invitation révoquée', 'success');
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            showToast('Erreur: ' + data.error, 'error');
+        }
+    } catch (error) {
+        showToast('Erreur réseau', 'error');
+    }
+}
+
+async function resendInvitation(invId, email) {
+    const confirmed = await showConfirm(`Renvoyer l'invitation à ${email} ?`);
+    if (!confirmed) return;
+
+    try {
+        const res = await fetch(`/admin/invitations/${invId}/resend`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'}
+        });
+        const data = await res.json();
+
+        if (data.success) {
+            showToast('Invitation renvoyée avec succès !', 'success');
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            showToast('Erreur: ' + data.error, 'error');
+        }
+    } catch (error) {
+        showToast('Erreur réseau', 'error');
+    }
+}
+</script>
+{% endblock %}

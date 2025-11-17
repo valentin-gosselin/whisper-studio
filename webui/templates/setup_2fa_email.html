@@ -1,0 +1,160 @@
+{% extends "base_auth.html" %}
+
+{% block title %}Configuration 2FA Email - Whisper Studio{% endblock %}
+{% block subtitle %}Vérification par email{% endblock %}
+
+{% block extra_styles %}
+<style>
+    .email-info-box {
+        background: rgba(102, 126, 234, 0.15);
+        border: 1px solid rgba(102, 126, 234, 0.4);
+        padding: 20px;
+        border-radius: 10px;
+        margin: 20px 0;
+        backdrop-filter: blur(10px);
+        text-align: center;
+    }
+
+    .email-display {
+        font-size: 16px;
+        font-weight: 600;
+        margin: 10px 0;
+        color: inherit;
+    }
+
+    .recovery-section {
+        background: rgba(255, 193, 7, 0.15);
+        border: 1px solid rgba(255, 193, 7, 0.4);
+        padding: 20px;
+        border-radius: 10px;
+        margin: 20px 0;
+        backdrop-filter: blur(10px);
+    }
+
+    .recovery-section h3 {
+        margin-top: 0;
+        margin-bottom: 15px;
+        font-size: 18px;
+    }
+
+    .codes-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+        margin: 15px 0;
+    }
+
+    .code-item {
+        background: rgba(255, 255, 255, 0.1);
+        padding: 8px;
+        border-radius: 5px;
+        font-family: monospace;
+        font-size: 12px;
+        text-align: center;
+        font-weight: 600;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+    }
+
+    .warning-box {
+        background: rgba(231, 76, 60, 0.2);
+        border: 1px solid rgba(231, 76, 60, 0.5);
+        border-radius: 8px;
+        padding: 12px;
+        margin-bottom: 15px;
+        backdrop-filter: blur(5px);
+    }
+
+    .resend-link {
+        display: inline-block;
+        margin-top: 15px;
+        font-size: 14px;
+        cursor: pointer;
+        text-decoration: underline;
+    }
+
+    @media (max-width: 480px) {
+        .codes-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="max-width: 600px; margin: 0 auto;">
+    <p class="help-text" style="text-align: center; margin-bottom: 20px;">
+        Un code de vérification a été envoyé à votre adresse email
+    </p>
+
+    <!-- Email Info -->
+    <div class="email-info-box">
+        <p style="margin: 0 0 10px 0;">Code envoyé à :</p>
+        <div class="email-display">{{ user_email }}</div>
+        <p class="help-text" style="margin: 10px 0 0 0; font-size: 13px;">
+            Le code expire dans 10 minutes
+        </p>
+    </div>
+
+    <!-- Verification Form -->
+    <form method="POST" action="{{ url_for('verify_2fa_setup') }}">
+        <div class="form-group">
+            <label for="code">Code de vérification</label>
+            <input type="text" id="code" name="code" required autofocus maxlength="6" pattern="[0-9]{6}" placeholder="000000">
+            <p class="help-text">Saisissez le code à 6 chiffres reçu par email</p>
+        </div>
+
+        <button type="submit" class="btn">Activer le 2FA</button>
+    </form>
+
+    <!-- Resend Code -->
+    <div style="text-align: center;">
+        <a href="{{ url_for('setup_2fa', method='email') }}" class="resend-link">
+            Renvoyer le code
+        </a>
+    </div>
+
+    <!-- Recovery Codes -->
+    <div class="recovery-section">
+        <h3>Codes de récupération</h3>
+        <div class="warning-box">
+            <strong>Important :</strong> Sauvegardez ces codes dans un endroit sûr.
+            Vous pourrez les utiliser si vous n'avez plus accès à votre email.
+            Chaque code ne peut être utilisé qu'une seule fois.
+        </div>
+
+        <div class="codes-grid">
+            {% for code in recovery_codes %}
+            <div class="code-item">{{ code }}</div>
+            {% endfor %}
+        </div>
+
+        <button type="button" onclick="downloadRecoveryCodes()" class="btn btn-secondary">
+            Télécharger les codes
+        </button>
+    </div>
+
+    <div class="links">
+        <a href="{{ url_for('profile') }}">← Annuler</a>
+    </div>
+</div>
+
+<script>
+function downloadRecoveryCodes() {
+    const codes = {{ recovery_codes | tojson }};
+    const text = "Codes de récupération 2FA - Whisper Studio\n\n" +
+                 "IMPORTANT: Conservez ces codes en lieu sûr !\n\n" +
+                 codes.join('\n') +
+                 "\n\n---\n" +
+                 "Ces codes ne peuvent être utilisés qu'une seule fois.\n" +
+                 "Gardez-les dans un endroit sûr et accessible uniquement par vous.";
+
+    const blob = new Blob([text], { type: 'text/plain' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'whisper-studio-recovery-codes.txt';
+    a.click();
+    window.URL.revokeObjectURL(url);
+}
+</script>
+{% endblock %}

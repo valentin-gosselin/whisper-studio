@@ -80,3 +80,6 @@ Thumbs.db
 
 # Environment
 .env
+
+# Roadmap (contains internal planning notes)
+ROADMAP.md

@@ -1,0 +1,27 @@
+{% extends "base_auth.html" %}
+
+{% block title %}Code de récupération - Whisper Studio{% endblock %}
+{% block subtitle %}Utilisez un code de récupération{% endblock %}
+
+{% block content %}
+<form method="POST" action="{{ url_for('verify_2fa_recovery') }}">
+    <div style="background: rgba(255, 193, 7, 0.1); border-left: 4px solid #ffc107; padding: 15px; margin-bottom: 25px; border-radius: 5px;">
+        <p style="color: rgba(255,255,255,0.9); font-size: 14px; margin: 0;">
+            ⚠️ Les codes de récupération ne peuvent être utilisés qu'une seule fois.
+            Après avoir utilisé tous vos codes, vous devrez reconfigurer le 2FA.
+        </p>
+    </div>
+
+    <div class="form-group">
+        <label for="recovery_code">Code de récupération</label>
+        <input type="text" id="recovery_code" name="recovery_code" required autofocus placeholder="XXXX-XXXX-XXXX-XXXX">
+        <p class="help-text">Format : XXXX-XXXX-XXXX-XXXX</p>
+    </div>
+
+    <button type="submit" class="btn">Vérifier le code</button>
+</form>
+
+<div class="links" style="margin-top: 20px;">
+    <a href="{{ url_for('verify_2fa') }}">← Retour à la vérification 2FA</a>
+</div>
+{% endblock %}

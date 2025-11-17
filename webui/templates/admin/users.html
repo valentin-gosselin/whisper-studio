@@ -1,0 +1,429 @@
+{% extends "admin/base.html" %}
+{% block title %}Utilisateurs{% endblock %}
+
+{% block extra_css %}
+<style>
+    .users-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+
+    .users-title {
+        color: white;
+        font-size: 24px;
+        font-weight: 600;
+    }
+
+    body.neon-night .users-title {
+        color: #00ffff;
+    }
+
+    .table-container {
+        background: rgba(255,255,255,0.1);
+        border-radius: 10px;
+        overflow: hidden;
+    }
+
+    .table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .table th {
+        background: rgba(255,255,255,0.15);
+        color: white;
+        padding: 12px 15px;
+        text-align: left;
+        font-weight: 600;
+        font-size: 13px;
+    }
+
+    .table td {
+        padding: 12px 15px;
+        border-bottom: 1px solid rgba(255,255,255,0.1);
+        color: white;
+        font-size: 14px;
+    }
+
+    .table tr:last-child td {
+        border-bottom: none;
+    }
+
+    body.neon-night .table th {
+        background: rgba(0,255,255,0.15);
+        color: #00ffff;
+    }
+
+    body.neon-night .table td {
+        border-bottom-color: rgba(0,255,255,0.1);
+        color: #00ffff;
+    }
+
+    .badge {
+        padding: 4px 10px;
+        border-radius: 4px;
+        font-size: 12px;
+        font-weight: 600;
+        display: inline-block;
+    }
+
+    .badge-admin {
+        background: #f39c12;
+        color: white;
+    }
+
+    .badge-user {
+        background: #3498db;
+        color: white;
+    }
+
+    .badge-active {
+        background: #27ae60;
+        color: white;
+    }
+
+    .badge-inactive {
+        background: #e74c3c;
+        color: white;
+    }
+
+    .btn-small {
+        padding: 6px 12px;
+        font-size: 12px;
+        border-radius: 6px;
+        border: none;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        margin-right: 5px;
+    }
+
+    .btn-toggle {
+        background: #f39c12;
+        color: white;
+    }
+
+    .btn-toggle:hover {
+        background: #e67e22;
+    }
+
+    .btn-delete {
+        background: #e74c3c;
+        color: white;
+    }
+
+    .btn-delete:hover {
+        background: #c0392b;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="users-header">
+    <h2 class="users-title">Gestion des utilisateurs</h2>
+    <button class="btn" onclick="showCreateUserModal()">Créer un utilisateur</button>
+</div>
+
+<!-- Search and Filters -->
+<div class="filter-bar" style="background: rgba(255,255,255,0.1); padding: 15px; border-radius: 8px; margin-bottom: 20px; display: flex; gap: 10px; align-items: center;">
+    <input type="text" id="searchEmail" placeholder="Rechercher par email..."
+           style="flex: 1; padding: 8px 12px; border-radius: 6px; border: 2px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.1); color: white;"
+           onkeyup="filterUsers()">
+
+    <select id="filterRole" onchange="filterUsers()"
+            style="padding: 8px 12px; border-radius: 6px; border: 2px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.1); color: white;">
+        <option value="">Tous les rôles</option>
+        <option value="admin">Admin</option>
+        <option value="user">User</option>
+    </select>
+
+    <select id="filterStatus" onchange="filterUsers()"
+            style="padding: 8px 12px; border-radius: 6px; border: 2px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.1); color: white;">
+        <option value="">Tous les statuts</option>
+        <option value="active">Actif</option>
+        <option value="inactive">Inactif</option>
+    </select>
+</div>
+
+<div class="table-container">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Email</th>
+                <th>Rôle</th>
+                <th>Statut</th>
+                <th>Stockage</th>
+                <th>2FA</th>
+                <th>Inscrit le</th>
+                <th>Dernière connexion</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for user in users %}
+            <tr>
+                <td>{{ user.id }}</td>
+                <td>{{ user.email }}</td>
+                <td>
+                    {% if user.id != current_user.id %}
+                        <select onchange="changeRole({{ user.id }}, this.value)" style="padding: 4px 8px; border-radius: 4px; background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2);">
+                            <option value="user" {% if user.role == 'user' %}selected{% endif %}>User</option>
+                            <option value="admin" {% if user.role == 'admin' %}selected{% endif %}>Admin</option>
+                        </select>
+                    {% else %}
+                        <span class="badge badge-admin">Admin</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if user.is_active %}
+                        <span class="badge badge-active">Actif</span>
+                    {% else %}
+                        <span class="badge badge-inactive">Inactif</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <span style="cursor: pointer; text-decoration: underline;" onclick="changeStorageLimit({{ user.id }}, {{ user.storage_limit_bytes }})">
+                        {{ (user.storage_limit_bytes / 1024 / 1024 / 1024) | round(1) }} Go
+                    </span>
+                </td>
+                <td>
+                    {% if user.is_2fa_enabled %}
+                        <span class="badge badge-active">Activé</span>
+                    {% else %}
+                        <span style="opacity: 0.5;">-</span>
+                    {% endif %}
+                </td>
+                <td>{{ user.created_at.strftime('%d/%m/%Y %H:%M') }}</td>
+                <td>
+                    {% if user.last_login_at %}
+                        {{ user.last_login_at.strftime('%d/%m/%Y %H:%M') }}
+                    {% else %}
+                        <span style="opacity: 0.5;">Jamais</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if user.id != current_user.id %}
+                        <button class="btn-small btn-toggle" onclick="toggleUser({{ user.id }})">
+                            {% if user.is_active %}Désactiver{% else %}Activer{% endif %}
+                        </button>
+                        <button class="btn-small btn-delete" onclick="deleteUser({{ user.id }}, '{{ user.email }}')">
+                            Supprimer
+                        </button>
+                    {% else %}
+                        <span style="opacity: 0.5; font-size: 12px;">Vous</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Create User Modal -->
+<div id="createUserModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; align-items: center; justify-content: center;">
+    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 15px; max-width: 500px; width: 90%;">
+        <h3 style="color: white; margin-bottom: 20px;">Créer un nouvel utilisateur</h3>
+
+        <div style="margin-bottom: 15px;">
+            <label style="color: white; display: block; margin-bottom: 5px;">Email</label>
+            <input type="email" id="newUserEmail" style="width: 100%; padding: 10px; border-radius: 6px; border: none;">
+        </div>
+
+        <div style="margin-bottom: 15px;">
+            <label style="color: white; display: block; margin-bottom: 5px;">Mot de passe</label>
+            <input type="password" id="newUserPassword" style="width: 100%; padding: 10px; border-radius: 6px; border: none;">
+        </div>
+
+        <div style="margin-bottom: 15px;">
+            <label style="color: white; display: block; margin-bottom: 5px;">Rôle</label>
+            <select id="newUserRole" style="width: 100%; padding: 10px; border-radius: 6px; border: none;">
+                <option value="user">User</option>
+                <option value="admin">Admin</option>
+            </select>
+        </div>
+
+        <div style="display: flex; gap: 10px; margin-top: 20px;">
+            <button onclick="createUser()" class="btn" style="flex: 1;">Créer</button>
+            <button onclick="closeCreateUserModal()" class="btn" style="flex: 1; background: rgba(255,255,255,0.2);">Annuler</button>
+        </div>
+    </div>
+</div>
+
+<script>
+function showCreateUserModal() {
+    document.getElementById('createUserModal').style.display = 'flex';
+}
+
+function closeCreateUserModal() {
+    document.getElementById('createUserModal').style.display = 'none';
+    document.getElementById('newUserEmail').value = '';
+    document.getElementById('newUserPassword').value = '';
+}
+
+async function createUser() {
+    const email = document.getElementById('newUserEmail').value;
+    const password = document.getElementById('newUserPassword').value;
+    const role = document.getElementById('newUserRole').value;
+
+    if (!email || !password) {
+        showToast('Veuillez remplir tous les champs', 'warning');
+        return;
+    }
+
+    try {
+        const res = await fetch('/admin/users/create', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({email, password, role})
+        });
+        const data = await res.json();
+
+        if (data.success) {
+            showToast('Utilisateur créé avec succès', 'success');
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            showToast('Erreur: ' + data.error, 'error');
+        }
+    } catch (error) {
+        showToast('Erreur réseau', 'error');
+    }
+}
+
+async function toggleUser(userId) {
+    const confirmed = await showConfirm('Confirmer le changement de statut ?');
+    if (!confirmed) return;
+
+    try {
+        const res = await fetch(`/admin/users/${userId}/toggle-active`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'}
+        });
+        const data = await res.json();
+
+        if (data.success) {
+            showToast('Statut modifié', 'success');
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            showToast('Erreur: ' + data.error, 'error');
+        }
+    } catch (error) {
+        showToast('Erreur réseau', 'error');
+    }
+}
+
+async function deleteUser(userId, email) {
+    const confirmed = await showConfirm(`Supprimer définitivement l'utilisateur ${email} ?\n\nCette action est irréversible.`, 'Supprimer utilisateur');
+    if (!confirmed) return;
+
+    try {
+        const res = await fetch(`/admin/users/${userId}/delete`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'}
+        });
+        const data = await res.json();
+
+        if (data.success) {
+            showToast('Utilisateur supprimé', 'success');
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            showToast('Erreur: ' + data.error, 'error');
+        }
+    } catch (error) {
+        showToast('Erreur réseau', 'error');
+    }
+}
+
+async function changeRole(userId, newRole) {
+    const confirmed = await showConfirm(`Changer le rôle de cet utilisateur en ${newRole} ?`);
+    if (!confirmed) {
+        location.reload(); // Reset select
+        return;
+    }
+
+    try {
+        const res = await fetch(`/admin/users/${userId}/change-role`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({role: newRole})
+        });
+        const data = await res.json();
+
+        if (data.success) {
+            showToast('Rôle modifié', 'success');
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            showToast('Erreur: ' + data.error, 'error');
+        }
+    } catch (error) {
+        showToast('Erreur réseau', 'error');
+    }
+}
+
+async function changeStorageLimit(userId, currentBytes) {
+    const currentGb = (currentBytes / 1024 / 1024 / 1024).toFixed(1);
+    const newGb = await showPrompt(`Nouvelle limite de stockage (en Go) :`, currentGb);
+
+    if (newGb === null || newGb === '') return;
+
+    const newBytes = parseFloat(newGb) * 1024 * 1024 * 1024;
+
+    try {
+        const res = await fetch(`/admin/users/${userId}/change-storage`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({storage_limit_bytes: newBytes})
+        });
+        const data = await res.json();
+
+        if (data.success) {
+            showToast('Limite de stockage modifiée', 'success');
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            showToast('Erreur: ' + data.error, 'error');
+        }
+    } catch (error) {
+        showToast('Erreur réseau', 'error');
+    }
+}
+
+function filterUsers() {
+    const searchEmail = document.getElementById('searchEmail').value.toLowerCase();
+    const filterRole = document.getElementById('filterRole').value;
+    const filterStatus = document.getElementById('filterStatus').value;
+
+    const rows = document.querySelectorAll('tbody tr');
+
+    rows.forEach(row => {
+        const email = row.cells[1].textContent.toLowerCase();
+        const roleCell = row.cells[2];
+        const statusCell = row.cells[3];
+
+        // Extract role
+        let role = '';
+        if (roleCell.querySelector('select')) {
+            role = roleCell.querySelector('select').value;
+        } else if (roleCell.textContent.includes('Admin')) {
+            role = 'admin';
+        } else {
+            role = 'user';
+        }
+
+        // Extract status
+        let status = statusCell.textContent.includes('Actif') ? 'active' : 'inactive';
+
+        // Apply filters
+        const matchesEmail = email.includes(searchEmail);
+        const matchesRole = !filterRole || role === filterRole;
+        const matchesStatus = !filterStatus || status === filterStatus;
+
+        if (matchesEmail && matchesRole && matchesStatus) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+}
+</script>
+{% endblock %}

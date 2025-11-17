@@ -1,0 +1,170 @@
+{% extends "base_auth.html" %}
+
+{% block title %}Configuration 2FA - Whisper Studio{% endblock %}
+{% block subtitle %}Sécurisez votre compte avec l'authentification à deux facteurs{% endblock %}
+
+{% block extra_styles %}
+<style>
+    .qr-container {
+        text-align: center;
+        margin: 20px 0;
+        padding: 15px;
+    }
+
+    .qr-code {
+        background: white;
+        padding: 10px;
+        border-radius: 10px;
+        display: inline-block;
+        max-width: 200px;
+    }
+
+    .qr-code img {
+        width: 100%;
+        height: auto;
+        display: block;
+    }
+
+    .secret-key {
+        background: rgba(255, 255, 255, 0.1);
+        padding: 12px;
+        border-radius: 8px;
+        font-family: monospace;
+        font-size: 13px;
+        font-weight: 600;
+        letter-spacing: 1px;
+        margin: 15px 0;
+        word-break: break-all;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .recovery-section {
+        background: rgba(255, 193, 7, 0.15);
+        border: 1px solid rgba(255, 193, 7, 0.4);
+        padding: 20px;
+        border-radius: 10px;
+        margin: 20px 0;
+        backdrop-filter: blur(10px);
+    }
+
+    .recovery-section h3 {
+        margin-top: 0;
+        margin-bottom: 15px;
+        font-size: 18px;
+    }
+
+    .codes-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+        margin: 15px 0;
+    }
+
+    .code-item {
+        background: rgba(255, 255, 255, 0.1);
+        padding: 8px;
+        border-radius: 5px;
+        font-family: monospace;
+        font-size: 12px;
+        text-align: center;
+        font-weight: 600;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+    }
+
+    .warning-box {
+        background: rgba(231, 76, 60, 0.2);
+        border: 1px solid rgba(231, 76, 60, 0.5);
+        border-radius: 8px;
+        padding: 12px;
+        margin-bottom: 15px;
+        backdrop-filter: blur(5px);
+    }
+
+    @media (max-width: 480px) {
+        .codes-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .qr-code {
+            max-width: 180px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="max-width: 600px; margin: 0 auto;">
+    <p class="help-text" style="text-align: center; margin-bottom: 20px;">
+        Scannez le QR code avec votre application d'authentification (Google Authenticator, Authy, etc.)
+    </p>
+
+    <!-- QR Code -->
+    <div class="qr-container">
+        <div class="qr-code">
+            <img src="{{ qr_code_data }}" alt="QR Code 2FA">
+        </div>
+
+        <p class="help-text" style="margin-top: 15px;">
+            Ou saisissez manuellement cette clé :
+        </p>
+        <div class="secret-key">
+            {{ secret_key }}
+        </div>
+    </div>
+
+    <!-- Recovery Codes -->
+    <div class="recovery-section">
+        <h3>Codes de récupération</h3>
+        <div class="warning-box">
+            <strong>Important :</strong> Sauvegardez ces codes dans un endroit sûr.
+            Vous pourrez les utiliser si vous perdez accès à votre application d'authentification.
+            Chaque code ne peut être utilisé qu'une seule fois.
+        </div>
+
+        <div class="codes-grid">
+            {% for code in recovery_codes %}
+            <div class="code-item">{{ code }}</div>
+            {% endfor %}
+        </div>
+
+        <button type="button" onclick="downloadRecoveryCodes()" class="btn btn-secondary">
+            Télécharger les codes
+        </button>
+    </div>
+
+    <!-- Verification -->
+    <form method="POST" action="{{ url_for('verify_2fa_setup') }}">
+        <div class="form-group">
+            <label for="code">Code de vérification</label>
+            <input type="text" id="code" name="code" required autofocus maxlength="6" pattern="[0-9]{6}" placeholder="000000">
+            <p class="help-text">Saisissez le code à 6 chiffres affiché dans votre application</p>
+        </div>
+
+        <button type="submit" class="btn">Activer le 2FA</button>
+    </form>
+
+    <div class="links">
+        <a href="{{ url_for('profile') }}">← Annuler</a>
+    </div>
+</div>
+
+<script>
+function downloadRecoveryCodes() {
+    const codes = {{ recovery_codes | tojson }};
+    const text = "Codes de récupération 2FA - Whisper Studio\n\n" +
+                 "IMPORTANT: Conservez ces codes en lieu sûr !\n\n" +
+                 codes.join('\n') +
+                 "\n\n---\n" +
+                 "Ces codes ne peuvent être utilisés qu'une seule fois.\n" +
+                 "Gardez-les dans un endroit sûr et accessible uniquement par vous.";
+
+    const blob = new Blob([text], { type: 'text/plain' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'whisper-studio-recovery-codes.txt';
+    a.click();
+    window.URL.revokeObjectURL(url);
+}
+</script>
+{% endblock %}

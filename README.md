@@ -4,11 +4,22 @@ A modern, unified web interface for audio/video transcription with SRT subtitle 
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Docker](https://img.shields.io/badge/docker-ready-brightgreen.svg)
-![Version](https://img.shields.io/badge/version-0.4.0-blue.svg)
+![Version](https://img.shields.io/badge/version-0.5.0-blue.svg)
 
 ## Features
 
-✨ **Modern Dark UI** - Clean, responsive interface with gradient background
+### 🔐 Multi-User Authentication (v0.5.0)
+- **User Registration** - Invitation-based or open registration (admin toggle)
+- **Secure Login** - Flask-Login with session management and "Remember me"
+- **Password Reset** - Email-based password recovery
+- **Two-Factor Authentication (2FA)** - Dual method support:
+  - TOTP via QR code (Google Authenticator, Authy, etc.)
+  - Email verification codes
+  - Recovery codes for account recovery
+- **User Roles** - Admin and User roles with permission isolation
+- **Admin Dashboard** - User management, invitations, and global settings
+
+### ✨ Transcription Features
 🎬 **Dual Mode Operation**:
   - **Text Mode**: Plain transcription for audio files (Wyoming protocol)
   - **SRT Mode**: Timestamped subtitles for videos/audio (HTTP API)
@@ -22,7 +33,7 @@ A modern, unified web interface for audio/video transcription with SRT subtitle 
 🧹 **Anti-hallucination** - Detects and removes Quebec TV credit hallucinations
 🔄 **Auto-conversion** - Extracts and normalizes audio (16kHz mono WAV)
 📥 **Download Results** - Export as .txt (text mode) or .srt (subtitle mode)
-🐳 **Docker Ready** - Complete stack with two Whisper instances
+🐳 **Docker Ready** - Complete stack with PostgreSQL, Redis, and Whisper instances
 🚀 **GPU Accelerated** - Uses NVIDIA GPU for fast transcription
 
 ## Architecture

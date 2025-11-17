@@ -1,0 +1,338 @@
+{% extends "admin/base.html" %}
+{% block title %}Transcriptions{% endblock %}
+
+{% block extra_css %}
+<style>
+    .jobs-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+
+    .jobs-title {
+        color: white;
+        font-size: 24px;
+        font-weight: 600;
+    }
+
+    body.neon-night .jobs-title {
+        color: #00ffff;
+    }
+
+    .filter-bar {
+        background: rgba(255,255,255,0.1);
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+
+    body.neon-night .filter-bar {
+        background: rgba(0,255,255,0.05);
+        border: 1px solid rgba(0,255,255,0.15);
+    }
+
+    .filter-item {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+    }
+
+    .filter-label {
+        color: white;
+        font-size: 12px;
+        opacity: 0.8;
+    }
+
+    .filter-select {
+        padding: 8px 12px;
+        border-radius: 6px;
+        border: 2px solid rgba(255,255,255,0.2);
+        background: rgba(255,255,255,0.1);
+        color: white;
+        font-size: 13px;
+        cursor: pointer;
+    }
+
+    body.neon-night .filter-select {
+        border-color: rgba(0,255,255,0.3);
+        background: rgba(0,255,255,0.1);
+        color: #00ffff;
+    }
+
+    .table-container {
+        background: rgba(255,255,255,0.1);
+        border-radius: 10px;
+        overflow: hidden;
+        margin-bottom: 20px;
+    }
+
+    body.neon-night .table-container {
+        background: rgba(0,255,255,0.05);
+        border: 1px solid rgba(0,255,255,0.15);
+    }
+
+    .table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .table th {
+        background: rgba(255,255,255,0.15);
+        color: white;
+        padding: 12px 15px;
+        text-align: left;
+        font-weight: 600;
+        font-size: 13px;
+    }
+
+    .table td {
+        padding: 12px 15px;
+        border-bottom: 1px solid rgba(255,255,255,0.1);
+        color: white;
+        font-size: 14px;
+    }
+
+    .table tr:last-child td {
+        border-bottom: none;
+    }
+
+    body.neon-night .table th {
+        background: rgba(0,255,255,0.15);
+        color: #00ffff;
+    }
+
+    body.neon-night .table td {
+        border-bottom-color: rgba(0,255,255,0.1);
+        color: #00ffff;
+    }
+
+    .badge {
+        padding: 4px 10px;
+        border-radius: 4px;
+        font-size: 12px;
+        font-weight: 600;
+        display: inline-block;
+    }
+
+    .badge-completed {
+        background: #27ae60;
+        color: white;
+    }
+
+    .badge-processing {
+        background: #3498db;
+        color: white;
+    }
+
+    .badge-failed {
+        background: #e74c3c;
+        color: white;
+    }
+
+    .badge-pending {
+        background: #f39c12;
+        color: white;
+    }
+
+    .badge-mode {
+        background: rgba(255,255,255,0.2);
+        color: white;
+        padding: 3px 8px;
+        font-size: 11px;
+    }
+
+    body.neon-night .badge-mode {
+        background: rgba(0,255,255,0.2);
+        color: #00ffff;
+    }
+
+    .pagination {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 10px;
+        margin-top: 20px;
+    }
+
+    .pagination-btn {
+        padding: 8px 16px;
+        background: rgba(255,255,255,0.15);
+        color: white;
+        border: 2px solid rgba(255,255,255,0.25);
+        border-radius: 6px;
+        cursor: pointer;
+        text-decoration: none;
+        font-size: 13px;
+        transition: all 0.2s ease;
+    }
+
+    .pagination-btn:hover:not(.disabled) {
+        background: rgba(255,255,255,0.25);
+    }
+
+    .pagination-btn.disabled {
+        opacity: 0.3;
+        cursor: not-allowed;
+    }
+
+    .pagination-info {
+        color: white;
+        font-size: 13px;
+        opacity: 0.8;
+    }
+
+    body.neon-night .pagination-btn {
+        background: rgba(0,255,255,0.15);
+        color: #00ffff;
+        border-color: rgba(0,255,255,0.3);
+    }
+
+    body.neon-night .pagination-info {
+        color: #00ffff;
+    }
+
+    .job-filename {
+        font-weight: 500;
+        max-width: 250px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .job-duration {
+        opacity: 0.7;
+        font-size: 12px;
+    }
+
+    .user-email {
+        opacity: 0.8;
+        font-size: 13px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="jobs-header">
+    <h2 class="jobs-title">Historique des transcriptions</h2>
+</div>
+
+<!-- Filters -->
+<div class="filter-bar">
+    <div class="filter-item">
+        <label class="filter-label">Statut</label>
+        <select class="filter-select" onchange="filterJobs('status', this.value)">
+            <option value="">Tous</option>
+            <option value="completed">Completed</option>
+            <option value="processing">Processing</option>
+            <option value="failed">Failed</option>
+            <option value="pending">Pending</option>
+        </select>
+    </div>
+    <div class="filter-item">
+        <label class="filter-label">Mode</label>
+        <select class="filter-select" onchange="filterJobs('mode', this.value)">
+            <option value="">Tous</option>
+            <option value="text">Text</option>
+            <option value="srt">SRT</option>
+            <option value="document">Document</option>
+        </select>
+    </div>
+</div>
+
+<!-- Jobs Table -->
+<div class="table-container">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Utilisateur</th>
+                <th>Fichier</th>
+                <th>Mode</th>
+                <th>Statut</th>
+                <th>Duree</th>
+                <th>Cree le</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for job in jobs %}
+            <tr>
+                <td><span style="font-family: monospace; opacity: 0.7;">#{{ job.id }}</span></td>
+                <td>
+                    <div class="user-email">{{ job.user.email if job.user else 'N/A' }}</div>
+                </td>
+                <td>
+                    <div class="job-filename" title="{{ job.filename }}">
+                        {{ job.filename or 'N/A' }}
+                    </div>
+                </td>
+                <td>
+                    <span class="badge badge-mode">{{ job.mode.upper() }}</span>
+                </td>
+                <td>
+                    {% if job.status == 'completed' %}
+                        <span class="badge badge-completed">Completed</span>
+                    {% elif job.status == 'processing' %}
+                        <span class="badge badge-processing">Processing</span>
+                    {% elif job.status == 'failed' %}
+                        <span class="badge badge-failed">Failed</span>
+                    {% elif job.status == 'pending' %}
+                        <span class="badge badge-pending">Pending</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if job.duration_seconds %}
+                        <span class="job-duration">{{ job.duration_seconds }}s</span>
+                    {% else %}
+                        <span style="opacity: 0.5;">-</span>
+                    {% endif %}
+                </td>
+                <td>{{ job.created_at.strftime('%d/%m/%Y %H:%M') }}</td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="7" style="text-align: center; opacity: 0.5; padding: 30px;">
+                    Aucune transcription
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Pagination -->
+{% if total > per_page %}
+<div class="pagination">
+    {% if page > 1 %}
+        <a href="?page={{ page - 1 }}" class="pagination-btn">Precedent</a>
+    {% else %}
+        <span class="pagination-btn disabled">Precedent</span>
+    {% endif %}
+
+    <span class="pagination-info">Page {{ page }} / {{ (total / per_page) | round(0, 'ceil') | int }}</span>
+
+    {% if page * per_page < total %}
+        <a href="?page={{ page + 1 }}" class="pagination-btn">Suivant</a>
+    {% else %}
+        <span class="pagination-btn disabled">Suivant</span>
+    {% endif %}
+</div>
+{% endif %}
+
+<script>
+function filterJobs(filterType, value) {
+    const url = new URL(window.location.href);
+    if (value) {
+        url.searchParams.set(filterType, value);
+    } else {
+        url.searchParams.delete(filterType);
+    }
+    url.searchParams.delete('page'); // Reset to page 1 when filtering
+    window.location.href = url.toString();
+}
+</script>
+{% endblock %}

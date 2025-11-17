@@ -1,0 +1,152 @@
+{% extends 'admin/master.html' %}
+
+{% block body %}
+<h1>Dashboard Admin</h1>
+
+<div class="row" style="margin-top: 20px;">
+    <!-- Statistics Cards -->
+    <div class="col-md-3">
+        <div class="panel panel-primary">
+            <div class="panel-heading">
+                <h3 class="panel-title">Utilisateurs</h3>
+            </div>
+            <div class="panel-body text-center">
+                <h2>{{ total_users }}</h2>
+                <p>{{ active_users }} actifs</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="panel panel-success">
+            <div class="panel-heading">
+                <h3 class="panel-title">Jobs</h3>
+            </div>
+            <div class="panel-body text-center">
+                <h2>{{ total_jobs }}</h2>
+                <p>{{ completed_jobs }} terminés</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="panel panel-info">
+            <div class="panel-heading">
+                <h3 class="panel-title">Invitations</h3>
+            </div>
+            <div class="panel-body text-center">
+                <h2>{{ pending_invitations }}</h2>
+                <p>en attente</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="panel panel-warning">
+            <div class="panel-heading">
+                <h3 class="panel-title">Documents</h3>
+            </div>
+            <div class="panel-body text-center">
+                <h2>{{ total_storage }}</h2>
+                <p>générés</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row" style="margin-top: 20px;">
+    <!-- Quick Actions -->
+    <div class="col-md-12">
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <h3 class="panel-title">Actions rapides</h3>
+            </div>
+            <div class="panel-body">
+                <a href="{{ url_for('admin.invite_user') }}" class="btn btn-primary">
+                    <span class="glyphicon glyphicon-envelope"></span> Inviter un utilisateur
+                </a>
+                <a href="{{ url_for('user.index_view') }}" class="btn btn-default">
+                    <span class="glyphicon glyphicon-user"></span> Gérer les utilisateurs
+                </a>
+                <a href="{{ url_for('setting.index_view') }}" class="btn btn-default">
+                    <span class="glyphicon glyphicon-cog"></span> Paramètres
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row" style="margin-top: 20px;">
+    <!-- Recent Users -->
+    <div class="col-md-6">
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <h3 class="panel-title">Utilisateurs récents</h3>
+            </div>
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Email</th>
+                        <th>Rôle</th>
+                        <th>Créé le</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in recent_users %}
+                    <tr>
+                        <td>{{ user.email }}</td>
+                        <td>
+                            {% if user.role == 'admin' %}
+                                <span class="label label-danger">Admin</span>
+                            {% else %}
+                                <span class="label label-info">User</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ user.created_at.strftime('%d/%m/%Y') }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Recent Jobs -->
+    <div class="col-md-6">
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <h3 class="panel-title">Jobs récents</h3>
+            </div>
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Job ID</th>
+                        <th>Mode</th>
+                        <th>Statut</th>
+                        <th>Créé le</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for job in recent_jobs %}
+                    <tr>
+                        <td><small>{{ job.job_id[:8] }}...</small></td>
+                        <td>{{ job.mode }}</td>
+                        <td>
+                            {% if job.status == 'completed' %}
+                                <span class="label label-success">{{ job.status }}</span>
+                            {% elif job.status == 'error' %}
+                                <span class="label label-danger">{{ job.status }}</span>
+                            {% elif job.status == 'processing' %}
+                                <span class="label label-warning">{{ job.status }}</span>
+                            {% else %}
+                                <span class="label label-default">{{ job.status }}</span>
+                            {% endif %}
+                        </td>
+                        <td><small>{{ job.created_at.strftime('%d/%m/%Y %H:%M') }}</small></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

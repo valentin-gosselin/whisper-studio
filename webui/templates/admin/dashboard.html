@@ -1,0 +1,214 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block extra_css %}
+<style>
+    .stats-grid {
+        display: grid !important;
+        grid-template-columns: repeat(4, 1fr) !important;
+        gap: 15px;
+        margin-bottom: 30px;
+        width: 100%;
+    }
+
+    @media (max-width: 1200px) {
+        .stats-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    @media (max-width: 600px) {
+        .stats-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .stat-card {
+        background: rgba(255,255,255,0.2);
+        backdrop-filter: blur(10px);
+        border-radius: 10px;
+        padding: 15px;
+        color: white;
+    }
+
+    .stat-value {
+        font-size: 28px;
+        font-weight: 700;
+        margin-bottom: 4px;
+    }
+
+    .stat-label {
+        font-size: 13px;
+        opacity: 0.9;
+        margin-bottom: 4px;
+    }
+
+    .stat-detail {
+        font-size: 11px;
+        opacity: 0.7;
+    }
+
+    body.neon-night .stat-card {
+        background: rgba(0,255,255,0.1);
+        border: 1px solid rgba(0,255,255,0.2);
+    }
+
+    .section-title {
+        color: white;
+        font-size: 20px;
+        font-weight: 600;
+        margin-bottom: 15px;
+    }
+
+    body.neon-night .section-title {
+        color: #00ffff;
+    }
+
+    .table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 15px;
+    }
+
+    .table th {
+        background: rgba(255,255,255,0.1);
+        color: white;
+        padding: 12px;
+        text-align: left;
+        font-weight: 600;
+    }
+
+    .table td {
+        padding: 12px;
+        border-bottom: 1px solid rgba(255,255,255,0.1);
+        color: white;
+    }
+
+    body.neon-night .table th {
+        background: rgba(0,255,255,0.1);
+        color: #00ffff;
+    }
+
+    body.neon-night .table td {
+        border-bottom-color: rgba(0,255,255,0.1);
+        color: #00ffff;
+    }
+
+    .badge {
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+    .badge-success {
+        background: #27ae60;
+        color: white;
+    }
+
+    .badge-warning {
+        background: #f39c12;
+        color: white;
+    }
+
+    .badge-danger {
+        background: #e74c3c;
+        color: white;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<h2 class="section-title">Statistiques</h2>
+
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-value">{{ stats.total_users }}</div>
+        <div class="stat-label">Utilisateurs</div>
+        <div class="stat-detail">{{ stats.active_users }} actifs (30j)</div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-value">{{ stats.total_jobs }}</div>
+        <div class="stat-label">Transcriptions</div>
+        <div class="stat-detail">{{ stats.jobs_today }} aujourd'hui</div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-value">{{ (stats.total_disk_usage / 1024 / 1024 / 1024) | round(2) }} Go</div>
+        <div class="stat-label">Espace disque</div>
+        <div class="stat-detail">{{ stats.total_documents }} documents</div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-value">{{ stats.pending_invitations }}</div>
+        <div class="stat-label">Invitations</div>
+        <div class="stat-detail">En attente</div>
+    </div>
+</div>
+
+<h2 class="section-title">Utilisateurs récents</h2>
+<table class="table">
+    <thead>
+        <tr>
+            <th>Email</th>
+            <th>Rôle</th>
+            <th>Statut</th>
+            <th>Inscrit le</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for user in stats.recent_users %}
+        <tr>
+            <td>{{ user.email }}</td>
+            <td>
+                {% if user.role == 'admin' %}
+                    <span class="badge badge-warning">Admin</span>
+                {% else %}
+                    <span class="badge badge-success">User</span>
+                {% endif %}
+            </td>
+            <td>
+                {% if user.is_active %}
+                    <span class="badge badge-success">Actif</span>
+                {% else %}
+                    <span class="badge badge-danger">Inactif</span>
+                {% endif %}
+            </td>
+            <td>{{ user.created_at.strftime('%d/%m/%Y %H:%M') }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<h2 class="section-title" style="margin-top: 30px;">Transcriptions récentes</h2>
+<table class="table">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Mode</th>
+            <th>Statut</th>
+            <th>Date</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for job in stats.recent_jobs %}
+        <tr>
+            <td>{{ job.id }}</td>
+            <td>{{ job.mode }}</td>
+            <td>
+                {% if job.status == 'completed' %}
+                    <span class="badge badge-success">Complété</span>
+                {% elif job.status == 'failed' %}
+                    <span class="badge badge-danger">Échoué</span>
+                {% else %}
+                    <span class="badge badge-warning">En cours</span>
+                {% endif %}
+            </td>
+            <td>{{ job.created_at.strftime('%d/%m/%Y %H:%M') if job.created_at else 'N/A' }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}
