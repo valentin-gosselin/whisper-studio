@@ -5,6 +5,103 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2025-11-17
+
+### 🎯 Major Feature: Multi-File Merge
+- **Multi-file upload**: Upload up to 10 files at once (Document mode only)
+- **Intelligent file ordering**:
+  - Automatic chronological detection via metadata (timestamps in filename, `lastModified`)
+  - LLM-based ordering analysis when metadata unavailable
+  - Manual drag & drop reordering with visual feedback
+- **Smart toggle**: "Fusionner en document unique" option
+  - Creates single merged document or separate documents per file
+  - Auto-disabled during/after processing to prevent confusion
+  - Re-enables after "Supprimer tout"
+- **Global merge UI**: Single card view with global progress bar for merged files
+- **LLM-generated filename**: Merged documents use AI-generated title (with spaces preserved)
+
+### 🌍 Language & Localization
+- **Document language support**: Word documents now respect selected language for spell-checking
+  - Maps language codes (fr, en, es, etc.) to Word identifiers (fr-FR, en-US, etc.)
+  - Sets document language at XML level for proper spell-check behavior
+- **Browser language detection**: Auto-selects UI language from browser settings
+
+### 🎨 UX Polish
+- **Recording button**: Disabled in SRT mode (not applicable for subtitles)
+- **Toggle styling**: Proper light/dark mode colors matching UI theme
+  - Light mode: White semi-transparent borders
+  - Dark/Neon mode: Cyan accent colors
+  - Disabled state: 50% opacity with not-allowed cursor
+- **Button fixes**: "Supprimer tout" button properly sized with visible text
+- **Drag handles**: Visible "≡" indicators for file reordering
+
+### 🔧 Technical Improvements
+- **New endpoint**: `/transcribe_batch` for multi-file processing
+- **Batch processing pipeline**:
+  1. Convert all files to WAV
+  2. Transcribe all files
+  3. Analyze chronological order (metadata or LLM)
+  4. Merge transcriptions
+  5. Generate single DOCX with global title
+- **DocxGenerator enhancements**:
+  - Language parameter for proper Word document locale
+  - XML-level language configuration (w:lang elements)
+- **Ollama integration**: `analyze_file_order()` for chronological analysis
+- **Dual rendering modes**: `renderMergedView()` vs `renderIndividualFiles()`
+- **State management**: Proper variable declaration order to prevent initialization errors
+
+### 📦 New Files
+- `webui/prompts.py`: `get_chronological_order_prompt()` for LLM ordering logic
+
+### 🔄 Changed Files
+- `webui/app.py`:
+  - Added `/transcribe_batch` endpoint
+  - Added `process_merged_files_job()` pipeline
+  - Added language parameter to `generate_docx_file()` calls
+  - Removed debug print statement
+- `webui/templates/index.html`:
+  - Added merge toggle UI with localStorage persistence
+  - Added merged view rendering with global progress
+  - Added drag & drop reordering functionality
+  - Added smart file sorting by metadata
+  - Fixed variable declaration order (mergeEnabled, DOM elements)
+  - Improved toggle styling for light/dark modes
+- `webui/docx_generator.py`:
+  - Added language parameter to `DocxGenerator.__init__()`
+  - Added `_set_document_language()` method for XML-level language config
+  - Added language parameter to `generate_docx_file()`
+- `webui/ollama_client.py`:
+  - Added `analyze_file_order()` method for LLM-based chronological analysis
+
+### 🐛 Bug Fixes
+- Fixed variable declaration order causing files not to appear after upload
+- Fixed toggle styling in light mode to match UI theme
+- Fixed filename spacing for merged documents (preserved spaces instead of underscores)
+
+## [0.3.0] - 2025-11-16
+
+### 🤖 AI-Powered Document Generation
+- **Smart Document mode**: AI analyzes and structures transcripts into professional documents
+- **Ollama integration**: LLM-powered content analysis and enrichment
+- **Document types**: Support for courses, meetings, interviews, presentations, reports, etc.
+- **Intelligent segmentation**: Automatic section detection and organization
+- **Content enrichment**: Key points, definitions, and examples extraction
+- **Professional DOCX output**: Formatted Word documents with proper styling
+
+### 🎨 UX Improvements
+- **Word-level SRT formatting**: Enhanced subtitle readability with proper word timing
+- **Speaker diarization**: Automatic speaker separation in transcripts (via pyannote)
+- **Output format selection**: Choose between DOCX and TXT formats
+- **Document type selector**: Dropdown for selecting content type
+- **Progress indicators**: Real-time feedback during AI processing
+
+### 🔧 Technical Details
+- `webui/ollama_client.py`: Ollama API integration for LLM analysis
+- `webui/docx_generator.py`: Professional Word document generation
+- `webui/prompts.py`: Specialized prompts for different document types
+- Pyannote diarization service integration
+- Multi-stage processing pipeline with progress tracking
+
 ## [0.2.0] - 2025-11-13
 
 ### 🎬 Major Feature: SRT Subtitle Mode

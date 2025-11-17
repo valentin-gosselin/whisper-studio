@@ -208,3 +208,44 @@ def estimate_tokens(text: str) -> int:
         Estimated token count (rough: 1 token ≈ 4 characters)
     """
     return len(text) // 4
+
+
+def get_chronological_order_prompt(transcripts: list) -> str:
+    """
+    Generate prompt for analyzing chronological order of multiple transcripts
+
+    Args:
+        transcripts: List of dicts with 'filename', 'text', 'index'
+
+    Returns:
+        Formatted prompt string
+    """
+
+    # Build excerpt samples from each transcript
+    excerpts = []
+    for t in transcripts:
+        # Take first 500 characters as excerpt
+        excerpt = t['text'][:500] if len(t['text']) > 500 else t['text']
+        excerpts.append(f"Fichier {t['index']}: {t['filename']}\nExtrait: {excerpt}...")
+
+    excerpts_text = "\n\n".join(excerpts)
+
+    prompt = f"""Tu es un expert en analyse de contenu. On te donne plusieurs extraits de transcriptions audio qui doivent être organisés dans l'ordre chronologique correct.
+
+Voici les extraits:
+
+{excerpts_text}
+
+Analyse ces extraits et détermine leur ordre chronologique logique en te basant sur:
+1. Les références temporelles (dates, heures, moments de la journée)
+2. La continuité thématique et logique du contenu
+3. Les références croisées entre les extraits
+4. La progression naturelle du sujet
+
+Réponds UNIQUEMENT avec un JSON contenant la liste des indices dans l'ordre chronologique correct.
+Format: {{"order": [0, 2, 1, ...]}}
+
+Exemple: Si l'ordre correct est fichier 2, puis fichier 0, puis fichier 1, réponds: {{"order": [2, 0, 1]}}
+"""
+
+    return prompt

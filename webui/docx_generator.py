@@ -14,9 +14,11 @@ from typing import List, Dict, Optional
 class DocxGenerator:
     """Generate professional DOCX documents from transcript data"""
 
-    def __init__(self):
+    def __init__(self, language: str = 'en'):
         self.doc = Document()
+        self.language = language.lower()
         self._setup_styles()
+        self._set_document_language()
 
     def _setup_styles(self):
         """Configure document styles - optimized for readability"""
@@ -54,6 +56,63 @@ class DocxGenerator:
             body.font.size = Pt(11)
             # Line spacing for comfortable reading
             body.paragraph_format.line_spacing = 1.15
+
+    def _set_document_language(self):
+        """Set document language for spell checking"""
+        # Map common language codes to Word language identifiers
+        lang_map = {
+            'fr': 'fr-FR',
+            'en': 'en-US',
+            'es': 'es-ES',
+            'de': 'de-DE',
+            'it': 'it-IT',
+            'pt': 'pt-PT',
+            'nl': 'nl-NL',
+            'pl': 'pl-PL',
+            'ru': 'ru-RU',
+            'ja': 'ja-JP',
+            'zh': 'zh-CN',
+            'ar': 'ar-SA',
+        }
+
+        lang_code = lang_map.get(self.language, 'en-US')
+
+        # Set language for the document's default style
+        try:
+            from docx.oxml.shared import OxmlElement, qn
+
+            # Get the document's styles element
+            styles_element = self.doc.styles.element
+
+            # Create or update the document defaults
+            doc_defaults = styles_element.find(qn('w:docDefaults'))
+            if doc_defaults is None:
+                doc_defaults = OxmlElement('w:docDefaults')
+                styles_element.insert(0, doc_defaults)
+
+            # Set run properties defaults
+            rPrDefault = doc_defaults.find(qn('w:rPrDefault'))
+            if rPrDefault is None:
+                rPrDefault = OxmlElement('w:rPrDefault')
+                doc_defaults.append(rPrDefault)
+
+            rPr = rPrDefault.find(qn('w:rPr'))
+            if rPr is None:
+                rPr = OxmlElement('w:rPr')
+                rPrDefault.append(rPr)
+
+            # Set language
+            lang = rPr.find(qn('w:lang'))
+            if lang is None:
+                lang = OxmlElement('w:lang')
+                rPr.append(lang)
+
+            lang.set(qn('w:val'), lang_code)
+            lang.set(qn('w:eastAsia'), lang_code)
+            lang.set(qn('w:bidi'), lang_code)
+
+        except Exception as e:
+            print(f"[DOCX] Warning: Could not set document language: {e}")
 
     def add_document_title(self, title: str):
         """
@@ -170,7 +229,8 @@ def create_document(title: str, doc_type: str, sections: List[Dict],
 
 
 def generate_docx_file(title: str, doc_type: str, sections: List[Dict],
-                       summary: Optional[str], metadata: Dict, output_path: str) -> str:
+                       summary: Optional[str], metadata: Dict, output_path: str,
+                       language: str = 'en') -> str:
     """
     Generate and save DOCX file
 
@@ -181,13 +241,14 @@ def generate_docx_file(title: str, doc_type: str, sections: List[Dict],
         summary: Optional summary text
         metadata: Metadata dict
         output_path: Path to save file
+        language: Document language code (fr, en, es, etc.)
 
     Returns:
         Path to saved file
     """
-    print(f"[DOCX] Generating document: {title}")
+    print(f"[DOCX] Generating document: {title} (language: {language})")
 
-    generator = DocxGenerator()
+    generator = DocxGenerator(language=language)
 
     # Simple title at top (no separate cover page)
     generator.add_document_title(title)

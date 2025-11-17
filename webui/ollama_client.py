@@ -341,6 +341,55 @@ class OllamaClient:
         print(f"[OLLAMA CHUNK] Split transcript into {len(chunks)} chunks")
         return chunks
 
+    def analyze_file_order(self, transcripts: list) -> list:
+        """
+        Analyze chronological order of multiple transcripts using LLM
+
+        Args:
+            transcripts: List of dicts with 'filename', 'text', 'index'
+
+        Returns:
+            List of indices in chronological order, or None if failed
+        """
+        from prompts import get_chronological_order_prompt
+
+        try:
+            prompt = get_chronological_order_prompt(transcripts)
+
+            print(f"[OLLAMA ORDER] Analyzing order for {len(transcripts)} transcripts")
+
+            response = self._call_ollama(prompt, temperature=0.1, max_tokens=500)
+
+            if not response:
+                print("[OLLAMA ORDER] No response from Ollama")
+                return None
+
+            # Parse JSON response
+            import json
+            import re
+
+            # Try to extract JSON from response
+            json_match = re.search(r'\{.*"order".*:.*\[.*\].*\}', response, re.DOTALL)
+            if json_match:
+                json_str = json_match.group(0)
+                data = json.loads(json_str)
+                order = data.get('order', [])
+
+                # Validate order
+                if len(order) == len(transcripts) and set(order) == set(range(len(transcripts))):
+                    print(f"[OLLAMA ORDER] Determined order: {order}")
+                    return order
+                else:
+                    print(f"[OLLAMA ORDER] Invalid order returned: {order}")
+                    return None
+            else:
+                print(f"[OLLAMA ORDER] Could not parse JSON from response: {response[:200]}")
+                return None
+
+        except Exception as e:
+            print(f"[OLLAMA ORDER] Error analyzing file order: {e}")
+            return None
+
 
 # Singleton instance
 _ollama_client = None

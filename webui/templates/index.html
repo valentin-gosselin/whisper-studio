@@ -671,6 +671,152 @@
             color: #0a0a1a;
         }
 
+        /* Merge Files Toggle */
+        .merge-toggle-container {
+            text-align: center;
+            margin-bottom: 15px;
+        }
+
+        .merge-toggle {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .merge-toggle input[type="checkbox"]:disabled {
+            cursor: not-allowed;
+        }
+
+        .merge-toggle input[type="checkbox"] {
+            display: none;
+        }
+
+        .toggle-slider {
+            position: relative;
+            width: 50px;
+            height: 26px;
+            background: rgba(120,120,120,0.3);
+            border-radius: 13px;
+            border: 2px solid rgba(150,150,150,0.4);
+            transition: all 0.3s ease;
+        }
+
+        .toggle-slider::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 18px;
+            height: 18px;
+            background: rgba(200,200,200,0.8);
+            border-radius: 50%;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        /* Toggle OFF state - default (dark purple mode) */
+        .merge-toggle input[type="checkbox"]:checked + .toggle-slider {
+            background: rgba(102,126,234,0.4);
+            border-color: #667eea;
+        }
+
+        .merge-toggle input[type="checkbox"]:checked + .toggle-slider::after {
+            transform: translateX(24px);
+            background: #667eea;
+        }
+
+        .toggle-label {
+            color: rgba(255,255,255,0.9);
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        /* Light mode (no neon-night class) - use same colors as other UI elements */
+        body:not(.neon-night) .toggle-slider {
+            background: rgba(200,200,200,0.4);
+            border-color: rgba(150,150,150,0.5);
+        }
+
+        body:not(.neon-night) .toggle-slider::after {
+            background: rgba(100,100,100,0.6);
+        }
+
+        body:not(.neon-night) .merge-toggle input[type="checkbox"]:checked + .toggle-slider {
+            background: rgba(255,255,255,0.15);
+            border-color: rgba(255,255,255,0.4);
+        }
+
+        body:not(.neon-night) .merge-toggle input[type="checkbox"]:checked + .toggle-slider::after {
+            background: rgba(255,255,255,0.9);
+        }
+
+        body:not(.neon-night) .toggle-label {
+            color: rgba(255,255,255,0.9);
+        }
+
+        /* Neon night mode - cyan theme */
+        body.neon-night .toggle-slider {
+            background: rgba(80,80,80,0.3);
+            border-color: rgba(100,100,100,0.4);
+        }
+
+        body.neon-night .toggle-slider::after {
+            background: rgba(150,150,150,0.7);
+        }
+
+        body.neon-night .merge-toggle input[type="checkbox"]:checked + .toggle-slider {
+            background: rgba(0,255,255,0.3);
+            border-color: #00ffff;
+        }
+
+        body.neon-night .merge-toggle input[type="checkbox"]:checked + .toggle-slider::after {
+            background: #00ffff;
+        }
+
+        body.neon-night .toggle-label {
+            color: rgba(0,255,255,0.9);
+        }
+
+        /* Merge Indicator Badge */
+        .merge-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: rgba(102,126,234,0.15);
+            border: 2px solid rgba(102,126,234,0.4);
+            border-radius: 20px;
+            margin-bottom: 15px;
+            font-size: 13px;
+            font-weight: 600;
+            color: white;
+            backdrop-filter: blur(10px);
+        }
+
+        .merge-indicator .file-count {
+            color: rgba(255,255,255,0.9);
+        }
+
+        .merge-indicator .arrow {
+            color: rgba(255,255,255,0.6);
+            font-size: 16px;
+        }
+
+        .merge-indicator .result {
+            color: #667eea;
+        }
+
+        body.neon-night .merge-indicator {
+            background: rgba(0,255,255,0.15);
+            border-color: rgba(0,255,255,0.4);
+        }
+
+        body.neon-night .merge-indicator .result {
+            color: #00ffff;
+        }
+
         /* Drop Zone - Compact Version */
         .drop-zone {
             border: 2px dashed rgba(255,255,255,0.4);
@@ -892,10 +1038,17 @@
         .btn-remove {
             background: rgba(239,68,68,0.2);
             color: white;
+            padding: 8px 16px;
+            min-width: auto;
+            height: auto;
+            justify-content: center;
+            white-space: nowrap;
+        }
+
+        .btn-remove.icon-only {
             padding: 6px;
             width: 32px;
             height: 32px;
-            justify-content: center;
         }
 
         .btn-remove:hover {
@@ -938,6 +1091,166 @@
             border-radius: 4px;
             color: white;
             font-size: 13px;
+        }
+
+        /* Drag and Drop Styles */
+        .drag-handle {
+            cursor: grab;
+            color: rgba(255,255,255,0.5);
+            font-size: 20px;
+            margin-right: 12px;
+            user-select: none;
+            transition: all 0.2s ease;
+            display: none; /* Hidden by default, shown when merge is enabled */
+        }
+
+        .drag-handle.visible {
+            display: block;
+        }
+
+        .drag-handle:hover {
+            color: rgba(255,255,255,0.8);
+        }
+
+        .drag-handle:active {
+            cursor: grabbing;
+        }
+
+        .file-item.dragging {
+            opacity: 0.5;
+            transform: scale(0.98);
+        }
+
+        .file-item.drag-over {
+            border-color: #667eea;
+            border-width: 2px;
+            border-style: dashed;
+            background: rgba(102,126,234,0.2);
+        }
+
+        body.neon-night .file-item.drag-over {
+            border-color: #00ffff;
+            background: rgba(0,255,255,0.2);
+        }
+
+        body.neon-night .drag-handle {
+            color: rgba(0,255,255,0.5);
+        }
+
+        body.neon-night .drag-handle:hover {
+            color: rgba(0,255,255,0.9);
+        }
+
+        /* Merged File Card */
+        .merged-file-card {
+            background: rgba(255,255,255,0.15);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 15px;
+        }
+
+        .merged-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .merged-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: white;
+        }
+
+        .merged-size {
+            font-size: 14px;
+            color: rgba(255,255,255,0.7);
+        }
+
+        .merged-files-list {
+            margin-bottom: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .merged-file-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 12px;
+            background: rgba(255,255,255,0.08);
+            border-radius: 8px;
+            transition: all 0.2s ease;
+            cursor: move;
+        }
+
+        .merged-file-item:hover {
+            background: rgba(255,255,255,0.12);
+        }
+
+        .merged-file-item.dragging {
+            opacity: 0.5;
+            transform: scale(0.98);
+        }
+
+        .merged-file-item.drag-over {
+            border: 2px dashed #667eea;
+            background: rgba(102,126,234,0.2);
+        }
+
+        .merged-file-name {
+            flex: 1;
+            color: white;
+            font-size: 14px;
+            font-weight: 500;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .merged-file-size {
+            color: rgba(255,255,255,0.6);
+            font-size: 13px;
+        }
+
+        .merged-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .btn-large {
+            padding: 14px 32px;
+            font-size: 15px;
+            min-width: 200px;
+        }
+
+        body.neon-night .merged-file-card {
+            background: rgba(0,255,255,0.05);
+            border-color: rgba(0,255,255,0.2);
+        }
+
+        body.neon-night .merged-header {
+            border-bottom-color: rgba(0,255,255,0.2);
+        }
+
+        body.neon-night .merged-file-item {
+            background: rgba(0,255,255,0.08);
+        }
+
+        body.neon-night .merged-file-item:hover {
+            background: rgba(0,255,255,0.12);
+        }
+
+        body.neon-night .merged-file-item.drag-over {
+            border-color: #00ffff;
+            background: rgba(0,255,255,0.2);
         }
 
         /* Action Buttons */
@@ -1137,6 +1450,21 @@
             </div>
         </div>
 
+        <!-- Merge Files Toggle (visible only in Document mode with 2+ files) -->
+        <div class="merge-toggle-container" id="mergeToggleContainer" style="display:none;">
+            <label class="merge-toggle">
+                <input type="checkbox" id="mergeFilesToggle">
+                <span class="toggle-slider"></span>
+                <span class="toggle-label">Fusionner en document unique</span>
+            </label>
+        </div>
+
+        <!-- Merge Indicator Badge (shown when merge is enabled with 2+ files) -->
+        <div class="merge-indicator" id="mergeIndicator" style="display:none;">
+            <span class="file-count" id="mergeFileCount">0 fichiers</span>
+            <span class="arrow">→</span>
+            <span class="result">1 document unique</span>
+        </div>
 
         <!-- Drop Zone / Recording Interface -->
         <div class="drop-zone" id="dropZone">
@@ -1262,11 +1590,19 @@
         let currentLanguage = localStorage.getItem('whisper_language') || getDefaultLanguage();
         let currentDocType = localStorage.getItem('whisper_docType') || 'course';
         let currentOutputFormat = localStorage.getItem('whisper_outputFormat') || 'docx';
+        let mergeEnabled = localStorage.getItem('whisper_merge_enabled') === 'true' || false;
+        let manuallyReordered = false;
         let files = loadFilesFromLocalStorage(); // Restore saved files
         let mediaRecorder = null;
         let audioChunks = [];
         let recordingStartTime = null;
         let recordingInterval = null;
+
+        // DOM elements for merge functionality (declared early to avoid reference errors)
+        const mergeToggleContainer = document.getElementById('mergeToggleContainer');
+        const mergeFilesToggle = document.getElementById('mergeFilesToggle');
+        const mergeIndicator = document.getElementById('mergeIndicator');
+        const mergeFileCount = document.getElementById('mergeFileCount');
 
         // Theme management
         const savedTheme = localStorage.getItem('theme') || 'purple';
@@ -1668,7 +2004,14 @@
         });
 
         function addFiles(newFiles) {
-            Array.from(newFiles).forEach(file => {
+            const newFilesArray = Array.from(newFiles);
+
+            // Validate file limit (defined later in merge functionality)
+            if (typeof validateFileLimit === 'function' && !validateFileLimit(newFilesArray.length)) {
+                return;
+            }
+
+            newFilesArray.forEach(file => {
                 files.push({
                     file: file,
                     status: 'idle',
@@ -1680,6 +2023,12 @@
                     audioName: null
                 });
             });
+
+            // Auto-sort if merge is enabled and not manually reordered
+            if (typeof sortFilesByMetadata === 'function' && typeof mergeEnabled !== 'undefined' && mergeEnabled && typeof manuallyReordered !== 'undefined' && !manuallyReordered && files.length > 1) {
+                sortFilesByMetadata();
+            }
+
             renderFiles();
             saveFilesToLocalStorage();
         }
@@ -1690,6 +2039,10 @@
                 actionButtons.style.display = 'none';
                 emptyState.style.display = 'block';
                 dropZone.classList.remove('compact');
+                // Update merge UI when files are removed
+                if (typeof updateMergeUI === 'function') {
+                    updateMergeUI();
+                }
                 return;
             }
 
@@ -1697,6 +2050,117 @@
             emptyState.style.display = 'none';
             dropZone.classList.add('compact');
 
+            // Update merge UI
+            if (typeof updateMergeUI === 'function') {
+                updateMergeUI();
+            }
+
+            // Check if we're in merge mode with multiple files
+            const isMergeMode = typeof mergeEnabled !== 'undefined' && mergeEnabled && files.length >= 2 && currentMode === 'document';
+
+            if (isMergeMode) {
+                // MERGE MODE: Show global card
+                renderMergedView();
+            } else {
+                // NORMAL MODE: Show individual files
+                renderIndividualFiles();
+            }
+
+            // Setup drag & drop after rendering
+            if (typeof setupDragAndDrop === 'function' && typeof mergeEnabled !== 'undefined' && mergeEnabled) {
+                setTimeout(setupDragAndDrop, 0);
+            }
+        }
+
+        function renderMergedView() {
+            // Calculate total size
+            const totalSize = files.reduce((sum, f) => sum + (f.file?.size || 0), 0);
+
+            // Get global status
+            const hasError = files.some(f => f.status === 'error');
+            const allCompleted = files.every(f => f.status === 'completed');
+            const isProcessing = files.some(f => f.status === 'processing');
+
+            let globalStatus = 'idle';
+            if (hasError) globalStatus = 'error';
+            else if (allCompleted) globalStatus = 'completed';
+            else if (isProcessing) globalStatus = 'processing';
+
+            // Get first file with download URL (for completed state)
+            const downloadFile = files.find(f => f.downloadUrl);
+
+            // Get global progress (average)
+            const avgProgress = files.reduce((sum, f) => sum + (f.progress || 0), 0) / files.length;
+            const globalMessage = files.find(f => f.message)?.message || '';
+
+            // Hide individual action buttons
+            actionButtons.style.display = 'none';
+
+            filesList.innerHTML = `
+                <div class="merged-file-card">
+                    <div class="merged-header">
+                        <div class="merged-title">Document fusionné (${files.length} fichiers)</div>
+                        <div class="merged-size">${formatFileSize(totalSize)}</div>
+                    </div>
+
+                    <div class="merged-files-list">
+                        ${files.map((f, index) => `
+                            <div class="merged-file-item" draggable="true" data-index="${index}">
+                                <div class="drag-handle visible" title="Glisser pour réorganiser">≡</div>
+                                <div class="merged-file-name">${f.file.name}</div>
+                                <div class="merged-file-size">${formatFileSize(f.file?.size || 0)}</div>
+                            </div>
+                        `).join('')}
+                    </div>
+
+                    ${globalStatus === 'idle' ? `
+                        <div class="merged-actions">
+                            <button class="btn btn-start btn-large" onclick="processMergedFiles()">
+                                Démarrer le traitement
+                            </button>
+                        </div>
+                    ` : ''}
+
+                    ${globalStatus === 'processing' ? `
+                        <div class="progress-container">
+                            <div class="progress-info">
+                                <span>${globalMessage || 'Traitement en cours...'}</span>
+                                <span>${Math.round(avgProgress)}%</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: ${avgProgress}%"></div>
+                            </div>
+                        </div>
+                    ` : ''}
+
+                    ${globalStatus === 'completed' ? `
+                        <div class="merged-actions">
+                            ${downloadFile ? `
+                                <button class="btn btn-download btn-large" onclick="downloadFile(${files.indexOf(downloadFile)})">
+                                    Télécharger le document
+                                </button>
+                            ` : ''}
+                            <button class="btn btn-remove" onclick="removeAllFiles()">
+                                Supprimer tout
+                            </button>
+                        </div>
+                    ` : ''}
+
+                    ${globalStatus === 'error' ? `
+                        <div class="error-message">
+                            ${files.find(f => f.status === 'error')?.message || 'Erreur lors du traitement'}
+                        </div>
+                        <div class="merged-actions">
+                            <button class="btn btn-remove" onclick="removeAllFiles()">
+                                Supprimer tout
+                            </button>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        }
+
+        function renderIndividualFiles() {
             const idleCount = files.filter(f => f.status === 'idle').length;
             if (idleCount > 0) {
                 actionButtons.style.display = 'flex';
@@ -1706,8 +2170,9 @@
             }
 
             filesList.innerHTML = files.map((fileItem, index) => `
-                <div class="file-item">
+                <div class="file-item" draggable="${mergeEnabled ? 'true' : 'false'}" data-index="${index}">
                     <div class="file-header">
+                        <div class="drag-handle ${mergeEnabled ? 'visible' : ''}" title="Glisser pour r\u00e9organiser">≡</div>
                         <div class="file-info">
                             <div class="file-name">${fileItem.file.name}</div>
                             <div class="file-size">${formatFileSize(fileItem.file.size)}</div>
@@ -1723,7 +2188,7 @@
                                         Télécharger source
                                     </button>
                                 ` : ''}
-                                <button class="btn btn-remove" onclick="removeFile(${index})">×</button>
+                                <button class="btn btn-remove icon-only" onclick="removeFile(${index})">×</button>
                             ` : ''}
                             ${fileItem.status === 'completed' ? `
                                 ${fileItem.downloadUrl ? `
@@ -1736,13 +2201,13 @@
                                         Télécharger source
                                     </button>
                                 ` : ''}
-                                <button class="btn btn-remove" onclick="removeFile(${index})">×</button>
+                                <button class="btn btn-remove icon-only" onclick="removeFile(${index})">×</button>
                             ` : ''}
                             ${fileItem.status === 'processing' ? `
-                                <button class="btn btn-remove" onclick="removeFile(${index})">×</button>
+                                <button class="btn btn-remove icon-only" onclick="removeFile(${index})">×</button>
                             ` : ''}
                             ${fileItem.status === 'error' ? `
-                                <button class="btn btn-remove" onclick="removeFile(${index})">×</button>
+                                <button class="btn btn-remove icon-only" onclick="removeFile(${index})">×</button>
                             ` : ''}
                         </div>
                     </div>
@@ -1764,10 +2229,27 @@
             `).join('');
         }
 
-        startAllBtn.addEventListener('click', () => {
-            files.forEach((f, i) => {
-                if (f.status === 'idle') processFile(i);
+        function removeAllFiles() {
+            files.forEach(f => {
+                if (f.audioUrl) {
+                    URL.revokeObjectURL(f.audioUrl);
+                }
             });
+            files = [];
+            renderFiles();
+            saveFilesToLocalStorage();
+        }
+
+        startAllBtn.addEventListener('click', () => {
+            // If merge mode is enabled, process all files together
+            if (typeof mergeEnabled !== 'undefined' && mergeEnabled && currentMode === 'document') {
+                processMergedFiles();
+            } else {
+                // Process files individually
+                files.forEach((f, i) => {
+                    if (f.status === 'idle') processFile(i);
+                });
+            }
         });
 
         async function processFile(index) {
@@ -1976,6 +2458,372 @@
             };
             return texts[status] || status;
         }
+
+        // ========== PROCESS MERGED FILES ==========
+
+        async function processMergedFiles() {
+            const idleFiles = files.filter(f => f.status === 'idle');
+            if (idleFiles.length === 0) return;
+
+            // Mark all files as processing
+            files.forEach(f => {
+                if (f.status === 'idle') {
+                    f.status = 'processing';
+                    f.progress = 0;
+                    f.message = 'Préparation...';
+                }
+            });
+            renderFiles();
+
+            const formData = new FormData();
+
+            // Append all files
+            idleFiles.forEach((fileItem, idx) => {
+                formData.append('files', fileItem.file);
+            });
+
+            // Add merge flag
+            formData.append('merge_files', 'true');
+
+            // Add document parameters
+            const docType = currentDocType;
+            let mode;
+
+            if (docType === 'raw') {
+                mode = 'text';
+            } else if (currentOutputFormat === 'docx') {
+                mode = 'smart_doc';
+            } else {
+                mode = 'text';
+            }
+
+            formData.append('mode', mode);
+            formData.append('doc_type', docType === 'raw' ? 'other' : docType);
+            formData.append('chunking', currentChunking);
+            formData.append('language', currentLanguage);
+
+            try {
+                const xhr = new XMLHttpRequest();
+
+                // Track upload progress (global)
+                xhr.upload.addEventListener('progress', (e) => {
+                    if (e.lengthComputable) {
+                        const uploadProgress = (e.loaded / e.total) * 30;
+                        files.forEach(f => {
+                            if (f.status === 'processing') {
+                                f.progress = uploadProgress;
+                                f.message = `Upload: ${Math.round(e.loaded / 1024 / 1024)}/${Math.round(e.total / 1024 / 1024)} MB`;
+                            }
+                        });
+                        renderFiles();
+                    }
+                });
+
+                xhr.addEventListener('load', () => {
+                    if (xhr.status === 200) {
+                        const data = JSON.parse(xhr.responseText);
+
+                        if (data.success && data.job_id) {
+                            // Connect to SSE for real-time progress
+                            const eventSource = new EventSource(`/progress/${data.job_id}`);
+
+                            eventSource.onmessage = (event) => {
+                                const progressData = JSON.parse(event.data);
+
+                                // Update all processing files with same progress
+                                files.forEach(f => {
+                                    if (f.status === 'processing') {
+                                        f.progress = progressData.progress;
+                                        f.message = progressData.message;
+                                    }
+                                });
+                                renderFiles();
+
+                                // Close connection when complete
+                                if (progressData.progress >= 100) {
+                                    eventSource.close();
+
+                                    // Fetch job result for download info
+                                    fetch(`/job_result/${data.job_id}`)
+                                        .then(res => res.json())
+                                        .then(result => {
+                                            if (result.success) {
+                                                // Mark all files as completed
+                                                // But only ONE file will have the download link (the merged document)
+                                                files.forEach((f, idx) => {
+                                                    if (f.status === 'processing') {
+                                                        f.status = 'completed';
+                                                        if (idx === 0) {
+                                                            // First file gets the download link
+                                                            f.downloadUrl = result.download_url;
+                                                            f.downloadName = result.download_name;
+                                                        } else {
+                                                            // Other files are just marked complete
+                                                            f.downloadUrl = null;
+                                                            f.downloadName = null;
+                                                        }
+                                                    }
+                                                });
+                                            } else {
+                                                // Error: mark all as error
+                                                files.forEach(f => {
+                                                    if (f.status === 'processing') {
+                                                        f.status = 'error';
+                                                        f.message = result.error || 'Erreur inconnue';
+                                                    }
+                                                });
+                                            }
+                                            renderFiles();
+                                            saveFilesToLocalStorage();
+                                        })
+                                        .catch(err => {
+                                            console.error('Failed to fetch job result:', err);
+                                            files.forEach(f => {
+                                                if (f.status === 'processing') {
+                                                    f.status = 'error';
+                                                    f.message = 'Erreur lors de la récupération du résultat';
+                                                }
+                                            });
+                                            renderFiles();
+                                        });
+                                }
+                            };
+
+                            eventSource.onerror = (err) => {
+                                console.error('Connection error:', err);
+                                eventSource.close();
+                                files.forEach(f => {
+                                    if (f.status === 'processing') {
+                                        f.status = 'error';
+                                        f.message = 'Erreur de connexion au serveur';
+                                    }
+                                });
+                                renderFiles();
+                            };
+                        } else {
+                            files.forEach(f => {
+                                if (f.status === 'processing') {
+                                    f.status = 'error';
+                                    f.message = data.error || 'Erreur serveur';
+                                }
+                            });
+                            renderFiles();
+                        }
+                    } else {
+                        files.forEach(f => {
+                            if (f.status === 'processing') {
+                                f.status = 'error';
+                                f.message = `Erreur HTTP ${xhr.status}`;
+                            }
+                        });
+                        renderFiles();
+                    }
+                });
+
+                xhr.addEventListener('error', () => {
+                    files.forEach(f => {
+                        if (f.status === 'processing') {
+                            f.status = 'error';
+                            f.message = 'Erreur réseau';
+                        }
+                    });
+                    renderFiles();
+                });
+
+                xhr.open('POST', '/transcribe_batch');
+                xhr.send(formData);
+
+            } catch (error) {
+                console.error('Error processing merged files:', error);
+                files.forEach(f => {
+                    if (f.status === 'processing') {
+                        f.status = 'error';
+                        f.message = 'Erreur lors du traitement';
+                    }
+                });
+                renderFiles();
+            }
+        }
+
+        // ========== MERGE FILES FUNCTIONALITY ==========
+
+        const MAX_FILES = 10;
+        // DOM elements already declared at top of script to avoid reference errors
+
+        // Restore merge toggle state (mergeEnabled already declared at top)
+        if (mergeEnabled) {
+            mergeFilesToggle.checked = true;
+        }
+
+        // Update merge UI visibility
+        function updateMergeUI() {
+            const isDocumentMode = currentMode === 'document';
+            const hasMultipleFiles = files.length >= 2;
+
+            // Check if all files are idle (not processed/processing/completed)
+            const allFilesIdle = files.every(f => f.status === 'idle');
+
+            // Show toggle only in Document mode with 2+ files
+            if (isDocumentMode && hasMultipleFiles) {
+                mergeToggleContainer.style.display = 'block';
+
+                // Disable toggle if files are being processed or completed
+                if (allFilesIdle) {
+                    mergeFilesToggle.disabled = false;
+                    mergeToggleContainer.style.opacity = '1';
+                    mergeToggleContainer.style.cursor = 'pointer';
+                } else {
+                    mergeFilesToggle.disabled = true;
+                    mergeToggleContainer.style.opacity = '0.5';
+                    mergeToggleContainer.style.cursor = 'not-allowed';
+                }
+            } else {
+                mergeToggleContainer.style.display = 'none';
+            }
+
+            // Show badge only when merge is enabled and 2+ files
+            if (mergeEnabled && hasMultipleFiles && isDocumentMode) {
+                mergeIndicator.style.display = 'inline-flex';
+                mergeFileCount.textContent = `${files.length} fichier${files.length > 1 ? 's' : ''}`;
+            } else {
+                mergeIndicator.style.display = 'none';
+            }
+        }
+
+        // Handle merge toggle change
+        mergeFilesToggle.addEventListener('change', (e) => {
+            mergeEnabled = e.target.checked;
+            localStorage.setItem('whisper_merge_enabled', mergeEnabled);
+            updateMergeUI();
+            renderFiles(); // Re-render to update drag handles
+            setupDragAndDrop(); // Re-setup drag & drop
+        });
+
+        // Update merge UI when mode changes
+        srtModeBtn.addEventListener('click', updateMergeUI);
+        docModeBtn.addEventListener('click', updateMergeUI);
+
+        // ========== FILE LIMIT VALIDATION ==========
+
+        function validateFileLimit(newFilesCount) {
+            if (files.length + newFilesCount > MAX_FILES) {
+                alert(`Limite atteinte : Vous ne pouvez pas ajouter plus de ${MAX_FILES} fichiers.`);
+                return false;
+            }
+            return true;
+        }
+
+        // ========== DRAG AND DROP FOR REORDERING ==========
+
+        let draggedIndex = null;
+
+        function setupDragAndDrop() {
+            if (!mergeEnabled) return;
+
+            // Select both .file-item and .merged-file-item
+            const fileItems = document.querySelectorAll('.file-item[draggable="true"], .merged-file-item[draggable="true"]');
+
+            fileItems.forEach((item, index) => {
+                // Drag start
+                item.addEventListener('dragstart', (e) => {
+                    draggedIndex = parseInt(e.currentTarget.dataset.index);
+                    e.currentTarget.classList.add('dragging');
+                    e.dataTransfer.effectAllowed = 'move';
+                });
+
+                // Drag end
+                item.addEventListener('dragend', (e) => {
+                    e.currentTarget.classList.remove('dragging');
+                    // Remove drag-over class from all items
+                    document.querySelectorAll('.file-item, .merged-file-item').forEach(item => {
+                        item.classList.remove('drag-over');
+                    });
+                });
+
+                // Drag over
+                item.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'move';
+
+                    const currentIndex = parseInt(e.currentTarget.dataset.index);
+                    if (currentIndex !== draggedIndex) {
+                        e.currentTarget.classList.add('drag-over');
+                    }
+                });
+
+                // Drag leave
+                item.addEventListener('dragleave', (e) => {
+                    e.currentTarget.classList.remove('drag-over');
+                });
+
+                // Drop
+                item.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    e.currentTarget.classList.remove('drag-over');
+
+                    const dropIndex = parseInt(e.currentTarget.dataset.index);
+
+                    if (draggedIndex !== null && draggedIndex !== dropIndex) {
+                        // Reorder files array
+                        const draggedFile = files[draggedIndex];
+                        files.splice(draggedIndex, 1);
+                        files.splice(dropIndex, 0, draggedFile);
+
+                        // Mark as manually reordered
+                        if (typeof manuallyReordered !== 'undefined') {
+                            window.manuallyReordered = true;
+                        }
+
+                        // Re-render
+                        renderFiles();
+                        setupDragAndDrop();
+                        saveFilesToLocalStorage();
+                    }
+
+                    draggedIndex = null;
+                });
+            });
+        }
+
+        // ========== SMART FILE SORTING ==========
+
+        function sortFilesByMetadata() {
+            // Try to extract timestamps from filenames and sort
+            files.sort((a, b) => {
+                const nameA = a.file.name;
+                const nameB = b.file.name;
+
+                // Try to extract timestamp from filename (e.g., recording_20240115_143052.webm)
+                const timestampRegex = /(\d{8,14})/;
+                const matchA = nameA.match(timestampRegex);
+                const matchB = nameB.match(timestampRegex);
+
+                if (matchA && matchB) {
+                    return matchA[1].localeCompare(matchB[1]);
+                }
+
+                // Fallback to file lastModified timestamp
+                const timeA = a.file.lastModified || 0;
+                const timeB = b.file.lastModified || 0;
+
+                if (timeA !== timeB) {
+                    return timeA - timeB;
+                }
+
+                // Final fallback: alphabetical
+                return nameA.localeCompare(nameB);
+            });
+        }
+
+        // Auto-sort files when added (only if not manually reordered)
+        // manuallyReordered already declared at top
+
+        // Call initial merge UI update
+        setTimeout(() => {
+            if (typeof updateMergeUI === 'function') {
+                updateMergeUI();
+            }
+        }, 0);
     </script>
 </body>
 </html>

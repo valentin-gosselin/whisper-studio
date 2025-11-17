@@ -5,6 +5,7 @@ import sys
 import requests
 import uuid
 import threading
+import re
 from pathlib import Path
 from flask import Flask, render_template, request, jsonify, send_file, Response, stream_with_context
 from werkzeug.utils import secure_filename
@@ -607,7 +608,6 @@ def process_transcription_job(job_id, wav_path, original_filename, mode, chunkin
                 raise Exception("Failed to analyze transcript structure")
 
             print(f"[SMART DOC] Structure analysis complete")
-            print(f"[DEBUG] Structure type: {type(structure)}")
 
             # Split transcript into chunks (simple paragraph-based splitting)
             # This ensures we have actual content instead of relying on Ollama to extract it
@@ -687,7 +687,7 @@ def process_transcription_job(job_id, wav_path, original_filename, mode, chunkin
             docx_path = os.path.join(app.config['OUTPUT_FOLDER'], safe_filename_disk)
 
             # Generate DOCX (no summary - kept simple)
-            generate_docx_file(title, doc_type, enriched_sections, None, metadata, docx_path)
+            generate_docx_file(title, doc_type, enriched_sections, None, metadata, docx_path, language=language)
 
             # Save backup TXT (raw transcript)
             txt_filename = f"{job_id}_transcript.txt"
@@ -976,6 +976,230 @@ def prepare_audio_job(job_id, input_path, original_filename, mode, chunking, lan
             'error': str(e)
         }
 
+def process_merged_files_job(job_id, file_paths, original_filenames, mode, chunking, language, use_diarization, doc_type):
+    """Process multiple files and merge their transcriptions"""
+    wav_paths = []
+    transcripts = []
+
+    try:
+        # Step 1: Convert all files to WAV
+        update_progress(job_id, 10, f'Conversion de {len(file_paths)} fichiers...')
+
+        for idx, input_path in enumerate(file_paths):
+            filename = Path(input_path).name
+            wav_path = os.path.join(app.config['UPLOAD_FOLDER'], f"{Path(filename).stem}_merged.wav")
+
+            if is_video_file(filename):
+                print(f"[BATCH {job_id}] Extracting audio from video {idx+1}/{len(file_paths)}")
+                if not prepare_audio_for_whisper(input_path, wav_path):
+                    raise Exception(f"Failed to extract audio from video: {original_filenames[idx]}")
+                os.remove(input_path)
+            elif not filename.lower().endswith('.wav'):
+                convert_to_wav(input_path, wav_path)
+                os.remove(input_path)
+            else:
+                os.rename(input_path, wav_path)
+
+            wav_paths.append(wav_path)
+
+        # Step 2: Transcribe all files
+        update_progress(job_id, 20, f'Transcription de {len(wav_paths)} fichiers...')
+
+        for idx, wav_path in enumerate(wav_paths):
+            progress = 20 + int((idx / len(wav_paths)) * 40)
+            update_progress(job_id, progress, f'Transcription du fichier {idx+1}/{len(wav_paths)}...')
+
+            # Transcribe using text mode (we'll use Ollama later for formatting)
+            segments = split_wav_file(wav_path, segment_duration=180)
+
+            full_text = ""
+            for seg_idx, segment_path in enumerate(segments):
+                segment_text = transcribe_text_http(segment_path, forced_language=language)
+                full_text += segment_text + " "
+
+                if segment_path != wav_path:
+                    os.remove(segment_path)
+
+            transcripts.append({
+                'filename': original_filenames[idx],
+                'text': full_text.strip(),
+                'index': idx
+            })
+
+            print(f"[BATCH {job_id}] Transcribed file {idx+1}/{len(wav_paths)}: {len(full_text)} characters")
+
+        # Step 3: Analyze chronological order with LLM (if metadata not conclusive)
+        update_progress(job_id, 65, 'Analyse de l\'ordre chronologique...')
+
+        # Check if files have clear metadata ordering
+        has_metadata_order = all(
+            re.search(r'(\d{8,14})', t['filename']) for t in transcripts
+        )
+
+        if not has_metadata_order and len(transcripts) > 1:
+            # Use LLM to determine order
+            print(f"[BATCH {job_id}] No clear metadata order, using LLM analysis")
+            from ollama_client import get_ollama_client
+            ollama = get_ollama_client()
+
+            if ollama.health_check():
+                ordered_indices = ollama.analyze_file_order(transcripts)
+                if ordered_indices:
+                    # Reorder transcripts based on LLM suggestion
+                    transcripts = [transcripts[i] for i in ordered_indices]
+                    print(f"[BATCH {job_id}] LLM reordered files: {ordered_indices}")
+            else:
+                print(f"[BATCH {job_id}] Ollama unavailable, keeping upload order")
+
+        # Step 4: Merge transcriptions
+        update_progress(job_id, 70, 'Fusion des transcriptions...')
+
+        merged_transcript = "\n\n".join([t['text'] for t in transcripts])
+        print(f"[BATCH {job_id}] Merged transcript: {len(merged_transcript)} characters")
+
+        # Step 5: Generate document with Ollama (same as single file smart_doc mode)
+        if mode == 'smart_doc':
+            from ollama_client import get_ollama_client
+            from docx_generator import generate_docx_file
+            import datetime
+
+            update_progress(job_id, 75, 'Analyse IA du contenu fusionné...')
+
+            ollama = get_ollama_client()
+            if not ollama.health_check():
+                raise Exception("Ollama service unavailable")
+
+            # Get structure
+            structure = ollama.segment_transcript(merged_transcript, doc_type, language)
+            if not structure:
+                raise Exception("Failed to analyze merged transcript structure")
+
+            # Split into chunks and enrich
+            update_progress(job_id, 80, 'Enrichissement du contenu...')
+
+            words = merged_transcript.split()
+            chunk_size = 1000
+            chunks = []
+            for i in range(0, len(words), chunk_size):
+                chunk_text = ' '.join(words[i:i+chunk_size])
+                chunks.append(chunk_text)
+
+            enriched_sections = []
+            for i, chunk_text in enumerate(chunks):
+                if len(chunk_text.strip()) < 100:
+                    continue
+
+                progress = 80 + int((i / len(chunks)) * 15)
+                update_progress(job_id, progress, f'Enrichissement {i+1}/{len(chunks)}...')
+
+                section_title = f"Partie {i+1}"
+                if isinstance(structure, dict):
+                    sections_list = structure.get('sections', [])
+                    if i < len(sections_list) and isinstance(sections_list[i], dict):
+                        section_title = sections_list[i].get('titre', section_title)
+
+                enriched = ollama.enrich_section(chunk_text, section_title, doc_type, language)
+                if enriched:
+                    enriched_sections.append(enriched)
+                else:
+                    enriched_sections.append({
+                        'title': section_title,
+                        'content': chunk_text,
+                        'key_points': [],
+                        'definitions': [],
+                        'examples': []
+                    })
+
+            # Generate DOCX
+            update_progress(job_id, 95, 'Génération du document Word fusionné...')
+
+            # Extract title
+            if isinstance(structure, dict) and 'titre_document' in structure:
+                title = structure['titre_document']
+            else:
+                title = "Document fusionné"
+
+            # Metadata
+            total_duration = sum([get_audio_duration(wp) for wp in wav_paths])
+            duration_str = f"{int(total_duration // 60)}min {int(total_duration % 60)}s"
+
+            metadata = {
+                'date': datetime.datetime.now().strftime('%d/%m/%Y'),
+                'duration': duration_str,
+                'language': language.upper(),
+                'files_count': len(file_paths)
+            }
+
+            # Save DOCX - use LLM-generated title for filename
+            safe_title = "".join(c for c in title if c.isalnum() or c in (' ', '-', '_')).strip()
+            safe_title = safe_title[:100]  # Limit length but keep spaces
+            output_filename = f"{safe_title}.docx" if safe_title else "document_fusionne.docx"
+            safe_filename_disk = f"{job_id}.docx"
+            docx_path = os.path.join(app.config['OUTPUT_FOLDER'], safe_filename_disk)
+
+            generate_docx_file(title, doc_type, enriched_sections, None, metadata, docx_path, language=language)
+
+            # Save backup TXT
+            txt_filename = f"{job_id}_transcript.txt"
+            txt_path = os.path.join(app.config['OUTPUT_FOLDER'], txt_filename)
+            with open(txt_path, 'w', encoding='utf-8') as f:
+                f.write(merged_transcript)
+
+            # Cleanup WAV files
+            for wav_path in wav_paths:
+                if os.path.exists(wav_path):
+                    os.remove(wav_path)
+
+            update_progress(job_id, 100, 'Document fusionné généré !')
+
+            job_results[job_id] = {
+                'success': True,
+                'download_url': f'/download/{job_id}',
+                'download_name': output_filename,
+                'mode': 'smart_doc',
+                'has_transcript': True,
+                'transcript_url': f'/download/{job_id}_transcript'
+            }
+
+        else:
+            # Text mode: just save merged transcript
+            update_progress(job_id, 95, 'Sauvegarde de la transcription fusionnée...')
+
+            txt_filename = f"{job_id}.txt"
+            txt_path = os.path.join(app.config['OUTPUT_FOLDER'], txt_filename)
+            with open(txt_path, 'w', encoding='utf-8') as f:
+                f.write(merged_transcript)
+
+            # Cleanup
+            for wav_path in wav_paths:
+                if os.path.exists(wav_path):
+                    os.remove(wav_path)
+
+            update_progress(job_id, 100, 'Transcription fusionnée terminée !')
+
+            job_results[job_id] = {
+                'success': True,
+                'download_url': f'/download/{job_id}',
+                'download_name': 'merged_transcript.txt',
+                'mode': 'text'
+            }
+
+    except Exception as e:
+        print(f"[BATCH {job_id}] Processing error: {e}")
+        import traceback
+        traceback.print_exc()
+
+        update_progress(job_id, 0, f'Erreur: {str(e)}')
+        job_results[job_id] = {
+            'success': False,
+            'error': str(e)
+        }
+
+        # Cleanup on error
+        for wav_path in wav_paths:
+            if os.path.exists(wav_path):
+                os.remove(wav_path)
+
 @app.route('/transcribe', methods=['POST'])
 def transcribe():
     if 'file' not in request.files:
@@ -1033,6 +1257,80 @@ def transcribe():
 
     except Exception as e:
         print(f"[JOB {job_id}] Upload error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/transcribe_batch', methods=['POST'])
+def transcribe_batch():
+    """Handle multiple files for merged transcription"""
+    if 'files' not in request.files:
+        return jsonify({'error': 'No files provided'}), 400
+
+    uploaded_files = request.files.getlist('files')
+    if len(uploaded_files) == 0:
+        return jsonify({'error': 'No files selected'}), 400
+
+    if len(uploaded_files) > 10:
+        return jsonify({'error': 'Maximum 10 files allowed'}), 400
+
+    # Validate all files
+    for file in uploaded_files:
+        if file.filename == '':
+            return jsonify({'error': 'One or more files have no name'}), 400
+        if not allowed_file(file.filename):
+            return jsonify({'error': f'File type not allowed: {file.filename}'}), 400
+
+    # Get parameters
+    mode = request.form.get('mode', 'smart_doc')
+    chunking = request.form.get('chunking', 'standard')
+    language = request.form.get('language', 'auto')
+    use_diarization = True
+    doc_type = request.form.get('doc_type', 'other')
+    merge_files = request.form.get('merge_files', 'false').lower() == 'true'
+
+    print(f"[BATCH] Received {len(uploaded_files)} files, merge={merge_files}, mode={mode}, doc_type={doc_type}")
+
+    if not merge_files:
+        return jsonify({'error': 'Batch endpoint requires merge_files=true'}), 400
+
+    # Generate unique job ID for the batch
+    job_id = str(uuid.uuid4())
+    update_progress(job_id, 5, f'Préparation de {len(uploaded_files)} fichiers...')
+
+    try:
+        # Save all uploaded files
+        file_paths = []
+        original_filenames = []
+
+        for idx, file in enumerate(uploaded_files):
+            original_filename = secure_filename(file.filename)
+            original_filenames.append(original_filename)
+
+            # Create unique filename with job_id and index
+            filename_parts = original_filename.rsplit('.', 1)
+            safe_filename = f"{job_id}_{idx}.{filename_parts[1] if len(filename_parts) > 1 else 'tmp'}"
+            input_path = os.path.join(app.config['UPLOAD_FOLDER'], safe_filename)
+
+            file.save(input_path)
+            file_paths.append(input_path)
+            print(f"[BATCH {job_id}] Saved file {idx+1}/{len(uploaded_files)}: {original_filename} -> {safe_filename}")
+
+        # Start background processing
+        thread = threading.Thread(
+            target=process_merged_files_job,
+            args=(job_id, file_paths, original_filenames, mode, chunking, language, use_diarization, doc_type),
+            daemon=True
+        )
+        thread.start()
+
+        print(f"[BATCH {job_id}] Background thread started for merged processing")
+
+        return jsonify({
+            'success': True,
+            'job_id': job_id
+        })
+
+    except Exception as e:
+        print(f"[BATCH {job_id}] Upload error: {e}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/job_result/<job_id>')
