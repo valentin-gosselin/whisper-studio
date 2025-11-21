@@ -130,7 +130,8 @@ body.neon-night .form-group textarea:focus {
 body.neon-night .btn {
     background: linear-gradient(135deg, #00ffff 0%, #00cccc 100%);
     color: #0a0a1a;
-    box-shadow: 0 10px 25px rgba(0, 255, 255, 0.4);
+    box-shadow: 0 2px 8px rgba(0, 255, 255, 0.15);
+    border: 1px solid transparent;
 }
 
 body.neon-night .btn-secondary {
@@ -192,6 +193,282 @@ body.neon-night .btn-danger:hover {
 /* Sections */
 body.neon-night .section {
     border-bottom-color: rgba(0, 255, 255, 0.2);
+}
+
+/* Library - Dark Theme */
+body.neon-night .storage-banner {
+    background: rgba(0, 255, 255, 0.05);
+    border-color: rgba(0, 255, 255, 0.2);
+}
+
+body.neon-night .storage-label,
+body.neon-night .storage-value {
+    color: #00ffff;
+}
+
+body.neon-night .storage-help-text {
+    color: rgba(0, 255, 255, 0.7);
+}
+
+body.neon-night .progress-bar {
+    background: rgba(0, 0, 0, 0.3);
+}
+
+body.neon-night .library-filters {
+    background: rgba(0, 255, 255, 0.03);
+}
+
+body.neon-night .filter-input,
+body.neon-night .filter-select {
+    background: rgba(0, 255, 255, 0.05);
+    border-color: rgba(0, 255, 255, 0.3);
+    color: #00ffff;
+}
+
+body.neon-night .filter-input::placeholder {
+    color: rgba(0, 255, 255, 0.4);
+}
+
+body.neon-night .filter-input:focus,
+body.neon-night .filter-select:focus {
+    background: rgba(0, 255, 255, 0.1);
+    border-color: #00ffff;
+}
+
+body.neon-night .filter-select option,
+body.neon-night select option {
+    background: #0a0a1a !important;
+    background-color: #0a0a1a !important;
+    color: #00ffff !important;
+}
+
+body.neon-night .filter-checkbox {
+    color: #00ffff;
+}
+
+body.neon-night .filter-checkbox input[type="checkbox"] {
+    background: rgba(0, 255, 255, 0.05);
+    border-color: rgba(0, 255, 255, 0.4);
+}
+
+body.neon-night .filter-checkbox input[type="checkbox"]:checked {
+    background: linear-gradient(135deg, #00ffff 0%, #00cccc 100%);
+    border-color: #00ffff;
+    box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+}
+
+body.neon-night .filter-checkbox input[type="checkbox"]:checked::after {
+    color: #0a0a1a;
+}
+
+body.neon-night .filter-checkbox input[type="checkbox"]:hover {
+    border-color: #00ffff;
+    background: rgba(0, 255, 255, 0.1);
+}
+
+body.neon-night .filter-checkbox span {
+    color: #00ffff;
+}
+
+body.neon-night .document-card {
+    background: rgba(0, 255, 255, 0.05);
+    border-color: rgba(0, 255, 255, 0.2);
+}
+
+body.neon-night .document-title {
+    color: #00ffff;
+}
+
+body.neon-night .document-meta,
+body.neon-night .meta-item {
+    color: rgba(0, 255, 255, 0.8);
+}
+
+body.neon-night .document-mode-badge {
+    background: rgba(0, 255, 255, 0.2);
+    color: #00ffff;
+    border: 1px solid rgba(0, 255, 255, 0.4);
+}
+
+body.neon-night .tag-pill {
+    background: rgba(0, 255, 255, 0.15);
+    color: #00ffff;
+    border: 1px solid rgba(0, 255, 255, 0.3);
+}
+
+body.neon-night .tags-edit-list {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(0, 255, 255, 0.2);
+}
+
+body.neon-night .tag-edit-item {
+    background: rgba(0, 255, 255, 0.2);
+    color: #00ffff;
+    border-color: rgba(0, 255, 255, 0.4);
+}
+
+body.neon-night .tag-remove-btn {
+    color: #00ffff;
+}
+
+body.neon-night .tag-remove-btn:hover {
+    background: rgba(255, 0, 0, 0.3);
+    color: #ff6666;
+}
+
+body.neon-night .empty-state {
+    color: rgba(0, 255, 255, 0.6);
+}
+
+body.neon-night .document-card:hover {
+    background: rgba(0, 255, 255, 0.1);
+    border-color: rgba(0, 255, 255, 0.4);
+    box-shadow: 0 8px 25px rgba(0, 255, 255, 0.15);
+}
+
+/* Custom Select - Dark Theme */
+body.neon-night .select-trigger {
+    border-color: rgba(0,255,255,0.4);
+    background: rgba(0,255,255,0.1);
+    color: #00ffff;
+}
+
+body.neon-night .select-trigger:hover {
+    background: rgba(0,255,255,0.15);
+    border-color: rgba(0,255,255,0.6);
+}
+
+body.neon-night .custom-select.open .select-trigger {
+    border-color: #00ffff;
+    box-shadow: 0 0 0 3px rgba(0,255,255,0.2);
+}
+
+body.neon-night .select-arrow {
+    stroke: #00ffff;
+}
+
+/* Bulk Actions Bar - Dark Theme */
+body.neon-night .bulk-actions-bar {
+    background: linear-gradient(135deg, #0a0a1a 0%, #1a0a2e 100%);
+    border-color: rgba(0, 255, 255, 0.4);
+    box-shadow: 0 8px 25px rgba(0, 255, 255, 0.15);
+}
+
+body.neon-night .bulk-selection-count {
+    color: #00ffff;
+    text-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+}
+
+body.neon-night .btn-ghost {
+    border-color: rgba(255, 255, 255, 0.5);
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+body.neon-night .btn-ghost:hover {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.7);
+}
+
+/* Document Select Checkbox - Dark Theme */
+body.neon-night .document-select-checkbox {
+    border-color: rgba(0, 255, 255, 0.4);
+    background: rgba(0, 255, 255, 0.05);
+}
+
+body.neon-night .document-select-checkbox:hover {
+    border-color: rgba(0, 255, 255, 0.6);
+    background: rgba(0, 255, 255, 0.1);
+}
+
+body.neon-night .document-select-checkbox:checked {
+    background: linear-gradient(135deg, #00ffff 0%, #00cccc 100%);
+    border-color: #00ffff;
+    box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+}
+
+body.neon-night .document-select-checkbox:checked::after {
+    color: #0a0a1a;
+}
+
+/* Bulk Actions Bar - Dark Theme */
+body.neon-night .bulk-actions-bar {
+    background: linear-gradient(135deg, #0a0a1a 0%, #1a0a2e 100%);
+    border-color: rgba(0, 255, 255, 0.3);
+    box-shadow: 0 4px 15px rgba(0, 255, 255, 0.2);
+}
+
+body.neon-night .bulk-selection-count {
+    color: #00ffff;
+    font-weight: 600;
+}
+
+body.neon-night .bulk-actions-bar .btn-ghost {
+    background: rgba(0, 255, 255, 0.1);
+    border-color: rgba(0, 255, 255, 0.3);
+    color: #00ffff;
+}
+
+body.neon-night .bulk-actions-bar .btn-ghost:hover {
+    background: rgba(0, 255, 255, 0.2);
+    border-color: rgba(0, 255, 255, 0.5);
+    box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+}
+
+body.neon-night .select-options {
+    background: linear-gradient(135deg, #0a0a1a 0%, #1a0a2e 100%);
+    border-color: rgba(0,255,255,0.3);
+    box-shadow: 0 8px 24px rgba(0,255,255,0.2);
+}
+
+body.neon-night .select-option {
+    color: #00ffff;
+    border-bottom-color: rgba(0,255,255,0.1);
+}
+
+body.neon-night .select-option:hover {
+    background: rgba(0,255,255,0.2);
+}
+
+body.neon-night .select-option.active {
+    background: #00ffff;
+    color: #0a0a1a;
+}
+
+body.neon-night .select-options::-webkit-scrollbar-track {
+    background: rgba(0,255,255,0.1);
+}
+
+body.neon-night .select-options::-webkit-scrollbar-thumb {
+    background: rgba(0,255,255,0.3);
+}
+
+body.neon-night .select-options::-webkit-scrollbar-thumb:hover {
+    background: rgba(0,255,255,0.5);
+}
+
+body.neon-night .pagination-btn {
+    background: rgba(0, 255, 255, 0.1);
+    border: 1px solid rgba(0, 255, 255, 0.3);
+    color: #00ffff;
+}
+
+body.neon-night .pagination-btn:hover {
+    background: rgba(0, 255, 255, 0.2);
+    border-color: #00ffff;
+}
+
+/* Modal - Dark Theme */
+body.neon-night .modal.active {
+    /* Fond sombre avec gradient néon */
+    background: linear-gradient(135deg, rgba(10, 10, 26, 0.95) 0%, rgba(26, 10, 46, 0.95) 100%);
+}
+
+body.neon-night .modal-content {
+    /* Glassmorphisme sombre semi-transparent par-dessus */
+    background: rgba(10, 10, 26, 0.4);
+    border: 1px solid rgba(0, 255, 255, 0.3);
+    box-shadow: 0 20px 60px rgba(0, 255, 255, 0.2), 0 0 40px rgba(0, 255, 255, 0.1);
 }
 
 /* Progress Bar */
@@ -272,4 +549,100 @@ body.neon-night .checkbox-group input[type="checkbox"]:checked::after {
 body.neon-night .checkbox-group input[type="checkbox"]:hover {
     border-color: #00ffff;
     background: rgba(0, 255, 255, 0.1);
+}
+
+/* Storage & Stats */
+body.neon-night .storage-banner {
+    background: rgba(0, 255, 255, 0.05);
+    border-color: rgba(0, 255, 255, 0.2);
+}
+
+body.neon-night .stat-card {
+    background: rgba(0, 255, 255, 0.05);
+    border-color: rgba(0, 255, 255, 0.2);
+}
+
+body.neon-night .stat-card:hover {
+    background: rgba(0, 255, 255, 0.1);
+    border-color: rgba(0, 255, 255, 0.4);
+    box-shadow: 0 8px 25px rgba(0, 255, 255, 0.15);
+    transform: translateY(-2px);
+}
+
+/* Charts */
+body.neon-night .chart-card {
+    background: rgba(0, 255, 255, 0.05);
+    border-color: rgba(0, 255, 255, 0.2);
+}
+
+/* Jobs */
+body.neon-night .jobs-stats .stat-item {
+    /* No background for cleaner look */
+}
+
+/* Job Badges - Dark Mode */
+body.neon-night .badge-srt {
+    background: rgba(59, 130, 246, 0.2);
+    border: 1px solid rgba(59, 130, 246, 0.4);
+    color: #60a5fa;
+}
+
+body.neon-night .badge-document {
+    /* No background, no border - just text */
+    border: none;
+    color: #34d399;
+}
+
+body.neon-night .badge-smart_doc {
+    background: rgba(168, 139, 250, 0.2);
+    border: 1px solid rgba(168, 139, 250, 0.4);
+    color: #a78bfa;
+}
+
+/* Job Status - Dark Mode */
+body.neon-night .job-status.status-completed {
+    background: rgba(16, 185, 129, 0.2);
+    border: 1px solid rgba(16, 185, 129, 0.4);
+    color: #10b981;
+}
+
+body.neon-night .job-status.status-error {
+    background: rgba(239, 68, 68, 0.2);
+    border: 1px solid rgba(239, 68, 68, 0.4);
+    color: #ef4444;
+}
+
+body.neon-night .job-status.status-processing {
+    background: rgba(59, 130, 246, 0.2);
+    border: 1px solid rgba(59, 130, 246, 0.4);
+    color: #3b82f6;
+}
+
+body.neon-night .job-status.status-pending {
+    background: rgba(156, 163, 175, 0.2);
+    border: 1px solid rgba(156, 163, 175, 0.4);
+    color: #9ca3af;
+}
+
+body.neon-night .job-item {
+    background: rgba(0, 255, 255, 0.05);
+    border-color: rgba(0, 255, 255, 0.2);
+}
+
+body.neon-night .job-item:hover {
+    background: rgba(0, 255, 255, 0.1);
+    border-color: rgba(0, 255, 255, 0.4);
+    box-shadow: 0 8px 25px rgba(0, 255, 255, 0.15);
+}
+
+/* Tags */
+body.neon-night .tag-pill {
+    background: rgba(0, 255, 255, 0.15);
+    color: #00ffff;
+    border: 1px solid rgba(0, 255, 255, 0.3);
+}
+
+/* Empty State */
+body.neon-night .empty-state {
+    color: rgba(0, 255, 255, 0.5);
 }

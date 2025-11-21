@@ -1418,6 +1418,7 @@
                 </div>
                 <div class="user-menu-dropdown" id="userMenuDropdown">
                     <a href="/profile" class="user-menu-item">Mon profil</a>
+                    <a href="/library" class="user-menu-item">Bibliothèque</a>
                     {% if current_user.is_admin %}
                     <a href="/admin" class="user-menu-item admin">Administration</a>
                     {% endif %}
@@ -2901,5 +2902,9 @@
             }
         }, 0);
     </script>
+
+    <footer style="position: fixed; bottom: 10px; right: 15px; font-size: 11px; opacity: 0.4; color: #fff; font-family: monospace; z-index: 10000;">
+        v{{ app_version }}
+    </footer>
 </body>
 </html>

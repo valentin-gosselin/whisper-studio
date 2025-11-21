@@ -15,9 +15,12 @@
 {% block navigation %}
 <div class="top-navigation">
     <a href="{{ url_for('index') }}" class="nav-link">← Retour à l'app</a>
-    {% if current_user.is_admin %}
-    <a href="/admin" class="nav-link">Administration →</a>
-    {% endif %}
+    <div style="display: flex; gap: 15px; align-items: center;">
+        <a href="{{ url_for('library.library') }}" class="nav-link">Bibliothèque</a>
+        {% if current_user.is_admin %}
+        <a href="/admin" class="nav-link">Administration</a>
+        {% endif %}
+    </div>
 </div>
 {% endblock %}
 

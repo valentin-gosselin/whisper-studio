@@ -9,6 +9,7 @@ from database import SessionLocal
 from models import User, Invitation, Job, Document, Setting
 from auth import hash_password
 from email_utils import send_invitation_email, mail
+from file_security import get_user_folder_name
 from datetime import datetime, timedelta
 import secrets
 import os
@@ -117,15 +118,18 @@ def register_admin_routes(app):
             if user.id == current_user.id:
                 return jsonify({'success': False, 'error': 'Cannot delete your own account'}), 400
 
-            # Delete user's files from disk
-            user_upload_dir = f"/tmp/uploads/{user_id}"
-            user_output_dir = f"/tmp/outputs/{user_id}"
+            # Delete user's files from disk (using hashed folder name for security)
+            user_folder_hash = get_user_folder_name(user_id)
+            user_upload_dir = f"/tmp/uploads/{user_folder_hash}"
+            user_output_dir = f"/tmp/outputs/{user_folder_hash}"
 
             if os.path.exists(user_upload_dir):
                 shutil.rmtree(user_upload_dir)
+                print(f"[ADMIN] Deleted upload folder: {user_upload_dir}")
 
             if os.path.exists(user_output_dir):
                 shutil.rmtree(user_output_dir)
+                print(f"[ADMIN] Deleted output folder: {user_output_dir}")
 
             # Delete user (cascade will delete documents and jobs)
             db.delete(user)
@@ -320,13 +324,13 @@ def register_admin_routes(app):
     @app.route('/admin/jobs')
     @admin_required
     def admin_jobs():
-        """Job history page"""
+        """Job history page - Admin view of ALL jobs"""
         db = SessionLocal()
         try:
             page = request.args.get('page', 1, type=int)
             per_page = 50
 
-            # Build query with filters
+            # Build query with filters - ADMIN sees ALL jobs
             jobs_query = db.query(Job).order_by(Job.created_at.desc())
 
             # Filter by status
@@ -339,10 +343,36 @@ def register_admin_routes(app):
             if mode_filter:
                 jobs_query = jobs_query.filter_by(mode=mode_filter)
 
+            # Filter by user
+            user_filter = request.args.get('user_id', type=int)
+            if user_filter:
+                jobs_query = jobs_query.filter_by(user_id=user_filter)
+
             total = jobs_query.count()
             jobs = jobs_query.offset((page - 1) * per_page).limit(per_page).all()
 
-            return render_template('admin/jobs.html', jobs=jobs, page=page, total=total, per_page=per_page)
+            # Get all users for filter dropdown
+            all_users = db.query(User).order_by(User.email).all()
+
+            # Calculate stats
+            total_jobs = db.query(Job).count()
+            completed_jobs = db.query(Job).filter_by(status='completed').count()
+            error_jobs = db.query(Job).filter_by(status='error').count()
+
+            return render_template(
+                'admin/jobs.html',
+                jobs=jobs,
+                page=page,
+                total=total,
+                per_page=per_page,
+                all_users=all_users,
+                status_filter=status_filter,
+                mode_filter=mode_filter,
+                user_filter=user_filter,
+                total_jobs=total_jobs,
+                completed_jobs=completed_jobs,
+                error_jobs=error_jobs
+            )
         finally:
             db.close()
 

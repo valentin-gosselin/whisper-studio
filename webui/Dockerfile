@@ -28,17 +28,22 @@ COPY database.py .
 COPY auth.py .
 COPY auth_routes.py .
 COPY admin_routes.py .
+COPY library_routes.py .
 COPY email_utils.py .
 COPY init_db.py .
+COPY cleanup_cron.py .
+COPY file_security.py .
+COPY migrate_user_folders.py .
 COPY templates ./templates
 COPY static ./static
 
 # Create necessary directories
 RUN mkdir -p /tmp/uploads /tmp/outputs /tmp/flask_sessions
 
-# Setup cron job for automatic cleanup (every hour, removes files older than 1h)
-RUN echo "0 * * * * find /tmp/uploads -type f -mmin +60 -delete 2>&1 | logger -t cleanup-uploads" > /etc/cron.d/cleanup && \
-    echo "0 * * * * find /tmp/outputs -type f -mmin +60 -delete 2>&1 | logger -t cleanup-outputs" >> /etc/cron.d/cleanup && \
+# Setup cron job for automatic cleanup with database protection
+# Runs every hour, removes uploads after 1h, outputs after 24h (but protects library files)
+RUN chmod +x /app/cleanup_cron.py && \
+    echo "0 * * * * cd /app && /usr/local/bin/python /app/cleanup_cron.py >> /var/log/cron.log 2>&1" > /etc/cron.d/cleanup && \
     chmod 0644 /etc/cron.d/cleanup && \
     crontab /etc/cron.d/cleanup
 

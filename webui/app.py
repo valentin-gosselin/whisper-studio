@@ -25,9 +25,20 @@ from database import init_db, db_session, SessionLocal
 from models import User, Invitation, Setting, Document, Job
 from auth import hash_password, verify_password, admin_required
 
+# Import file security utilities
+from file_security import (
+    get_user_upload_dir,
+    get_user_output_dir,
+    get_safe_user_file_path,
+    verify_file_ownership
+)
+
 # Force immediate stdout/stderr flush for Docker logs
 sys.stdout.reconfigure(line_buffering=True)
 sys.stderr.reconfigure(line_buffering=True)
+
+# Application version
+APP_VERSION = "0.6.0"
 
 app = Flask(__name__)
 
@@ -74,6 +85,13 @@ def load_user(user_id):
         db.close()
 
 
+# Make app version available in all templates
+@app.context_processor
+def inject_version():
+    """Inject app version into all templates"""
+    return {'app_version': APP_VERSION}
+
+
 # Initialize database on first run
 try:
     init_db()
@@ -94,36 +112,71 @@ PYANNOTE_URL = os.environ.get('PYANNOTE_URL', 'http://pyannote-diarization:8001'
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 os.makedirs(app.config['OUTPUT_FOLDER'], exist_ok=True)
 
-def cleanup_old_files(folder, max_age_hours=24):
-    """Remove files older than max_age_hours from the specified folder"""
+def cleanup_old_files(folder, max_age_hours=24, exclude_db_files=False):
+    """Remove files older than max_age_hours from the specified folder
+
+    Args:
+        folder: Path to folder to clean
+        max_age_hours: Maximum age in hours before deletion
+        exclude_db_files: If True, skip files that are referenced in Document table
+    """
     if not os.path.exists(folder):
         return
+
+    # Get protected file paths from database if requested
+    protected_paths = set()
+    if exclude_db_files:
+        try:
+            db = SessionLocal()
+            try:
+                documents = db.query(Document).all()
+                protected_paths = {doc.file_path for doc in documents if doc.file_path}
+                print(f"[CLEANUP] Protecting {len(protected_paths)} files from database")
+            finally:
+                db.close()
+        except Exception as e:
+            print(f"[CLEANUP] Error loading protected files from DB: {e}")
 
     current_time = time.time()
     max_age_seconds = max_age_hours * 3600
     removed_count = 0
+    skipped_count = 0
 
-    for filename in os.listdir(folder):
-        file_path = os.path.join(folder, filename)
-        if os.path.isfile(file_path):
-            file_age = current_time - os.path.getmtime(file_path)
-            if file_age > max_age_seconds:
-                try:
-                    os.remove(file_path)
-                    removed_count += 1
-                    print(f"[CLEANUP] Removed old file: {filename} (age: {file_age/3600:.1f}h)")
-                except Exception as e:
-                    print(f"[CLEANUP] Error removing {filename}: {e}")
+    # Recursively walk through folder and subfolders
+    for root, dirs, files in os.walk(folder):
+        for filename in files:
+            file_path = os.path.join(root, filename)
 
-    if removed_count > 0:
-        print(f"[CLEANUP] Removed {removed_count} old files from {folder}")
+            # Skip if file is protected (in database)
+            if file_path in protected_paths:
+                skipped_count += 1
+                continue
+
+            if os.path.isfile(file_path):
+                file_age = current_time - os.path.getmtime(file_path)
+                if file_age > max_age_seconds:
+                    try:
+                        os.remove(file_path)
+                        removed_count += 1
+                        print(f"[CLEANUP] Removed old file: {file_path} (age: {file_age/3600:.1f}h)")
+                    except Exception as e:
+                        print(f"[CLEANUP] Error removing {file_path}: {e}")
+
+    if removed_count > 0 or skipped_count > 0:
+        print(f"[CLEANUP] Folder {folder}: removed {removed_count} old files, protected {skipped_count} library files")
 
 def cleanup_on_startup():
     """Clean up old files on application startup"""
     print("[CLEANUP] Starting cleanup on application startup...")
-    cleanup_old_files(app.config['UPLOAD_FOLDER'], max_age_hours=1)
-    cleanup_old_files(app.config['OUTPUT_FOLDER'], max_age_hours=1)
-    print("[CLEANUP] Startup cleanup completed")
+    try:
+        # Clean temporary uploads after 1 hour
+        cleanup_old_files(app.config['UPLOAD_FOLDER'], max_age_hours=1, exclude_db_files=False)
+        # Clean outputs after 24 hours BUT protect files in database (library)
+        cleanup_old_files(app.config['OUTPUT_FOLDER'], max_age_hours=24, exclude_db_files=True)
+        print("[CLEANUP] Startup cleanup completed")
+    except Exception as e:
+        print(f"[CLEANUP] Cleanup failed (will retry later): {e}")
+        # Non-critical error, app can continue without cleanup
 
 # Run cleanup on startup
 cleanup_on_startup()
@@ -624,9 +677,8 @@ def process_transcription_job(job_id, wav_path, original_filename, mode, chunkin
         # Update job status to processing
         update_job_status(job_id, 'processing', started_at=start_time)
 
-        # Get user-specific output folder
-        user_output_folder = os.path.join(app.config['OUTPUT_FOLDER'], str(user_id)) if user_id else app.config['OUTPUT_FOLDER']
-        os.makedirs(user_output_folder, exist_ok=True)
+        # Get user-specific output folder (secure with hashed folder name)
+        user_output_folder = get_user_output_dir(user_id, app.config['OUTPUT_FOLDER']) if user_id else app.config['OUTPUT_FOLDER']
         print(f"[JOB {job_id}] Starting background processing - mode: {mode}, language: {language}, diarization: {use_diarization}")
         update_progress(job_id, 15, 'Audio prêt, démarrage transcription...')
 
@@ -1035,6 +1087,11 @@ register_auth_routes(app)
 from admin_routes import register_admin_routes
 register_admin_routes(app)
 
+# ========== LIBRARY ROUTES (Bibliothèque & Dashboard) ==========
+from library_routes import library_bp, init_serializer
+app.register_blueprint(library_bp)
+init_serializer(app.config['SECRET_KEY'])
+
 
 @app.route('/')
 @login_required
@@ -1096,10 +1153,9 @@ def prepare_audio_job(job_id, input_path, original_filename, mode, chunking, lan
     try:
         filename = Path(input_path).name
 
-        # Get user-specific folders
-        user_upload_folder = os.path.join(app.config['UPLOAD_FOLDER'], str(user_id)) if user_id else app.config['UPLOAD_FOLDER']
-        user_output_folder = os.path.join(app.config['OUTPUT_FOLDER'], str(user_id)) if user_id else app.config['OUTPUT_FOLDER']
-        os.makedirs(user_output_folder, exist_ok=True)
+        # Get user-specific folders (secure with hashed folder names)
+        user_upload_folder = get_user_upload_dir(user_id, app.config['UPLOAD_FOLDER']) if user_id else app.config['UPLOAD_FOLDER']
+        user_output_folder = get_user_output_dir(user_id, app.config['OUTPUT_FOLDER']) if user_id else app.config['OUTPUT_FOLDER']
 
         # Prepare audio (extract from video if needed, convert to WAV)
         wav_path = os.path.join(user_upload_folder, f"{Path(filename).stem}_{job_id}.wav")
@@ -1145,9 +1201,8 @@ def process_merged_files_job(job_id, file_paths, original_filenames, mode, chunk
         # Update job status to processing
         update_job_status(job_id, 'processing', started_at=start_time)
 
-        # Get user-specific output folder
-        user_output_folder = os.path.join(app.config['OUTPUT_FOLDER'], str(user_id)) if user_id else app.config['OUTPUT_FOLDER']
-        os.makedirs(user_output_folder, exist_ok=True)
+        # Get user-specific output folder (secure with hashed folder name)
+        user_output_folder = get_user_output_dir(user_id, app.config['OUTPUT_FOLDER']) if user_id else app.config['OUTPUT_FOLDER']
         # Step 1: Convert all files to WAV
         update_progress(job_id, 10, f'Conversion de {len(file_paths)} fichiers...')
 
@@ -1412,9 +1467,8 @@ def transcribe():
     job_id = str(uuid.uuid4())
 
     try:
-        # Create user-specific upload folder
-        user_upload_folder = os.path.join(app.config['UPLOAD_FOLDER'], str(current_user.id))
-        os.makedirs(user_upload_folder, exist_ok=True)
+        # Create user-specific upload folder (secure with hashed folder name)
+        user_upload_folder = get_user_upload_dir(current_user.id, app.config['UPLOAD_FOLDER'])
 
         # Save uploaded file
         original_filename = file.filename  # Keep original name with spaces
@@ -1503,9 +1557,8 @@ def transcribe_batch():
     update_progress(job_id, 5, f'Préparation de {len(uploaded_files)} fichiers...')
 
     try:
-        # Create user-specific upload folder
-        user_upload_folder = os.path.join(app.config['UPLOAD_FOLDER'], str(current_user.id))
-        os.makedirs(user_upload_folder, exist_ok=True)
+        # Create user-specific upload folder (secure with hashed folder name)
+        user_upload_folder = get_user_upload_dir(current_user.id, app.config['UPLOAD_FOLDER'])
 
         # Save all uploaded files
         file_paths = []
@@ -1572,7 +1625,7 @@ def job_result(job_id):
 @app.route('/download/<path:file_id>')
 @login_required
 def download(file_id):
-    """Download file using job_id or job_id_transcript"""
+    """Download file using job_id or job_id_transcript - SECURED with user ownership verification"""
     # Check if it's a transcript download
     is_transcript = file_id.endswith('_transcript')
 
@@ -1582,33 +1635,58 @@ def download(file_id):
         download_name = "transcript.txt"
     else:
         job_id = file_id
+        safe_filename_disk = None
+        download_name = None
 
-        # Get job result to find the file extension and original name
-        result = job_results.get(job_id)
-        if not result:
-            return jsonify({'error': 'Job not found'}), 404
+    # SECURITY: Verify job belongs to current user via database
+    db = SessionLocal()
+    try:
+        job = db.query(Job).filter(
+            Job.job_id == job_id,
+            Job.user_id == current_user.id  # CRITICAL: Only allow user's own jobs
+        ).first()
 
-        # Determine file extension from mode
-        mode = result.get('mode', 'text')
-        if mode == 'srt':
-            extension = '.srt'
-        elif mode == 'smart_doc':
-            extension = '.docx'
-        else:
-            extension = '.txt'
+        if not job:
+            return jsonify({'error': 'Job not found or access denied'}), 404
 
-        safe_filename_disk = f"{job_id}{extension}"
-        download_name = result.get('download_name', safe_filename_disk)
+        # Get file extension and name
+        if not is_transcript:
+            result = job_results.get(job_id)
+            if result:
+                mode = result.get('mode', 'text')
+                if mode == 'srt':
+                    extension = '.srt'
+                elif mode == 'smart_doc':
+                    extension = '.docx'
+                else:
+                    extension = '.txt'
+                safe_filename_disk = f"{job_id}{extension}"
+                download_name = result.get('download_name', safe_filename_disk)
+            else:
+                # Fallback to job mode from DB
+                if job.mode == 'srt':
+                    extension = '.srt'
+                elif job.mode == 'smart_doc':
+                    extension = '.docx'
+                else:
+                    # mode == 'document' (text transcription) or fallback
+                    extension = '.txt'
+                safe_filename_disk = f"{job_id}{extension}"
+                download_name = safe_filename_disk
 
-    # Try user-specific folder first, fallback to global folder (for backward compatibility)
-    user_output_folder = os.path.join(app.config['OUTPUT_FOLDER'], str(current_user.id))
+    finally:
+        db.close()
+
+    # Get user's secure output folder
+    user_output_folder = get_user_output_dir(current_user.id, app.config['OUTPUT_FOLDER'])
     filepath = os.path.join(user_output_folder, safe_filename_disk)
 
+    # SECURITY: Verify file ownership (prevent path traversal)
+    if not verify_file_ownership(filepath, current_user.id, app.config['OUTPUT_FOLDER']):
+        return jsonify({'error': 'Access denied'}), 403
+
     if not os.path.exists(filepath):
-        # Fallback to global folder (for old files created before multi-user)
-        filepath = os.path.join(app.config['OUTPUT_FOLDER'], safe_filename_disk)
-        if not os.path.exists(filepath):
-            return jsonify({'error': 'File not found'}), 404
+        return jsonify({'error': 'File not found'}), 404
 
     # Use original filename with spaces for download
     return send_file(filepath, as_attachment=True, download_name=download_name)

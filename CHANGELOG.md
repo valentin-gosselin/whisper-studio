@@ -5,6 +5,131 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] - 2025-11-21
+
+### 📚 Phase 2: Library & History
+
+**Complete document management system for users**
+
+### 🎯 Major Features
+
+#### Document Library
+- **Full document list** with metadata (date, title, size, type, language, mode)
+- **Advanced filters**:
+  - Search by title
+  - Filter by document type (conference, interview, etc.)
+  - Filter by language
+  - Filter by mode (text, srt, document, smart_doc)
+  - Favorites-only filter
+- **Sorting options**: Date (asc/desc), Title (asc/desc), Size (asc/desc)
+- **Custom tags system**:
+  - Add/edit tags inline with visual tag bubbles
+  - Filter by tags
+  - Max 10 tags per document
+- **Favorites system**: Toggle favorite status with star icon
+- **Storage management**:
+  - Real-time storage stats with progress bar
+  - 2GB limit per user (configurable by admin)
+  - Delete individual documents
+  - Delete entire library with password confirmation
+
+#### Jobs History
+- **Complete job history** with filters (status, mode)
+- **Dual timing display**: Audio duration + Processing time
+- **Visual stats**: Total jobs, Successful, Errors
+- **SVG icons** (clean design, no emojis)
+- **Pagination**: 50 jobs per page
+
+#### Admin Jobs Monitoring
+- **Global jobs view**: Admin can see ALL users' jobs
+- **User filter**: Filter by specific user (dropdown with username/email, not UUIDs)
+- **Stats banner**: Total jobs, Successful jobs, Errors (theme-adaptive)
+- **Combined filters**: User + Status + Mode
+- **Theme consistency**: Glassmorphism design with light/dark mode support
+
+#### Secure Downloads
+- **Signed tokens**: 24-hour expiration using itsdangerous
+- **User verification**: Token contains user_id for ownership validation
+- **Dedicated route**: `/library/download/<token>` (no conflicts)
+- **Download links API**: Generate temporary download URLs
+
+### 🎨 UX Improvements
+- **Removed dashboard page**: Redundant with library and profile pages
+- **Simplified navigation**: Removed all "Dashboard" links from menus
+- **Theme unification**: Admin panel now uses same CSS as user pages (theme-base.css, theme-light.css, theme-dark.css)
+- **Consistent filters**: Library-style glassmorphism filters across all pages
+- **Button styling**: Added `white-space: nowrap` to prevent text wrapping
+
+### 🔧 Technical Improvements
+
+#### New Files
+- `webui/library_routes.py`: Complete library management Blueprint
+  - `/library` - Document library page
+  - `/library/download/<token>` - Secure download with signed tokens
+  - `/jobs` - Jobs history page
+  - `/api/documents/<id>/toggle-favorite` - Toggle favorite status
+  - `/api/documents/<id>/tags` - Update document tags
+  - `/api/documents/<id>/delete` - Delete individual document
+  - `/api/library/delete-all` - Delete entire library (password required)
+  - `/api/documents/<id>/download-link` - Generate temporary download link
+- `webui/templates/library.html`: Document library interface
+- `webui/templates/jobs_history.html`: Jobs history interface
+
+#### Modified Files
+- `webui/app.py`:
+  - Registered `library_bp` Blueprint
+  - Initialized token serializer with secret key
+- `webui/admin_routes.py`:
+  - Enhanced `/admin/jobs` with user filter and global stats
+  - Added `all_users` context for filter dropdown
+- `webui/templates/admin/jobs.html`:
+  - Added user filter dropdown
+  - Added stats banner (total/success/errors)
+  - Migrated to library-style filters (glassmorphism)
+  - Fixed French accents: "Durée", "Créé le"
+  - Added dual timing display (audio + processing)
+- `webui/templates/admin/base.html`:
+  - Added theme CSS imports (theme-base.css, theme-light.css, theme-dark.css)
+  - Added `white-space: nowrap` to `.btn` class
+- `webui/templates/index.html`:
+  - Removed "Dashboard" link from user menu
+- `webui/templates/profile.html`:
+  - Removed "Dashboard" link from navigation
+- `webui/models.py`:
+  - Added `Document.tags` field (JSON array)
+  - Added `Document.is_favorite` field (boolean)
+
+#### Removed Files
+- `webui/templates/dashboard.html`: Deleted (redundant page)
+
+#### Removed Code
+- `webui/library_routes.py`:
+  - Removed `/dashboard` route
+  - Removed `/api/dashboard/charts` API
+  - Removed `get_user_statistics()` function
+
+### 📦 Dependencies
+- **itsdangerous**: For signed download tokens
+
+### 🔐 Security
+- **Ownership verification**: All document operations verify user ownership
+- **Signed tokens**: Download links use cryptographic signatures
+- **Password confirmation**: Library deletion requires password
+- **Token expiration**: Download links expire after 24 hours
+
+### 🐛 Bug Fixes
+- **Download route conflict**: Fixed conflict between `/download/<file_id>` and `/download/<token>` by renaming to `/library/download/<token>`
+- **Theme CSS missing**: Fixed admin panel missing glassmorphism styles by importing centralized CSS files
+- **Stats banner theme**: Fixed stats banner not adapting to dark mode
+
+### ✅ Phase 2 Status
+All objectives from ROADMAP.md Phase 2 completed:
+- ✅ Document library with filters, search, tags, favorites
+- ✅ Storage management with 2GB limit
+- ✅ Jobs history with statistics
+- ✅ Re-download functionality with secure tokens
+- ❌ Dashboard removed (redundant with library/profile)
+
 ## [0.4.0] - 2025-11-17
 
 ### 🎯 Major Feature: Multi-File Merge

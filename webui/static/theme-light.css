@@ -75,16 +75,20 @@ p {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
     box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+    border: none;
 }
 
 .btn-secondary {
-    background: #f3f4f6;
-    color: #667eea;
+    background: rgba(255, 255, 255, 0.25);
+    color: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 .btn-secondary:hover {
-    background: #e5e7eb;
-    box-shadow: none;
+    background: rgba(255, 255, 255, 0.35);
+    border-color: rgba(255, 255, 255, 0.5);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
 }
 
 /* Colored buttons */
@@ -92,18 +96,21 @@ p {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
     box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+    border: none;
 }
 
 .btn-orange {
     background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
     color: white;
     box-shadow: 0 10px 25px rgba(245, 158, 11, 0.3);
+    border: none;
 }
 
 .btn-danger {
     background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
     color: white;
     box-shadow: 0 10px 25px rgba(239, 68, 68, 0.3);
+    border: none;
 }
 
 /* Links */
@@ -132,6 +139,50 @@ p {
 /* Sections */
 .section {
     border-bottom-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Library - Light Theme */
+.filter-input, .filter-select {
+    background: rgba(255, 255, 255, 0.3);
+    border-color: rgba(255, 255, 255, 0.4);
+    color: #1f2937;
+}
+
+.filter-input:focus, .filter-select:focus {
+    background: rgba(255, 255, 255, 0.5);
+    border-color: #667eea;
+}
+
+.document-card {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.3);
+}
+
+.document-card:hover {
+    background: rgba(255, 255, 255, 0.25);
+    border-color: rgba(255, 255, 255, 0.5);
+}
+
+.pagination-btn {
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: #1f2937;
+}
+
+.pagination-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+/* Modal - Light Theme */
+.modal.active {
+    /* Fond violet/rose opaque */
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.95) 0%, rgba(118, 75, 162, 0.95) 100%);
+}
+
+.modal-content {
+    /* Glassmorphisme blanc semi-transparent par-dessus */
+    background: rgba(255, 255, 255, 0.15);
+    color: #ffffff;
 }
 
 /* Progress Bar */
@@ -214,4 +265,317 @@ p {
 .checkbox-group input[type="checkbox"]:hover {
     border-color: #667eea;
     background: rgba(255, 255, 255, 0.2);
+}
+
+.filter-checkbox input[type="checkbox"] {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.5);
+}
+
+.filter-checkbox input[type="checkbox"]:checked {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-color: #667eea;
+}
+
+.filter-checkbox input[type="checkbox"]:checked::after {
+    color: white;
+}
+
+.filter-checkbox input[type="checkbox"]:hover {
+    border-color: #667eea;
+    background: rgba(255, 255, 255, 0.2);
+}
+
+/* Storage & Stats */
+.storage-banner {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.25);
+}
+
+.storage-label,
+.storage-value,
+.storage-help-text {
+    color: #ffffff;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.stat-card {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.25);
+}
+
+.stat-card:hover {
+    background: rgba(255, 255, 255, 0.25);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+}
+
+.stat-label,
+.stat-value {
+    color: #ffffff;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+/* Library */
+.library-filters {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.25);
+}
+
+.filter-input,
+.filter-select {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.3);
+    color: white;
+}
+
+.filter-input::placeholder {
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.filter-select option,
+select option {
+    background: #667eea !important;
+    background-color: #667eea !important;
+    color: #ffffff !important;
+}
+
+.filter-checkbox {
+    color: #ffffff;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+/* Bulk Actions Bar - Light Theme */
+.bulk-actions-bar {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-color: rgba(255, 255, 255, 0.4);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+}
+
+.bulk-selection-count {
+    color: #ffffff;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.btn-ghost {
+    border-color: rgba(255, 255, 255, 0.4);
+    color: #ffffff;
+}
+
+.btn-ghost:hover {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.6);
+}
+
+/* Fix filter buttons shadow */
+.filter-actions .btn {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2) !important;
+}
+
+.filter-actions .btn:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25) !important;
+}
+
+.filter-actions .btn-secondary {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
+}
+
+.filter-actions .btn-secondary:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* Document Select Checkbox - Light Theme */
+.document-select-checkbox {
+    border-color: rgba(255, 255, 255, 0.5);
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.document-select-checkbox:hover {
+    border-color: rgba(255, 255, 255, 0.7);
+    background: rgba(255, 255, 255, 0.25);
+}
+
+.document-select-checkbox:checked {
+    background: linear-gradient(135deg, #ffffff 0%, #f0f0f0 100%);
+    border-color: #ffffff;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.document-select-checkbox:checked::after {
+    color: #667eea;
+    font-weight: bold;
+}
+
+/* Bulk Actions Bar - Light Theme */
+.bulk-actions-bar {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-color: rgba(255, 255, 255, 0.3);
+}
+
+.bulk-selection-count {
+    color: #ffffff;
+    font-weight: 600;
+}
+
+.bulk-actions-bar .btn-ghost {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.4);
+    color: #ffffff;
+}
+
+.bulk-actions-bar .btn-ghost:hover {
+    background: rgba(255, 255, 255, 0.25);
+    border-color: rgba(255, 255, 255, 0.6);
+}
+
+.document-card {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.25);
+}
+
+.document-card:hover {
+    background: rgba(255, 255, 255, 0.25);
+    border-color: rgba(255, 255, 255, 0.4);
+}
+
+.document-title {
+    color: #ffffff;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.document-meta,
+.meta-item {
+    color: rgba(255, 255, 255, 0.8);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.document-mode-badge {
+    background: rgba(255, 255, 255, 0.25);
+    color: #ffffff;
+    border-color: rgba(255, 255, 255, 0.4);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+/* Charts */
+.chart-card {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.25);
+}
+
+.chart-card h3 {
+    color: #ffffff;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+/* Jobs */
+.jobs-stats .stat-item {
+    /* No background for cleaner look */
+}
+
+/* Job Badges - Light Mode */
+.badge-srt {
+    background: rgba(59, 130, 246, 0.3);
+    border: 1px solid rgba(59, 130, 246, 0.5);
+    color: #ffffff;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.badge-document {
+    /* No background, no border - just text */
+    border: none;
+    color: #ffffff;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.badge-smart_doc {
+    background: rgba(168, 139, 250, 0.3);
+    border: 1px solid rgba(168, 139, 250, 0.5);
+    color: #ffffff;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+/* Job Status - Light Mode */
+.job-status.status-completed {
+    background: rgba(16, 185, 129, 0.3);
+    border: 1px solid rgba(16, 185, 129, 0.5);
+    color: #ffffff;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.job-status.status-error {
+    background: rgba(239, 68, 68, 0.3);
+    border: 1px solid rgba(239, 68, 68, 0.5);
+    color: #ffffff;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.job-status.status-processing {
+    background: rgba(59, 130, 246, 0.3);
+    border: 1px solid rgba(59, 130, 246, 0.5);
+    color: #ffffff;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.job-status.status-pending {
+    background: rgba(156, 163, 175, 0.3);
+    border: 1px solid rgba(156, 163, 175, 0.5);
+    color: #ffffff;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.jobs-stats .stat-label,
+.jobs-stats .stat-value {
+    color: #ffffff;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.job-item {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.25);
+}
+
+.job-item:hover {
+    background: rgba(255, 255, 255, 0.25);
+}
+
+.job-title,
+.job-meta,
+.job-status {
+    color: #ffffff;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+/* Tags */
+.tag-pill {
+    background: rgba(255, 255, 255, 0.25);
+    color: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.tags-edit-list {
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.tag-edit-item {
+    background: rgba(255, 255, 255, 0.25);
+    color: #ffffff;
+    border-color: rgba(255, 255, 255, 0.4);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.tag-remove-btn {
+    color: #ffffff;
+}
+
+.tag-remove-btn:hover {
+    background: rgba(239, 68, 68, 0.3);
+    color: #ffffff;
+}
+
+/* Empty State */
+.empty-state {
+    color: rgba(255, 255, 255, 0.7);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }

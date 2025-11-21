@@ -1,0 +1,142 @@
+{% extends "base_auth.html" %}
+
+{% block title %}Historique des jobs - Whisper Studio{% endblock %}
+{% block subtitle %}Historique de traitement{% endblock %}
+
+{% block navigation %}
+<div class="top-navigation">
+    <a href="{{ url_for('index') }}" class="nav-link">← Retour à l'app</a>
+    <div style="display: flex; gap: 15px; align-items: center;">
+        <a href="{{ url_for('library.library') }}" class="nav-link">Bibliothèque</a>
+        <a href="{{ url_for('profile') }}" class="nav-link">Profil</a>
+        {% if current_user.is_admin %}
+        <a href="/admin" class="nav-link">Administration →</a>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<!-- Stats Summary -->
+<div class="jobs-stats">
+    <div class="stat-item">
+        <span class="stat-label">Total :</span>
+        <span class="stat-value">{{ total_jobs }}</span>
+    </div>
+    <div class="stat-item">
+        <span class="stat-label">Réussis :</span>
+        <span class="stat-value success">{{ total_completed }}</span>
+    </div>
+    <div class="stat-item">
+        <span class="stat-label">Erreurs :</span>
+        <span class="stat-value error">{{ total_errors }}</span>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="library-filters">
+    <form method="GET" action="{{ url_for('library.jobs_history') }}" class="filters-form">
+        <div class="filter-row" style="grid-template-columns: 1fr 1fr auto auto;">
+            <select name="status" class="filter-select" data-custom-select>
+                <option value="">Tous les statuts</option>
+                <option value="completed" {% if status_filter == 'completed' %}selected{% endif %}>Réussi</option>
+                <option value="error" {% if status_filter == 'error' %}selected{% endif %}>Erreur</option>
+                <option value="processing" {% if status_filter == 'processing' %}selected{% endif %}>En cours</option>
+            </select>
+
+            <select name="mode" class="filter-select" data-custom-select>
+                <option value="">Tous les modes</option>
+                <option value="srt" {% if mode_filter == 'srt' %}selected{% endif %}>SRT</option>
+                <option value="document" {% if mode_filter == 'document' %}selected{% endif %}>Document</option>
+                <option value="smart_doc" {% if mode_filter == 'smart_doc' %}selected{% endif %}>Smart Doc</option>
+            </select>
+
+            <button type="submit" class="btn btn-primary">Filtrer</button>
+            <a href="{{ url_for('library.jobs_history') }}" class="btn btn-secondary">Réinitialiser</a>
+        </div>
+    </form>
+</div>
+
+<!-- Jobs List -->
+{% if jobs %}
+<div class="jobs-list">
+    {% for job in jobs %}
+    <div class="job-item">
+        <div class="job-header">
+            <span class="job-status status-{{ job.status }}">
+                {% if job.status == 'completed' %}{% elif job.status == 'error' %}{% elif job.status == 'processing' %}{% else %}{% endif %}
+                {{ job.status }}
+            </span>
+            <span class="job-mode badge-{{ job.mode }}">{{ job.mode.upper() }}</span>
+        </div>
+
+        <div class="job-details">
+            <div class="job-meta">
+                <span class="meta-item">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 4px;">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                        <line x1="16" y1="2" x2="16" y2="6"></line>
+                        <line x1="8" y1="2" x2="8" y2="6"></line>
+                        <line x1="3" y1="10" x2="21" y2="10"></line>
+                    </svg>
+                    {{ job.created_at.strftime('%d/%m/%Y %H:%M:%S') }}
+                </span>
+                {% if job.filename %}
+                <span class="meta-item">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 4px;">
+                        <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path>
+                        <polyline points="13 2 13 9 20 9"></polyline>
+                    </svg>
+                    {{ job.filename }}
+                </span>
+                {% endif %}
+                {% if job.duration_seconds %}
+                <span class="meta-item">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 4px;">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <polyline points="12 6 12 12 16 14"></polyline>
+                    </svg>
+                    Audio: {{ "%.0f"|format(job.duration_seconds // 60) }}min {{ "%.0f"|format(job.duration_seconds % 60) }}s
+                    {% if job.processing_time_seconds %}
+                    | Traité en: {{ "%.0f"|format(job.processing_time_seconds // 60) }}min {{ "%.0f"|format(job.processing_time_seconds % 60) }}s
+                    {% endif %}
+                </span>
+                {% endif %}
+            </div>
+
+            {% if job.error_message %}
+            <div class="job-error">
+                {{ job.error_message }}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Pagination -->
+{% if total_pages > 1 %}
+<div class="pagination">
+    {% if page > 1 %}
+    <a href="{{ url_for('library.jobs_history', page=page-1, status=status_filter, mode=mode_filter) }}"
+       class="pagination-btn">← Précédent</a>
+    {% endif %}
+
+    <span class="pagination-info">Page {{ page }} / {{ total_pages }}</span>
+
+    {% if page < total_pages %}
+    <a href="{{ url_for('library.jobs_history', page=page+1, status=status_filter, mode=mode_filter) }}"
+       class="pagination-btn">Suivant →</a>
+    {% endif %}
+</div>
+{% endif %}
+
+{% else %}
+<div class="empty-state">
+    <h3>Aucun job trouvé</h3>
+    <p class="help-text">L'historique de vos traitements apparaîtra ici</p>
+</div>
+{% endif %}
+
+<script src="{{ url_for('static', filename='custom-select.js') }}"></script>
+{% endblock %}

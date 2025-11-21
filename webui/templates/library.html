@@ -1,0 +1,667 @@
+{% extends "base_auth.html" %}
+
+{% block title %}Bibliothèque - Whisper Studio{% endblock %}
+{% block subtitle %}Mes documents générés{% endblock %}
+
+{% block navigation %}
+<div class="top-navigation">
+    <a href="{{ url_for('index') }}" class="nav-link">← Retour à l'app</a>
+    <div style="display: flex; gap: 15px; align-items: center;">
+        <a href="{{ url_for('profile') }}" class="nav-link">Profil</a>
+        {% if current_user.is_admin %}
+        <a href="/admin" class="nav-link">Administration →</a>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Modales (en dehors du glass-container pour éviter le blur) -->
+<!-- Tags Edit Modal -->
+<div id="tagsModal" class="modal">
+    <div class="modal-content">
+        <span class="modal-close" onclick="closeTagsModal()">&times;</span>
+        <h3>Gérer les tags</h3>
+        <form id="tagsForm" onsubmit="saveTags(event)">
+            <input type="hidden" id="editDocId" value="">
+            <div class="form-group">
+                <label>Tags existants</label>
+                <div id="currentTagsList" class="tags-edit-list"></div>
+            </div>
+            <div class="form-group">
+                <label>Ajouter un nouveau tag</label>
+                <div style="display: flex; gap: 10px;">
+                    <input type="text" id="newTagInput" placeholder="Nouveau tag..." class="form-control" style="flex: 1;">
+                    <button type="button" class="btn btn-secondary" onclick="addNewTag()" style="flex: 0;">Ajouter</button>
+                </div>
+                <p class="help-text">Maximum 10 tags</p>
+            </div>
+            <div class="modal-actions">
+                <button type="submit" class="btn btn-primary">Sauvegarder</button>
+                <button type="button" class="btn btn-secondary" onclick="closeTagsModal()">Annuler</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Delete Library Confirmation Modal -->
+<div id="deleteLibraryModal" class="modal">
+    <div class="modal-content">
+        <span class="modal-close" onclick="closeDeleteLibraryModal()">&times;</span>
+        <h3>Attention - Action irréversible</h3>
+        <p>Êtes-vous sûr de vouloir supprimer TOUS vos documents ?</p>
+        <p class="help-text">Cette action supprimera {{ total_docs }} document{{ 's' if total_docs > 1 else '' }} de manière permanente.</p>
+
+        <form id="deleteLibraryForm" onsubmit="confirmDeleteLibrary(event)">
+            <div class="form-group">
+                <label>Confirmez avec votre mot de passe</label>
+                <input type="password" id="deletePassword" required class="form-control">
+            </div>
+            <div class="modal-actions">
+                <button type="submit" class="btn btn-danger">Supprimer tout</button>
+                <button type="button" class="btn btn-secondary" onclick="closeDeleteLibraryModal()">Annuler</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Delete Document Confirmation Modal -->
+<div id="deleteDocumentModal" class="modal">
+    <div class="modal-content">
+        <span class="modal-close" onclick="closeDeleteDocumentModal()">&times;</span>
+        <h3>Supprimer le document</h3>
+        <p>Êtes-vous sûr de vouloir supprimer ce document ?</p>
+        <p class="help-text" id="deleteDocumentTitle" style="font-weight: 600; color: inherit; opacity: 0.9;"></p>
+        <p class="help-text" style="margin-top: 10px;">Cette action est irréversible.</p>
+
+        <input type="hidden" id="deleteDocId" value="">
+        <div class="modal-actions">
+            <button type="button" class="btn btn-danger" onclick="confirmDeleteDocument()">Supprimer</button>
+            <button type="button" class="btn btn-secondary" onclick="closeDeleteDocumentModal()">Annuler</button>
+        </div>
+    </div>
+</div>
+
+<!-- Bulk Add Tags Modal -->
+<div id="bulkAddTagsModal" class="modal">
+    <div class="modal-content">
+        <span class="modal-close" onclick="closeBulkAddTagsModal()">&times;</span>
+        <h3>Ajouter des tags</h3>
+        <p>Ajoutez un ou plusieurs tags aux <span id="bulkTagsCount">0</span> document(s) sélectionné(s)</p>
+
+        <div class="form-group" style="margin-top: 20px;">
+            <label>Tags à ajouter (séparés par des virgules)</label>
+            <input type="text" id="bulkTagsInput" class="form-control" placeholder="cours, important, à revoir...">
+            <p class="help-text" style="margin-top: 8px;">Ces tags seront ajoutés aux tags existants</p>
+        </div>
+
+        <div class="modal-actions">
+            <button type="button" class="btn btn-primary" onclick="confirmBulkAddTags()">Ajouter</button>
+            <button type="button" class="btn btn-secondary" onclick="closeBulkAddTagsModal()">Annuler</button>
+        </div>
+    </div>
+</div>
+
+<!-- Bulk Delete Modal -->
+<div id="bulkDeleteModal" class="modal">
+    <div class="modal-content">
+        <span class="modal-close" onclick="closeBulkDeleteModal()">&times;</span>
+        <h3>Supprimer la sélection</h3>
+        <p>Êtes-vous sûr de vouloir supprimer <span id="bulkDeleteCount">0</span> document(s) ?</p>
+        <p class="help-text" style="margin-top: 10px; color: #ef4444; font-weight: 600;">Cette action est irréversible.</p>
+
+        <div class="modal-actions">
+            <button type="button" class="btn btn-danger" onclick="confirmBulkDelete()">Supprimer</button>
+            <button type="button" class="btn btn-secondary" onclick="closeBulkDeleteModal()">Annuler</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<!-- Storage Progress Bar -->
+<div class="storage-banner">
+    <div class="storage-info">
+        <span class="storage-label">Espace utilisé</span>
+        <span class="storage-value">{{ "%.2f"|format(storage_stats.total_size_mb) }} Mo / {{ "%.2f"|format(storage_stats.storage_limit_gb) }} Go</span>
+    </div>
+    <div class="progress-bar">
+        <div class="progress-fill {% if storage_stats.percentage > 90 %}progress-danger{% elif storage_stats.percentage > 70 %}progress-warning{% endif %}"
+             style="width: {{ storage_stats.percentage }}%">
+        </div>
+    </div>
+    <p class="storage-help-text">{{ storage_stats.total_docs }} document{{ 's' if storage_stats.total_docs > 1 else '' }} dans votre bibliothèque</p>
+</div>
+
+<!-- Filters & Search -->
+<div class="library-filters">
+    <form method="GET" action="{{ url_for('library.library') }}" class="filters-form">
+        <div class="filter-row">
+            <input type="text"
+                   name="search"
+                   class="filter-input filter-search"
+                   placeholder="Rechercher par titre..."
+                   value="{{ current_search }}">
+
+            <select name="type" class="filter-select" data-custom-select>
+                <option value="">Tous les types</option>
+                {% for doc_type in doc_types %}
+                <option value="{{ doc_type }}" {% if current_type == doc_type %}selected{% endif %}>{{ doc_type }}</option>
+                {% endfor %}
+            </select>
+
+            <select name="language" class="filter-select" data-custom-select>
+                <option value="">Toutes les langues</option>
+                {% for lang in languages %}
+                <option value="{{ lang }}" {% if current_language == lang %}selected{% endif %}>{{ lang.upper() }}</option>
+                {% endfor %}
+            </select>
+
+            <select name="mode" class="filter-select" data-custom-select>
+                <option value="">Tous les modes</option>
+                <option value="srt" {% if current_mode == 'srt' %}selected{% endif %}>SRT</option>
+                <option value="document" {% if current_mode == 'document' %}selected{% endif %}>Document</option>
+            </select>
+
+            <select name="sort" class="filter-select" data-custom-select>
+                <option value="date_desc" {% if sort_by == 'date_desc' %}selected{% endif %}>Plus récent</option>
+                <option value="date_asc" {% if sort_by == 'date_asc' %}selected{% endif %}>Plus ancien</option>
+                <option value="title_asc" {% if sort_by == 'title_asc' %}selected{% endif %}>Titre A-Z</option>
+                <option value="title_desc" {% if sort_by == 'title_desc' %}selected{% endif %}>Titre Z-A</option>
+                <option value="size_desc" {% if sort_by == 'size_desc' %}selected{% endif %}>Plus gros</option>
+                <option value="size_asc" {% if sort_by == 'size_asc' %}selected{% endif %}>Plus petit</option>
+            </select>
+        </div>
+
+        <div class="filter-actions">
+            <label class="filter-checkbox">
+                <input type="checkbox" name="favorites" value="true" {% if favorites_only %}checked{% endif %}>
+                <span>Favoris uniquement</span>
+            </label>
+
+            <button type="submit" class="btn btn-primary btn-sm">Filtrer</button>
+            <a href="{{ url_for('library.library') }}" class="btn btn-secondary btn-sm">Réinitialiser</a>
+        </div>
+    </form>
+</div>
+
+<!-- Bulk Actions Bar -->
+<div class="bulk-actions-bar" id="bulkActionsBar" style="display: none;">
+    <div class="bulk-actions-content">
+        <div style="display: flex; align-items: center; gap: 15px;">
+            <button class="btn btn-sm btn-ghost" onclick="toggleSelectAll()" id="selectAllBtn">
+                Tout sélectionner
+            </button>
+            <span class="bulk-selection-count"><span id="selectedCount">0</span> document(s) sélectionné(s)</span>
+        </div>
+        <div class="bulk-actions-buttons">
+            <button class="btn btn-sm btn-secondary" onclick="bulkAddTags()">
+                Ajouter des tags
+            </button>
+            <button class="btn btn-sm btn-danger" onclick="bulkDelete()">
+                Supprimer la sélection
+            </button>
+            <button class="btn btn-sm btn-ghost" onclick="clearSelection()">
+                Annuler
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Documents Grid -->
+{% if documents %}
+<div class="documents-grid">
+    {% for doc in documents %}
+    <div class="document-card" data-doc-id="{{ doc.id }}">
+        <div class="document-header">
+            <div class="document-select-wrapper">
+                <input type="checkbox"
+                       class="document-select-checkbox"
+                       data-doc-id="{{ doc.id }}"
+                       data-doc-title="{{ doc.title }}"
+                       onchange="updateBulkActions()">
+            </div>
+            <button class="favorite-btn {% if doc.is_favorite %}active{% endif %}"
+                    onclick="toggleFavorite({{ doc.id }})"
+                    title="{% if doc.is_favorite %}Retirer des favoris{% else %}Ajouter aux favoris{% endif %}">
+
+            </button>
+            <span class="document-mode-badge badge-{{ doc.mode }}">{{ doc.mode.upper() }}</span>
+        </div>
+
+        <h3 class="document-title" title="{{ doc.title }}">{{ doc.title }}</h3>
+
+        <div class="document-info">
+            <div class="document-meta">
+                <span class="meta-item">{{ doc.created_at.strftime('%d/%m/%Y %H:%M') }}</span>
+                <span class="meta-item">{{ "%.2f"|format(doc.file_size_bytes / (1024 * 1024)) }} Mo</span>
+                {% if doc.language %}<span class="meta-item">{{ doc.language.upper() }}</span>{% endif %}
+                {% if doc.document_type %}<span class="meta-item">{{ doc.document_type }}</span>{% endif %}
+            </div>
+
+            {% if doc.tags %}
+            <div class="document-tags">
+                {% for tag in doc.tags %}
+                <span class="tag-pill">{{ tag }}</span>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="document-actions">
+            <button class="btn btn-sm btn-primary" onclick="downloadDocument({{ doc.id }})">
+                Télécharger
+            </button>
+            <button class="btn btn-sm btn-secondary"
+                    data-doc-id="{{ doc.id }}"
+                    onclick="editTagsFromButton(this)">
+                Tags
+                <script type="application/json" class="tags-data">{{ (doc.tags if doc.tags else [])|tojson }}</script>
+            </button>
+            <button class="btn btn-sm btn-danger" onclick="deleteDocument({{ doc.id }}, '{{ doc.title }}')">
+                Supprimer
+            </button>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Pagination -->
+{% if total_pages > 1 %}
+<div class="pagination">
+    {% if page > 1 %}
+    <a href="{{ url_for('library.library', page=page-1, search=current_search, type=current_type, language=current_language, mode=current_mode, favorites=favorites_only, sort=sort_by) }}"
+       class="pagination-btn">← Précédent</a>
+    {% endif %}
+
+    <span class="pagination-info">Page {{ page }} / {{ total_pages }}</span>
+
+    {% if page < total_pages %}
+    <a href="{{ url_for('library.library', page=page+1, search=current_search, type=current_type, language=current_language, mode=current_mode, favorites=favorites_only, sort=sort_by) }}"
+       class="pagination-btn">Suivant →</a>
+    {% endif %}
+</div>
+{% endif %}
+
+{% else %}
+<div class="empty-state">
+    <h3>Aucun document trouvé</h3>
+    <p class="help-text">Commencez par transcrire un fichier audio ou vidéo depuis <a href="{{ url_for('index') }}">l'application principale</a></p>
+</div>
+{% endif %}
+
+<!-- Actions globales -->
+{% if total_docs > 0 %}
+<div class="library-actions">
+    <button class="btn btn-danger" onclick="deleteLibrary()">
+         Supprimer toute ma bibliothèque
+    </button>
+</div>
+{% endif %}
+
+<script>
+// Reset checkboxes on page load (browser caches checkbox state)
+document.addEventListener('DOMContentLoaded', function() {
+    const checkboxes = document.querySelectorAll('.document-select-checkbox');
+    checkboxes.forEach(cb => cb.checked = false);
+    updateBulkActions();
+});
+
+// Toggle favorite
+function toggleFavorite(docId) {
+    fetch(`/api/documents/${docId}/toggle-favorite`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'}
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            const btn = document.querySelector(`[data-doc-id="${docId}"] .favorite-btn`);
+            if (data.is_favorite) {
+                btn.classList.add('active');
+                btn.title = 'Retirer des favoris';
+            } else {
+                btn.classList.remove('active');
+                btn.title = 'Ajouter aux favoris';
+            }
+        }
+    });
+}
+
+// Download document
+function downloadDocument(docId) {
+    fetch(`/api/documents/${docId}/download-link`, {
+        method: 'POST'
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            window.location.href = data.download_url;
+        }
+    });
+}
+
+// Edit tags from button
+function editTagsFromButton(button) {
+    const docId = button.getAttribute('data-doc-id');
+    const scriptTag = button.querySelector('.tags-data');
+    let currentTags = [];
+    try {
+        if (scriptTag && scriptTag.textContent) {
+            currentTags = JSON.parse(scriptTag.textContent);
+        }
+    } catch (e) {
+        console.error('Error parsing tags:', e);
+        currentTags = [];
+    }
+    editTags(docId, currentTags);
+}
+
+// Global array to store current tags in modal
+let modalTags = [];
+
+// Edit tags
+function editTags(docId, currentTags) {
+    document.getElementById('editDocId').value = docId;
+    modalTags = currentTags && Array.isArray(currentTags) ? [...currentTags] : [];
+    renderTagsList();
+    document.body.classList.add('modal-active');
+    document.getElementById('tagsModal').classList.add('active');
+}
+
+function renderTagsList() {
+    const container = document.getElementById('currentTagsList');
+    if (modalTags.length === 0) {
+        container.innerHTML = '<p style="opacity: 0.6; font-style: italic;">Aucun tag</p>';
+        return;
+    }
+
+    container.innerHTML = modalTags.map(tag => `
+        <span class="tag-edit-item">
+            ${tag}
+            <button type="button" class="tag-remove-btn" onclick="removeTag('${tag.replace(/'/g, "\\'")}')">×</button>
+        </span>
+    `).join('');
+}
+
+function removeTag(tag) {
+    modalTags = modalTags.filter(t => t !== tag);
+    renderTagsList();
+}
+
+function addNewTag() {
+    const input = document.getElementById('newTagInput');
+    const newTag = input.value.trim();
+
+    if (!newTag) return;
+
+    if (modalTags.includes(newTag)) {
+        alert('Ce tag existe déjà');
+        return;
+    }
+
+    if (modalTags.length >= 10) {
+        alert('Maximum 10 tags');
+        return;
+    }
+
+    modalTags.push(newTag);
+    input.value = '';
+    renderTagsList();
+}
+
+function closeTagsModal() {
+    document.body.classList.remove('modal-active');
+    document.getElementById('tagsModal').classList.remove('active');
+    // Reset form
+    document.getElementById('newTagInput').value = '';
+    document.getElementById('editDocId').value = '';
+    modalTags = [];
+}
+
+function saveTags(e) {
+    e.preventDefault();
+    const docId = document.getElementById('editDocId').value;
+
+    fetch(`/api/documents/${docId}/tags`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({tags: modalTags})
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        }
+    });
+}
+
+// Delete document
+function deleteDocument(docId, title) {
+    // Store data in modal
+    document.getElementById('deleteDocId').value = docId;
+    document.getElementById('deleteDocumentTitle').textContent = title;
+    // Open modal
+    document.body.classList.add('modal-active');
+    document.getElementById('deleteDocumentModal').classList.add('active');
+}
+
+function closeDeleteDocumentModal() {
+    document.body.classList.remove('modal-active');
+    document.getElementById('deleteDocumentModal').classList.remove('active');
+    document.getElementById('deleteDocId').value = '';
+    document.getElementById('deleteDocumentTitle').textContent = '';
+}
+
+function confirmDeleteDocument() {
+    const docId = document.getElementById('deleteDocId').value;
+
+    fetch(`/api/documents/${docId}/delete`, {
+        method: 'POST'
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert(data.error || 'Erreur lors de la suppression');
+        }
+    })
+    .catch(err => alert('Erreur: ' + err));
+}
+
+// Delete library
+function deleteLibrary() {
+    document.body.classList.add('modal-active');
+    document.getElementById('deleteLibraryModal').classList.add('active');
+}
+
+function closeDeleteLibraryModal() {
+    document.body.classList.remove('modal-active');
+    document.getElementById('deleteLibraryModal').classList.remove('active');
+    document.getElementById('deletePassword').value = '';
+}
+
+function confirmDeleteLibrary(e) {
+    e.preventDefault();
+    const password = document.getElementById('deletePassword').value;
+
+    fetch('/api/library/delete-all', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({password})
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            alert(`${data.deleted_count} document(s) supprimé(s)`);
+            location.reload();
+        } else {
+            alert(data.error || 'Erreur lors de la suppression');
+        }
+    })
+    .catch(err => alert('Erreur: ' + err));
+}
+
+// Close modals on click outside
+window.onclick = function(event) {
+    if (event.target.classList.contains('modal')) {
+        if (event.target.id === 'tagsModal') {
+            closeTagsModal();
+        } else if (event.target.id === 'deleteLibraryModal') {
+            closeDeleteLibraryModal();
+        } else if (event.target.id === 'deleteDocumentModal') {
+            closeDeleteDocumentModal();
+        } else if (event.target.id === 'bulkAddTagsModal') {
+            closeBulkAddTagsModal();
+        } else if (event.target.id === 'bulkDeleteModal') {
+            closeBulkDeleteModal();
+        } else {
+            event.target.style.display = 'none';
+        }
+    }
+}
+
+// ===== BULK ACTIONS =====
+function updateBulkActions() {
+    const checkboxes = document.querySelectorAll('.document-select-checkbox');
+    const checkedBoxes = Array.from(checkboxes).filter(cb => cb.checked);
+    const count = checkedBoxes.length;
+    const totalCount = checkboxes.length;
+    const bulkBar = document.getElementById('bulkActionsBar');
+    const countSpan = document.getElementById('selectedCount');
+    const selectAllBtn = document.getElementById('selectAllBtn');
+
+    if (count > 0) {
+        bulkBar.style.display = 'block';
+        countSpan.textContent = count;
+
+        // Update button text
+        if (count === totalCount) {
+            selectAllBtn.textContent = 'Tout désélectionner';
+        } else {
+            selectAllBtn.textContent = 'Tout sélectionner';
+        }
+    } else {
+        bulkBar.style.display = 'none';
+    }
+}
+
+function getSelectedDocIds() {
+    const checkboxes = document.querySelectorAll('.document-select-checkbox:checked');
+    return Array.from(checkboxes).map(cb => parseInt(cb.dataset.docId));
+}
+
+function toggleSelectAll() {
+    const checkboxes = document.querySelectorAll('.document-select-checkbox');
+    const checkedBoxes = Array.from(checkboxes).filter(cb => cb.checked);
+    const allChecked = checkedBoxes.length === checkboxes.length;
+
+    checkboxes.forEach(cb => cb.checked = !allChecked);
+    updateBulkActions();
+}
+
+function clearSelection() {
+    const checkboxes = document.querySelectorAll('.document-select-checkbox');
+    checkboxes.forEach(cb => cb.checked = false);
+    updateBulkActions();
+}
+
+function bulkDelete() {
+    const docIds = getSelectedDocIds();
+    const count = docIds.length;
+
+    if (count === 0) {
+        showNotification('Aucun document sélectionné', 'error');
+        return;
+    }
+
+    // Open modal
+    document.getElementById('bulkDeleteCount').textContent = count;
+    document.body.classList.add('modal-active');
+    const modal = document.getElementById('bulkDeleteModal');
+    modal.classList.add('active');
+    console.log('Modal delete opened, classList:', modal.classList);
+}
+
+function closeBulkDeleteModal() {
+    document.body.classList.remove('modal-active');
+    document.getElementById('bulkDeleteModal').classList.remove('active');
+}
+
+function confirmBulkDelete() {
+    const docIds = getSelectedDocIds();
+    closeBulkDeleteModal();
+
+    Promise.all(docIds.map(docId =>
+        fetch(`/api/documents/${docId}/delete`, { method: 'POST' })
+            .then(r => r.json())
+    )).then(results => {
+        const successCount = results.filter(r => r.success).length;
+        if (successCount > 0) {
+            location.reload();
+        } else {
+            showNotification('Erreur lors de la suppression', 'error');
+        }
+    }).catch(err => {
+        showNotification('Erreur: ' + err, 'error');
+    });
+}
+
+function bulkAddTags() {
+    const docIds = getSelectedDocIds();
+    const count = docIds.length;
+
+    if (count === 0) {
+        showNotification('Aucun document sélectionné', 'error');
+        return;
+    }
+
+    // Open modal
+    document.getElementById('bulkTagsCount').textContent = count;
+    document.getElementById('bulkTagsInput').value = '';
+    document.body.classList.add('modal-active');
+    const modal = document.getElementById('bulkAddTagsModal');
+    modal.classList.add('active');
+    console.log('Modal tags opened, classList:', modal.classList);
+}
+
+function closeBulkAddTagsModal() {
+    document.body.classList.remove('modal-active');
+    document.getElementById('bulkAddTagsModal').classList.remove('active');
+}
+
+function confirmBulkAddTags() {
+    const docIds = getSelectedDocIds();
+    const tagsInput = document.getElementById('bulkTagsInput').value;
+
+    if (!tagsInput || !tagsInput.trim()) {
+        showNotification('Veuillez entrer au moins un tag', 'error');
+        return;
+    }
+
+    // Split by comma and clean
+    const tags = tagsInput.split(',').map(t => t.trim()).filter(t => t);
+    closeBulkAddTagsModal();
+
+    Promise.all(docIds.map(docId =>
+        fetch(`/api/documents/${docId}/tags`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                tags: tags,
+                mode: 'add'  // Mode 'add' pour ajouter sans écraser
+            })
+        }).then(r => r.json())
+    )).then(results => {
+        const successCount = results.filter(r => r.success).length;
+        if (successCount > 0) {
+            location.reload();
+        } else {
+            showNotification('Erreur lors de l\'ajout des tags', 'error');
+        }
+    }).catch(err => {
+        showNotification('Erreur: ' + err, 'error');
+    });
+}
+</script>
+<script src="{{ url_for('static', filename='custom-select.js') }}"></script>
+{% endblock %}

@@ -7,10 +7,10 @@
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%23667eea' width='100' height='100' rx='20'/><text x='50' y='70' font-size='60' text-anchor='middle' fill='white' font-family='Arial'>W</text></svg>">
 
     <!-- Centralized CSS -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='theme-base.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='theme-light.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='theme-dark.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='components.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='theme-base.css') }}?v=20251120h">
+    <link rel="stylesheet" href="{{ url_for('static', filename='theme-light.css') }}?v=20251120h">
+    <link rel="stylesheet" href="{{ url_for('static', filename='theme-dark.css') }}?v=20251120h">
+    <link rel="stylesheet" href="{{ url_for('static', filename='components.css') }}?v=20251120h">
 
     <style>
         /* Page-specific layout */
@@ -20,6 +20,12 @@
             justify-content: center;
             padding: 20px;
             position: relative;
+        }
+
+        /* Wide container for library/dashboard/jobs pages */
+        .auth-container {
+            max-width: 1400px;
+            width: 100%;
         }
     </style>
     {% block extra_styles %}{% endblock %}
@@ -45,6 +51,10 @@
 
         {% block content %}{% endblock %}
     </div>
+
+    <footer style="position: fixed; bottom: 10px; right: 15px; font-size: 11px; opacity: 0.4; color: #fff; font-family: monospace;">
+        v{{ app_version }}
+    </footer>
 
     <script>
         // Load saved theme from localStorage and apply immediately

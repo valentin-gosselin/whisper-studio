@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   faster-whisper:
-    image: lscr.io/linuxserver/faster-whisper:gpu
+    image: lscr.io/linuxserver/faster-whisper:2.0.0
     container_name: faster-whisper
     runtime: nvidia
     environment:
@@ -11,6 +11,7 @@ services:
       - TZ=Europe/Paris
       - WHISPER_MODEL=large-v3
       - WHISPER_LANG=fr
+      - NVIDIA_VISIBLE_DEVICES=all
     volumes:
       - ./data:/config
     ports:
@@ -19,26 +20,151 @@ services:
     networks:
       - whisper-network
 
+  # Whisper HTTP API for SRT mode
+  whisper-srt:
+    image: fedirz/faster-whisper-server:latest-cuda
+    container_name: whisper-srt
+    environment:
+      - WHISPER__MODEL=large-v3
+      - WHISPER__INFERENCE_DEVICE=cuda
+    volumes:
+      - whisper-srt-models:/root/.cache/huggingface
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    restart: unless-stopped
+    networks:
+      - whisper-network
+
+  # Ollama LLM Service for Smart Document Generation
+  ollama:
+    image: ollama/ollama:latest
+    container_name: whisper-ollama
+    volumes:
+      - ollama-models:/root/.ollama
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    restart: unless-stopped
+    networks:
+      - whisper-network
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Pyannote Speaker Diarization Service
+  pyannote-diarization:
+    build:
+      context: ./pyannote-service
+      dockerfile: Dockerfile
+    container_name: pyannote-diarization
+    environment:
+      - HF_TOKEN=${HF_TOKEN}  # Hugging Face token (required)
+    volumes:
+      - pyannote-models:/root/.cache/huggingface
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    restart: unless-stopped
+    networks:
+      - whisper-network
+
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: whisper-postgres
+    environment:
+      - POSTGRES_DB=whisper_studio
+      - POSTGRES_USER=whisper
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-changeme123}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    restart: unless-stopped
+    networks:
+      - whisper-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U whisper"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis for sessions and queue
+  redis:
+    image: redis:7-alpine
+    container_name: whisper-redis
+    command: redis-server --appendonly yes
+    volumes:
+      - redis-data:/data
+    restart: unless-stopped
+    networks:
+      - whisper-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   whisper-webui:
     build:
       context: ./webui
       dockerfile: Dockerfile
     container_name: whisper-webui
-    environment:
-      - WYOMING_HOST=faster-whisper
-      - WYOMING_PORT=10300
     ports:
-      - "7860:7860"
+      - 7860:7860
+    environment:
+      - WHISPER_HTTP_URL=http://whisper-srt:8000
+      - PYANNOTE_URL=http://pyannote-diarization:8001
+      - OLLAMA_URL=http://ollama:11434
+      - OLLAMA_MODEL_PRIMARY=qwen2.5:7b
+      - OLLAMA_MODEL_FALLBACK=llama3.1:8b
+      - DATABASE_URL=postgresql://whisper:${POSTGRES_PASSWORD:-changeme123}@postgres:5432/whisper_studio
+      - REDIS_URL=redis://redis:6379/0
+      - SECRET_KEY=${SECRET_KEY:-dev-secret-key-change-in-production}
+      - MAIL_SERVER=${MAIL_SERVER}
+      - MAIL_PORT=${MAIL_PORT:-587}
+      - MAIL_USERNAME=${MAIL_USERNAME}
+      - MAIL_PASSWORD=${MAIL_PASSWORD}
+      - MAIL_USE_TLS=${MAIL_USE_TLS:-true}
+      - MAIL_DEFAULT_SENDER=${MAIL_DEFAULT_SENDER}
     volumes:
-      - ./webui-uploads:/tmp/uploads
-      - ./webui-outputs:/tmp/outputs
-    restart: unless-stopped
+      - /docker/whisper/webui-uploads:/tmp/uploads
+      - /docker/whisper/webui-outputs:/tmp/outputs
     depends_on:
-      - faster-whisper
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      whisper-srt:
+        condition: service_started
+      pyannote-diarization:
+        condition: service_started
+      ollama:
+        condition: service_started
+    restart: unless-stopped
     networks:
       - whisper-network
+
+volumes:
+  whisper-srt-models:
+  pyannote-models:
+  ollama-models:
+  postgres-data:
+  redis-data:
 
 networks:
   whisper-network:
     name: whisper-network
-    driver: bridge
