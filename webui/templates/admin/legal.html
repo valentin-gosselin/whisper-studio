@@ -1,0 +1,417 @@
+{% extends "admin/base.html" %}
+{% block title %}Textes légaux{% endblock %}
+
+{% block extra_css %}
+<style>
+    .legal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+
+    .legal-title {
+        color: white;
+        font-size: 24px;
+        font-weight: 600;
+    }
+
+    body.neon-night .legal-title {
+        color: #00ffff;
+    }
+
+    .tabs {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 20px;
+        border-bottom: 2px solid rgba(255,255,255,0.2);
+        padding-bottom: 10px;
+    }
+
+    body.neon-night .tabs {
+        border-bottom-color: rgba(0,255,255,0.2);
+    }
+
+    .tab {
+        padding: 10px 20px;
+        border-radius: 8px 8px 0 0;
+        background: rgba(255,255,255,0.1);
+        color: white;
+        cursor: pointer;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        border: none;
+        font-size: 14px;
+    }
+
+    .tab:hover {
+        background: rgba(255,255,255,0.15);
+    }
+
+    .tab.active {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+    }
+
+    body.neon-night .tab {
+        background: rgba(0,255,255,0.1);
+        color: #00ffff;
+    }
+
+    body.neon-night .tab:hover {
+        background: rgba(0,255,255,0.15);
+    }
+
+    body.neon-night .tab.active {
+        background: linear-gradient(135deg, #00ffff 0%, #00cccc 100%);
+        color: #0a0a1a;
+    }
+
+    .tab-content {
+        display: none;
+        background: rgba(255,255,255,0.1);
+        border-radius: 10px;
+        padding: 20px;
+    }
+
+    .tab-content.active {
+        display: block;
+    }
+
+    body.neon-night .tab-content {
+        background: rgba(0,255,255,0.05);
+        border: 1px solid rgba(0,255,255,0.2);
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    .form-label {
+        display: block;
+        color: white;
+        font-weight: 600;
+        margin-bottom: 8px;
+        font-size: 14px;
+    }
+
+    body.neon-night .form-label {
+        color: #00ffff;
+    }
+
+    .form-input {
+        width: 100%;
+        padding: 10px;
+        border-radius: 6px;
+        border: 2px solid rgba(255,255,255,0.2);
+        background: rgba(255,255,255,0.1);
+        color: white;
+        font-size: 14px;
+        font-family: inherit;
+    }
+
+    .form-input:focus {
+        outline: none;
+        border-color: rgba(255,255,255,0.4);
+        background: rgba(255,255,255,0.15);
+    }
+
+    body.neon-night .form-input {
+        border-color: rgba(0,255,255,0.2);
+        background: rgba(0,255,255,0.05);
+        color: #00ffff;
+    }
+
+    body.neon-night .form-input:focus {
+        border-color: rgba(0,255,255,0.4);
+        background: rgba(0,255,255,0.1);
+    }
+
+    .form-textarea {
+        min-height: 400px;
+        font-family: monospace;
+        resize: vertical;
+    }
+
+    .form-help {
+        font-size: 12px;
+        opacity: 0.7;
+        margin-top: 5px;
+        color: white;
+    }
+
+    body.neon-night .form-help {
+        color: #00ffff;
+    }
+
+    .btn-save {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 12px 24px;
+        border-radius: 8px;
+        border: none;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-size: 14px;
+    }
+
+    .btn-save:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+    }
+
+    body.neon-night .btn-save {
+        background: linear-gradient(135deg, #00ffff 0%, #00cccc 100%);
+        color: #0a0a1a;
+    }
+
+    body.neon-night .btn-save:hover {
+        box-shadow: 0 10px 25px rgba(0, 255, 255, 0.3);
+    }
+
+    .info-box {
+        background: rgba(52, 152, 219, 0.2);
+        border-left: 4px solid #3498db;
+        padding: 15px;
+        border-radius: 6px;
+        margin-bottom: 20px;
+        color: white;
+        font-size: 14px;
+    }
+
+    body.neon-night .info-box {
+        background: rgba(0, 255, 255, 0.1);
+        border-left-color: #00ffff;
+        color: #00ffff;
+    }
+
+    .preview-btn {
+        background: rgba(255,255,255,0.2);
+        color: white;
+        padding: 8px 16px;
+        border-radius: 6px;
+        border: 1px solid rgba(255,255,255,0.3);
+        cursor: pointer;
+        font-size: 12px;
+        margin-left: 10px;
+        transition: all 0.3s ease;
+    }
+
+    .preview-btn:hover {
+        background: rgba(255,255,255,0.3);
+    }
+
+    body.neon-night .preview-btn {
+        background: rgba(0,255,255,0.1);
+        color: #00ffff;
+        border-color: rgba(0,255,255,0.3);
+    }
+
+    body.neon-night .preview-btn:hover {
+        background: rgba(0,255,255,0.2);
+    }
+
+    .actions {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-top: 20px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="legal-header">
+    <h2 class="legal-title">Textes légaux et RGPD</h2>
+</div>
+
+<div class="info-box">
+    Gérez les textes légaux et paramètres RGPD de votre application. Les textes supportent le format Markdown.
+</div>
+
+<div class="tabs">
+    <button class="tab active" onclick="switchTab('privacy')">Politique de confidentialité</button>
+    <button class="tab" onclick="switchTab('terms')">CGU</button>
+    <button class="tab" onclick="switchTab('legal')">Mentions légales</button>
+    <button class="tab" onclick="switchTab('settings')">Paramètres RGPD</button>
+</div>
+
+<!-- Privacy Policy Tab -->
+<div id="tab-privacy" class="tab-content active">
+    <div class="form-group">
+        <label class="form-label">Politique de confidentialité</label>
+        <textarea id="privacy-content" class="form-input form-textarea">{{ privacy_policy.content if privacy_policy else '' }}</textarea>
+        <div class="form-help">
+            Décrivez comment vous collectez, utilisez et protégez les données personnelles des utilisateurs.
+            {% if privacy_policy and privacy_policy.last_updated %}
+                Dernière mise à jour : {{ privacy_policy.last_updated.strftime('%d/%m/%Y %H:%M') }}
+            {% endif %}
+        </div>
+    </div>
+    <div class="actions">
+        <button class="btn-save" onclick="saveLegalText('privacy_policy')">Enregistrer</button>
+        <a href="/privacy-policy" target="_blank" class="preview-btn">Voir la page</a>
+    </div>
+</div>
+
+<!-- Terms Tab -->
+<div id="tab-terms" class="tab-content">
+    <div class="form-group">
+        <label class="form-label">Conditions Générales d'Utilisation (CGU)</label>
+        <textarea id="terms-content" class="form-input form-textarea">{{ terms.content if terms else '' }}</textarea>
+        <div class="form-help">
+            Définissez les règles d'utilisation de votre service et les droits/obligations des utilisateurs.
+            {% if terms and terms.last_updated %}
+                Dernière mise à jour : {{ terms.last_updated.strftime('%d/%m/%Y %H:%M') }}
+            {% endif %}
+        </div>
+    </div>
+    <div class="actions">
+        <button class="btn-save" onclick="saveLegalText('terms')">Enregistrer</button>
+        <a href="/terms" target="_blank" class="preview-btn">Voir la page</a>
+    </div>
+</div>
+
+<!-- Legal Mentions Tab -->
+<div id="tab-legal" class="tab-content">
+    <div class="form-group">
+        <label class="form-label">Mentions légales</label>
+        <textarea id="legal-content" class="form-input form-textarea">{{ legal_mentions.content if legal_mentions else '' }}</textarea>
+        <div class="form-help">
+            Informations légales obligatoires sur l'éditeur du site, l'hébergeur, etc.
+            {% if legal_mentions and legal_mentions.last_updated %}
+                Dernière mise à jour : {{ legal_mentions.last_updated.strftime('%d/%m/%Y %H:%M') }}
+            {% endif %}
+        </div>
+    </div>
+    <div class="actions">
+        <button class="btn-save" onclick="saveLegalText('legal_mentions')">Enregistrer</button>
+        <a href="/legal-mentions" target="_blank" class="preview-btn">Voir la page</a>
+    </div>
+</div>
+
+<!-- RGPD Settings Tab -->
+<div id="tab-settings" class="tab-content">
+    <div class="info-box" style="margin-bottom: 25px;">
+        Ces informations sont utilisées pour générer automatiquement les mentions légales et textes RGPD.
+    </div>
+
+    <div class="form-group">
+        <label class="form-label">Nom du responsable de traitement</label>
+        <input type="text" id="data-controller-name" class="form-input"
+               value="{{ rgpd_settings.data_controller_name if rgpd_settings else '' }}"
+               placeholder="ex: ACME Corp">
+        <div class="form-help">Nom de l'entreprise ou de l'organisation responsable du traitement des données</div>
+    </div>
+
+    <div class="form-group">
+        <label class="form-label">Email du responsable de traitement</label>
+        <input type="email" id="data-controller-email" class="form-input"
+               value="{{ rgpd_settings.data_controller_email if rgpd_settings else '' }}"
+               placeholder="contact@example.com">
+        <div class="form-help">Email de contact pour les demandes relatives aux données personnelles</div>
+    </div>
+
+    <div class="form-group">
+        <label class="form-label">Email du DPO (optionnel)</label>
+        <input type="email" id="dpo-email" class="form-input"
+               value="{{ rgpd_settings.dpo_email if rgpd_settings else '' }}"
+               placeholder="dpo@example.com">
+        <div class="form-help">Email du Délégué à la Protection des Données si applicable</div>
+    </div>
+
+    <div class="form-group">
+        <label class="form-label">Informations d'hébergement</label>
+        <textarea id="hosting-info" class="form-input" style="min-height: 120px;">{{ rgpd_settings.hosting_info if rgpd_settings else '' }}</textarea>
+        <div class="form-help">Nom, adresse et contact de l'hébergeur du site</div>
+    </div>
+
+    <div class="form-group">
+        <label class="form-label">Informations éditeur</label>
+        <textarea id="editor-info" class="form-input" style="min-height: 120px;">{{ rgpd_settings.editor_info if rgpd_settings else '' }}</textarea>
+        <div class="form-help">Informations sur l'éditeur du site (raison sociale, adresse, SIRET, etc.)</div>
+    </div>
+
+    <div class="actions">
+        <button class="btn-save" onclick="saveRgpdSettings()">Enregistrer les paramètres</button>
+    </div>
+</div>
+
+<script>
+function switchTab(tabName) {
+    // Hide all tabs
+    document.querySelectorAll('.tab-content').forEach(content => {
+        content.classList.remove('active');
+    });
+    document.querySelectorAll('.tab').forEach(tab => {
+        tab.classList.remove('active');
+    });
+
+    // Show selected tab
+    document.getElementById(`tab-${tabName}`).classList.add('active');
+    event.target.classList.add('active');
+}
+
+async function saveLegalText(type) {
+    let content = '';
+    if (type === 'privacy_policy') {
+        content = document.getElementById('privacy-content').value;
+    } else if (type === 'terms') {
+        content = document.getElementById('terms-content').value;
+    } else if (type === 'legal_mentions') {
+        content = document.getElementById('legal-content').value;
+    }
+
+    try {
+        const res = await fetch('/admin/legal/save', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                type: type,
+                content: content
+            })
+        });
+        const data = await res.json();
+
+        if (data.success) {
+            showToast('Texte enregistré avec succès', 'success');
+        } else {
+            showToast('Erreur: ' + data.error, 'error');
+        }
+    } catch (error) {
+        showToast('Erreur réseau', 'error');
+        console.error(error);
+    }
+}
+
+async function saveRgpdSettings() {
+    const settings = {
+        type: 'settings',
+        data_controller_name: document.getElementById('data-controller-name').value,
+        data_controller_email: document.getElementById('data-controller-email').value,
+        dpo_email: document.getElementById('dpo-email').value,
+        hosting_info: document.getElementById('hosting-info').value,
+        editor_info: document.getElementById('editor-info').value
+    };
+
+    try {
+        const res = await fetch('/admin/legal/save', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(settings)
+        });
+        const data = await res.json();
+
+        if (data.success) {
+            showToast('Paramètres RGPD enregistrés', 'success');
+        } else {
+            showToast('Erreur: ' + data.error, 'error');
+        }
+    } catch (error) {
+        showToast('Erreur réseau', 'error');
+        console.error(error);
+    }
+}
+</script>
+{% endblock %}

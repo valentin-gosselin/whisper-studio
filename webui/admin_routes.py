@@ -6,7 +6,7 @@ from flask import render_template, request, jsonify, redirect, url_for, flash
 from flask_login import current_user
 from auth import admin_required
 from database import SessionLocal
-from models import User, Invitation, Job, Document, Setting
+from models import User, Invitation, Job, Document, Setting, LegalText, RgpdSettings
 from auth import hash_password
 from email_utils import send_invitation_email, mail
 from file_security import get_user_folder_name
@@ -421,3 +421,97 @@ def register_admin_routes(app):
             return jsonify({'success': True})
         finally:
             db.close()
+
+    @app.route('/admin/legal')
+    @admin_required
+    def admin_legal():
+        """Admin interface for editing legal texts and RGPD settings"""
+        db = SessionLocal()
+        try:
+            # Récupérer les textes légaux
+            privacy_policy = db.query(LegalText).filter_by(key='privacy_policy').first()
+            terms = db.query(LegalText).filter_by(key='terms').first()
+            legal_mentions = db.query(LegalText).filter_by(key='legal_mentions').first()
+
+            # Récupérer les paramètres RGPD
+            rgpd_settings = db.query(RgpdSettings).first()
+
+            return render_template('admin/legal.html',
+                                 privacy_policy=privacy_policy,
+                                 terms=terms,
+                                 legal_mentions=legal_mentions,
+                                 rgpd_settings=rgpd_settings)
+        finally:
+            db.close()
+
+    @app.route('/admin/legal/save', methods=['POST'])
+    @admin_required
+    def admin_legal_save():
+        """Save legal texts and RGPD settings"""
+        db = SessionLocal()
+        try:
+            data = request.json
+            text_type = data.get('type')  # 'privacy_policy', 'terms', 'legal_mentions', or 'settings'
+
+            if text_type == 'settings':
+                # Sauvegarder les paramètres RGPD
+                rgpd_settings = db.query(RgpdSettings).first()
+                if not rgpd_settings:
+                    rgpd_settings = RgpdSettings()
+                    db.add(rgpd_settings)
+
+                rgpd_settings.data_controller_name = data.get('data_controller_name', '')
+                rgpd_settings.data_controller_email = data.get('data_controller_email', '')
+                rgpd_settings.dpo_email = data.get('dpo_email')
+                rgpd_settings.hosting_info = data.get('hosting_info')
+                rgpd_settings.editor_info = data.get('editor_info')
+
+            else:
+                # Sauvegarder un texte légal
+                content = data.get('content', '')
+                legal_text = db.query(LegalText).filter_by(key=text_type).first()
+
+                if not legal_text:
+                    legal_text = LegalText(key=text_type)
+                    db.add(legal_text)
+
+                legal_text.content = content
+                legal_text.last_updated = datetime.utcnow()
+
+            db.commit()
+            return jsonify({'success': True})
+        except Exception as e:
+            db.rollback()
+            return jsonify({'success': False, 'error': str(e)}), 400
+        finally:
+            db.close()
+
+    @app.route('/admin/registry')
+    @admin_required
+    def admin_registry():
+        """Display the GDPR data processing registry (Article 30)"""
+        current_date = datetime.utcnow().strftime('%d/%m/%Y')
+        return render_template('admin/registry.html', current_date=current_date)
+
+    @app.route('/admin/registry/export-pdf')
+    @admin_required
+    def admin_registry_export_pdf():
+        """Export the GDPR registry to PDF"""
+        from flask import make_response
+        from weasyprint import HTML
+        import io
+
+        current_date = datetime.utcnow().strftime('%d/%m/%Y')
+
+        # Render the PDF template
+        html_content = render_template('admin/registry_pdf.html', current_date=current_date)
+
+        # Convert HTML to PDF
+        pdf_file = HTML(string=html_content).write_pdf()
+
+        # Create response
+        response = make_response(pdf_file)
+        response.headers['Content-Type'] = 'application/pdf'
+        response.headers['Content-Disposition'] = f'attachment; filename=registre_traitements_whisper_studio_{datetime.utcnow().strftime("%Y%m%d")}.pdf'
+
+        return response

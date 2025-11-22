@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }} - Whisper Studio</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%23667eea' width='100' height='100' rx='20'/><text x='50' y='70' font-size='60' text-anchor='middle' fill='white' font-family='Arial'>W</text></svg>">
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='theme-base.css') }}?v=20251121e">
+    <link rel="stylesheet" href="{{ url_for('static', filename='theme-light.css') }}?v=20251121e">
+    <link rel="stylesheet" href="{{ url_for('static', filename='theme-dark.css') }}?v=20251121e">
+
+    <style>
+        body {
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            padding: 40px 20px;
+            min-height: 100vh;
+        }
+
+        .glass-container {
+            max-width: 900px;
+            width: 100%;
+        }
+
+        .logo {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+        }
+
+        .logo h1 {
+            font-size: 32px;
+            margin-bottom: 8px;
+            font-weight: 700;
+        }
+
+        .logo p {
+            font-size: 13px;
+            opacity: 0.7;
+        }
+
+        .legal-content {
+            line-height: 1.8;
+            font-size: 15px;
+        }
+
+        .legal-content h2 {
+            font-size: 22px;
+            font-weight: 700;
+            margin-top: 35px;
+            margin-bottom: 18px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .legal-content h2:first-child {
+            margin-top: 0;
+        }
+
+        .legal-content h3 {
+            font-size: 18px;
+            font-weight: 600;
+            margin-top: 25px;
+            margin-bottom: 14px;
+            opacity: 0.95;
+        }
+
+        .legal-content h4 {
+            font-size: 16px;
+            font-weight: 600;
+            margin-top: 18px;
+            margin-bottom: 12px;
+            opacity: 0.9;
+        }
+
+        .legal-content p {
+            margin-bottom: 14px;
+            opacity: 0.9;
+        }
+
+        .legal-content ul {
+            margin: 15px 0 20px 30px;
+            list-style-type: none;
+            padding-left: 0;
+        }
+
+        .legal-content li {
+            margin-bottom: 8px;
+            padding-left: 25px;
+            line-height: 1.7;
+            position: relative;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .legal-content li::before {
+            content: '•';
+            position: absolute;
+            left: 8px;
+            font-size: 20px;
+            line-height: 1.5;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        /* Dark theme */
+        body.neon-night .legal-content li {
+            color: rgba(0, 255, 255, 0.9);
+        }
+
+        body.neon-night .legal-content li::before {
+            color: rgba(0, 255, 255, 0.7);
+            text-shadow: 0 0 5px rgba(0, 255, 255, 0.3);
+        }
+
+        .legal-content strong {
+            font-weight: 700;
+            opacity: 1;
+        }
+
+        .legal-content a {
+            color: inherit;
+            text-decoration: underline;
+            text-underline-offset: 3px;
+            text-decoration-color: rgba(255, 255, 255, 0.4);
+            transition: all 0.3s ease;
+        }
+
+        .legal-content a:hover {
+            text-decoration-color: rgba(255, 255, 255, 0.9);
+        }
+
+        .legal-footer {
+            margin-top: 50px;
+            padding-top: 30px;
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+            text-align: center;
+            font-size: 11px;
+            opacity: 0.6;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .legal-footer a {
+            text-decoration: none;
+            transition: opacity 0.3s;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .legal-footer a:hover {
+            opacity: 1;
+            text-decoration: underline;
+        }
+
+        /* Dark theme footer */
+        body.neon-night .legal-footer {
+            border-top-color: rgba(0, 255, 255, 0.2);
+            color: rgba(0, 255, 255, 0.7);
+        }
+
+        body.neon-night .legal-footer a {
+            color: rgba(0, 255, 255, 0.7);
+        }
+
+        body.neon-night .legal-footer a:hover {
+            color: rgba(0, 255, 255, 1);
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 20px 15px;
+            }
+
+            .glass-container {
+                padding: 30px 20px;
+            }
+
+            .logo h1 {
+                font-size: 26px;
+            }
+
+            .legal-content {
+                font-size: 14px;
+            }
+
+            .legal-content h2 {
+                font-size: 20px;
+            }
+
+            .legal-content h3 {
+                font-size: 17px;
+            }
+
+            .legal-content ul {
+                margin-left: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="glass-container">
+        <div class="logo">
+            <h1>{{ title }}</h1>
+            <p>Dernière mise à jour : {{ last_updated.strftime('%d/%m/%Y') }}</p>
+        </div>
+
+        <div class="links" style="margin-bottom: 25px;">
+            <a href="/" class="nav-link">← Retour à l'accueil</a>
+        </div>
+
+        <div class="legal-content" id="legalContent">
+            {{ content }}
+        </div>
+
+        <div class="legal-footer">
+            <div>
+                <a href="/privacy-policy">Politique de confidentialité</a> •
+                <a href="/terms">CGU</a> •
+                <a href="/legal-mentions">Mentions légales</a> •
+                <a href="#" onclick="reopenCookieBanner(); return false;">Gérer mes cookies</a>
+            </div>
+            <div style="margin-top: 10px; font-family: monospace;">v{{ app_version }}</div>
+        </div>
+    </div>
+
+    <script>
+        // Load saved theme
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        if (savedTheme === 'dark') {
+            document.body.classList.add('neon-night');
+        }
+
+        function reopenCookieBanner() {
+            localStorage.removeItem('cookie_consent');
+            localStorage.removeItem('cookie_banner_dismissed');
+            location.reload();
+        }
+
+        // Simple Markdown parser
+        document.addEventListener('DOMContentLoaded', function() {
+            const content = document.getElementById('legalContent');
+            let text = content.textContent.trim();
+            let lines = text.split('\n');
+            let html = [];
+
+            for (let i = 0; i < lines.length; i++) {
+                let line = lines[i].trim();
+
+                // Skip empty lines
+                if (!line) continue;
+
+                // H1
+                if (line.startsWith('# ')) {
+                    html.push('<h2>' + line.substring(2) + '</h2>');
+                }
+                // H2
+                else if (line.startsWith('## ')) {
+                    html.push('<h3>' + line.substring(3) + '</h3>');
+                }
+                // H3
+                else if (line.startsWith('### ')) {
+                    html.push('<h4>' + line.substring(4) + '</h4>');
+                }
+                // List item
+                else if (line.startsWith('- ')) {
+                    // Check if previous line was a list item
+                    if (i > 0 && lines[i-1].trim().startsWith('- ')) {
+                        html.push('<li>' + line.substring(2) + '</li>');
+                    } else {
+                        html.push('<ul><li>' + line.substring(2) + '</li>');
+                    }
+                    // Check if next line is NOT a list item
+                    if (i === lines.length - 1 || !lines[i+1].trim().startsWith('- ')) {
+                        html.push('</ul>');
+                    }
+                }
+                // Normal paragraph
+                else {
+                    html.push('<p>' + line + '</p>');
+                }
+            }
+
+            // Replace markdown formatting
+            let result = html.join('\n');
+            result = result.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+            result = result.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" style="color: inherit; text-decoration: underline;">$1</a>');
+
+            content.innerHTML = result;
+        });
+    </script>
+</body>
+</html>

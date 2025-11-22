@@ -7,10 +7,10 @@
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%23667eea' width='100' height='100' rx='20'/><text x='50' y='70' font-size='60' text-anchor='middle' fill='white' font-family='Arial'>W</text></svg>">
 
     <!-- Centralized CSS -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='theme-base.css') }}?v=20251120h">
-    <link rel="stylesheet" href="{{ url_for('static', filename='theme-light.css') }}?v=20251120h">
-    <link rel="stylesheet" href="{{ url_for('static', filename='theme-dark.css') }}?v=20251120h">
-    <link rel="stylesheet" href="{{ url_for('static', filename='components.css') }}?v=20251120h">
+    <link rel="stylesheet" href="{{ url_for('static', filename='theme-base.css') }}?v={{ app_version }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='theme-light.css') }}?v={{ app_version }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='theme-dark.css') }}?v={{ app_version }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='components.css') }}?v={{ app_version }}">
 
     <style>
         /* Page-specific layout */
@@ -52,9 +52,75 @@
         {% block content %}{% endblock %}
     </div>
 
-    <footer style="position: fixed; bottom: 10px; right: 15px; font-size: 11px; opacity: 0.4; color: #fff; font-family: monospace;">
-        v{{ app_version }}
+    <footer class="legal-footer">
+        <div class="footer-links">
+            <a href="/privacy-policy">Politique de confidentialité</a>
+            <span>•</span>
+            <a href="/terms">CGU</a>
+            <span>•</span>
+            <a href="/legal-mentions">Mentions légales</a>
+            <span>•</span>
+            <a href="#" onclick="reopenCookieBanner(); return false;">Gérer mes cookies</a>
+        </div>
+        <div class="footer-version">v{{ app_version }}</div>
     </footer>
+
+    <style>
+        .legal-footer {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 10px 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            font-size: 10px;
+            opacity: 0.5;
+            background: transparent;
+        }
+
+        .footer-links {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .footer-links a {
+            color: white;
+            text-decoration: none;
+            transition: opacity 0.3s;
+        }
+
+        .footer-links a:hover {
+            opacity: 1;
+            text-decoration: underline;
+        }
+
+        .footer-links span {
+            color: rgba(255,255,255,0.4);
+        }
+
+        .footer-version {
+            color: rgba(255,255,255,0.6);
+            font-family: monospace;
+        }
+
+        @media (max-width: 768px) {
+            .legal-footer {
+                flex-direction: column;
+                gap: 5px;
+                padding: 8px 10px;
+            }
+
+            .footer-links {
+                flex-wrap: wrap;
+                justify-content: center;
+                font-size: 10px;
+            }
+        }
+    </style>
 
     <script>
         // Load saved theme from localStorage and apply immediately
@@ -63,6 +129,9 @@
             document.body.classList.add('neon-night');
         }
     </script>
+
+    <!-- Cookie Banner -->
+    {% include 'cookie_banner.html' %}
 
     {% block extra_scripts %}{% endblock %}
 </body>

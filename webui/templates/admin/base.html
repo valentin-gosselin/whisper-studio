@@ -22,7 +22,9 @@
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
-            padding: 20px;
+            padding: 20px 20px 0 20px;
+            display: flex;
+            flex-direction: column;
         }
 
         body.neon-night {
@@ -32,6 +34,14 @@
         .admin-container {
             max-width: 1400px;
             margin: 0 auto;
+            width: 100%;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .admin-content {
+            flex: 1;
         }
 
         /* Header */
@@ -526,6 +536,8 @@
             <a href="/admin/users" class="nav-item {% if '/users' in request.path %}active{% endif %}">Utilisateurs</a>
             <a href="/admin/invitations" class="nav-item {% if '/invitations' in request.path %}active{% endif %}">Invitations</a>
             <a href="/admin/jobs" class="nav-item {% if '/jobs' in request.path %}active{% endif %}">Transcriptions</a>
+            <a href="/admin/legal" class="nav-item {% if '/legal' in request.path %}active{% endif %}">Textes légaux</a>
+            <a href="/admin/registry" class="nav-item {% if '/registry' in request.path %}active{% endif %}">Registre RGPD</a>
             <a href="/admin/settings" class="nav-item {% if '/settings' in request.path %}active{% endif %}">Paramètres</a>
         </nav>
 
@@ -714,8 +726,87 @@
         {% block extra_js %}{% endblock %}
     </script>
 
-    <footer style="position: fixed; bottom: 10px; right: 15px; font-size: 11px; opacity: 0.4; color: #fff; font-family: monospace; z-index: 10000;">
-        v{{ app_version }}
+    <!-- Legal Footer -->
+    <footer class="legal-footer">
+        <div class="footer-links">
+            <a href="/privacy-policy">Politique de confidentialité</a>
+            <span>•</span>
+            <a href="/terms">CGU</a>
+            <span>•</span>
+            <a href="/legal-mentions">Mentions légales</a>
+            <span>•</span>
+            <a href="#" onclick="reopenCookieBanner(); return false;">Gérer mes cookies</a>
+        </div>
+        <div class="footer-version">v{{ app_version }}</div>
     </footer>
+
+    <style>
+        .legal-footer {
+            position: relative;
+            padding: 30px 20px;
+            margin: 60px -20px 0 -20px;
+            width: calc(100% + 40px);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 11px;
+            opacity: 0.6;
+            background: rgba(0,0,0,0.1);
+            backdrop-filter: blur(5px);
+            transition: opacity 0.3s ease;
+        }
+
+        .legal-footer:hover {
+            opacity: 1;
+        }
+
+        .footer-links {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .footer-links a {
+            color: white;
+            text-decoration: none;
+            transition: color 0.2s ease;
+        }
+
+        .footer-links a:hover {
+            color: #667eea;
+            text-decoration: underline;
+        }
+
+        body.neon-night .footer-links a:hover {
+            color: #00ffff;
+        }
+
+        .footer-links span {
+            color: rgba(255,255,255,0.4);
+        }
+
+        .footer-version {
+            color: rgba(255,255,255,0.6);
+            font-family: monospace;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .legal-footer {
+                flex-direction: column;
+                gap: 5px;
+                padding: 8px 15px;
+            }
+
+            .footer-links {
+                flex-wrap: wrap;
+                justify-content: center;
+                font-size: 10px;
+            }
+        }
+    </style>
+
+    <!-- Cookie Banner -->
+    {% include 'cookie_banner.html' %}
 </body>
 </html>

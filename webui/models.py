@@ -46,6 +46,10 @@ class User(Base, UserMixin):
     email_notifications: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     inapp_notifications: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 
+    # RGPD compliance
+    terms_accepted_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    deletion_notified_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+
     # Relationships (cascade delete)
     documents: Mapped[list["Document"]] = relationship("Document", back_populates="user", cascade="all, delete-orphan")
     jobs: Mapped[list["Job"]] = relationship("Job", back_populates="user", cascade="all, delete-orphan")
@@ -190,6 +194,9 @@ class Document(Base):
     tags: Mapped[Optional[list]] = mapped_column(JSON, default=list, nullable=True)
     is_favorite: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
+    # RGPD compliance (auto-deletion)
+    deletion_notified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+
     # Timestamps
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False, index=True)
 
@@ -236,3 +243,74 @@ class Job(Base):
         if self.started_at and self.completed_at:
             return (self.completed_at - self.started_at).total_seconds()
         return None
+
+
+class LegalText(Base):
+    """Legal texts for RGPD compliance (Privacy Policy, Terms, Legal Mentions)"""
+    __tablename__ = "legal_texts"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    key: Mapped[str] = mapped_column(String(50), unique=True, nullable=False, index=True)  # 'privacy_policy', 'terms', 'legal_mentions'
+    title: Mapped[str] = mapped_column(String(255), nullable=False)
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+
+    # Tracking
+    last_updated: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    updated_by_user_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey('users.id'), nullable=True)
+
+    # Relationship
+    updated_by: Mapped[Optional["User"]] = relationship("User")
+
+    def __repr__(self):
+        return f"<LegalText {self.key}>"
+
+    @classmethod
+    def get_text(cls, db, key):
+        """Get legal text by key"""
+        text = db.query(cls).filter_by(key=key).first()
+        return text if text else None
+
+
+class RgpdSettings(Base):
+    """RGPD settings for data retention, cookies, and compliance"""
+    __tablename__ = "rgpd_settings"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+
+    # Cookies management
+    cookies_analytics_enabled: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    cookies_preferences_enabled: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+
+    # Data retention
+    retention_days: Mapped[int] = mapped_column(Integer, default=90, nullable=False)
+    auto_delete_enabled: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    deletion_notification_days: Mapped[int] = mapped_column(Integer, default=7, nullable=False)
+
+    # Data controller information
+    data_controller_name: Mapped[str] = mapped_column(String(255), default="Votre Organisation", nullable=False)
+    data_controller_email: Mapped[str] = mapped_column(String(255), default="contact@example.com", nullable=False)
+    dpo_email: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+
+    # Legal mentions (for public page)
+    hosting_info: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    editor_info: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
+    # Timestamps
+    last_updated: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    updated_by_user_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey('users.id'), nullable=True)
+
+    # Relationship
+    updated_by: Mapped[Optional["User"]] = relationship("User")
+
+    def __repr__(self):
+        return f"<RgpdSettings retention={self.retention_days}d analytics={self.cookies_analytics_enabled}>"
+
+    @classmethod
+    def get_settings(cls, db):
+        """Get RGPD settings (create default if not exists)"""
+        settings = db.query(cls).first()
+        if not settings:
+            settings = cls()
+            db.add(settings)
+            db.commit()
+        return settings

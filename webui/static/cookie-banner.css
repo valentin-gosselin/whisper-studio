@@ -1,0 +1,177 @@
+/* Cookie Banner - RGPD Compliant */
+
+.cookie-banner {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 10000;
+    padding: 20px;
+    transform: translateY(100%);
+    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.cookie-banner.show {
+    transform: translateY(0);
+}
+
+/* Light theme */
+.cookie-banner {
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(15px);
+    border-top: 1px solid rgba(255, 255, 255, 0.25);
+    box-shadow: 0 -20px 60px rgba(0, 0, 0, 0.3);
+}
+
+/* Dark theme */
+body.neon-night .cookie-banner {
+    background: rgba(0, 255, 255, 0.05);
+    border-top: 1px solid rgba(0, 255, 255, 0.2);
+    box-shadow: 0 -20px 60px rgba(0, 255, 255, 0.15);
+}
+
+.cookie-banner-content {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 30px;
+}
+
+.cookie-banner-text {
+    flex: 1;
+}
+
+.cookie-banner-text h3 {
+    margin: 0 0 8px 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #ffffff;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+body.neon-night .cookie-banner-text h3 {
+    color: #00ffff;
+    text-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+}
+
+.cookie-banner-text p {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.6;
+    color: #ffffff;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+body.neon-night .cookie-banner-text p {
+    color: rgba(0, 255, 255, 0.9);
+}
+
+.cookie-banner-text a {
+    color: inherit;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    transition: opacity 0.3s;
+}
+
+.cookie-banner-text a:hover {
+    opacity: 0.7;
+}
+
+.cookie-banner-actions {
+    display: flex;
+    gap: 12px;
+    flex-shrink: 0;
+    align-items: stretch;
+}
+
+.cookie-banner-actions .btn {
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 28px;
+    margin-top: 0 !important;
+    border: none;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+}
+
+.cookie-banner-actions .btn:not(.btn-secondary) {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+}
+
+.cookie-banner-actions .btn:not(.btn-secondary):hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 30px rgba(102, 126, 234, 0.4);
+}
+
+body.neon-night .cookie-banner-actions .btn:not(.btn-secondary) {
+    background: linear-gradient(135deg, #00ffff 0%, #00cccc 100%);
+    color: #0a0a1a;
+    box-shadow: 0 10px 25px rgba(0, 255, 255, 0.3);
+}
+
+body.neon-night .cookie-banner-actions .btn:not(.btn-secondary):hover {
+    box-shadow: 0 12px 30px rgba(0, 255, 255, 0.4);
+}
+
+.cookie-banner-actions .btn.btn-secondary {
+    background: rgba(255, 255, 255, 0.25);
+    color: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.cookie-banner-actions .btn.btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.35);
+    border-color: rgba(255, 255, 255, 0.5);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+body.neon-night .cookie-banner-actions .btn.btn-secondary {
+    background: rgba(0, 255, 255, 0.1);
+    color: rgba(0, 255, 255, 0.9);
+    border-color: rgba(0, 255, 255, 0.3);
+}
+
+body.neon-night .cookie-banner-actions .btn.btn-secondary:hover {
+    background: rgba(0, 255, 255, 0.2);
+    border-color: rgba(0, 255, 255, 0.5);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .cookie-banner {
+        padding: 15px;
+    }
+
+    .cookie-banner-content {
+        flex-direction: column;
+        gap: 15px;
+        text-align: center;
+    }
+
+    .cookie-banner-text h3 {
+        font-size: 15px;
+    }
+
+    .cookie-banner-text p {
+        font-size: 13px;
+    }
+
+    .cookie-banner-actions {
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .cookie-banner-actions .btn {
+        width: 100%;
+    }
+}

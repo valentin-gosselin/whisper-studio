@@ -9,6 +9,85 @@
     .auth-container {
         max-width: 600px;
     }
+
+    /* Tabs */
+    .profile-tabs {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 25px;
+        border-bottom: 2px solid rgba(255,255,255,0.2);
+        padding-bottom: 10px;
+    }
+
+    .profile-tab {
+        padding: 12px 24px;
+        background: rgba(255,255,255,0.1);
+        border: none;
+        border-radius: 8px 8px 0 0;
+        color: white;
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 14px;
+        transition: all 0.3s ease;
+    }
+
+    .profile-tab:hover {
+        background: rgba(255,255,255,0.15);
+    }
+
+    .profile-tab.active {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+    }
+
+    body.neon-night .profile-tabs {
+        border-bottom-color: rgba(0,255,255,0.2);
+    }
+
+    body.neon-night .profile-tab {
+        background: rgba(0,255,255,0.1);
+        color: #00ffff;
+    }
+
+    body.neon-night .profile-tab:hover {
+        background: rgba(0,255,255,0.15);
+    }
+
+    body.neon-night .profile-tab.active {
+        background: linear-gradient(135deg, #00ffff 0%, #00cccc 100%);
+        color: #0a0a1a;
+    }
+
+    .tab-content {
+        display: none;
+    }
+
+    .tab-content.active {
+        display: block;
+    }
+
+    /* Toast animations */
+    @keyframes slideIn {
+        from {
+            transform: translateX(400px);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+
+    @keyframes slideOut {
+        from {
+            transform: translateX(0);
+            opacity: 1;
+        }
+        to {
+            transform: translateX(400px);
+            opacity: 0;
+        }
+    }
 </style>
 {% endblock %}
 
@@ -22,12 +101,107 @@
         {% endif %}
     </div>
 </div>
+
+<!-- Modales (en dehors du glass-container pour éviter le blur) -->
+<!-- Modal Export Data -->
+<div id="exportDataModal" class="modal">
+    <div class="modal-content" style="max-width: 500px;">
+        <span class="modal-close" onclick="closeExportDataModal()">&times;</span>
+        <h2 style="margin-top: 0;">Export de vos données</h2>
+        <p class="help-text" style="margin: 15px 0;">
+            Pour confirmer l'export de vos données, veuillez saisir votre mot de passe.
+        </p>
+
+        <div class="form-group" style="margin: 20px 0;">
+            <label for="export_password">Mot de passe</label>
+            <input type="password" id="export_password" class="form-control" required
+                   placeholder="Votre mot de passe actuel">
+        </div>
+
+        <div style="background: rgba(52, 152, 219, 0.15); border-left: 3px solid #3498db; padding: 12px; border-radius: 6px; margin: 15px 0;">
+            <p style="margin: 0; font-size: 13px; line-height: 1.6;">
+                Un fichier ZIP sera téléchargé contenant :<br>
+                • Vos informations de compte<br>
+                • Tous vos documents<br>
+                • L'historique de vos transcriptions
+            </p>
+        </div>
+
+        <div class="modal-actions">
+            <button type="button" class="btn btn-secondary" onclick="closeExportDataModal()">Annuler</button>
+            <button type="button" class="btn" onclick="confirmExportData()">Télécharger</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Delete Account -->
+<div id="deleteAccountModal" class="modal">
+    <div class="modal-content" style="max-width: 500px;">
+        <span class="modal-close" onclick="closeDeleteAccountModal()">&times;</span>
+        <h2 style="margin-top: 0; color: #ef4444;">Supprimer mon compte</h2>
+        <p class="help-text" style="margin: 15px 0;">
+            Cette action est <strong>irréversible</strong>. Tous vos documents et données seront définitivement supprimés.
+        </p>
+
+        <div class="form-group" style="margin: 20px 0;">
+            <label for="delete_confirm_text">Tapez "SUPPRIMER" pour confirmer</label>
+            <input type="text" id="delete_confirm_text" class="form-control" required
+                   placeholder="SUPPRIMER" style="text-transform: uppercase;">
+        </div>
+
+        <div class="form-group" style="margin: 20px 0;">
+            <label for="delete_password">Mot de passe</label>
+            <input type="password" id="delete_password" class="form-control" required
+                   placeholder="Votre mot de passe actuel">
+        </div>
+
+        <div style="background: rgba(239, 68, 68, 0.15); border-left: 3px solid #ef4444; padding: 12px; border-radius: 6px; margin: 15px 0;">
+            <p style="margin: 0; font-size: 13px; line-height: 1.6;">
+                <strong>Seront supprimés :</strong><br>
+                • Votre compte utilisateur<br>
+                • Tous vos documents<br>
+                • Votre historique de transcriptions<br>
+                • Toutes vos données personnelles
+            </p>
+        </div>
+
+        <div class="modal-actions">
+            <button type="button" class="btn btn-secondary" onclick="closeDeleteAccountModal()">Annuler</button>
+            <button type="button" class="btn btn-danger" onclick="confirmDeleteAccount()">Supprimer définitivement</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modale de confirmation désactivation 2FA -->
+<div id="disable2faModal" class="modal">
+    <div class="modal-content" style="max-width: 450px;">
+        <span class="modal-close" onclick="closeDisable2FAModal()">&times;</span>
+        <h2 style="margin-top: 0;">Désactiver le 2FA ?</h2>
+        <p class="help-text" style="margin: 20px 0;">
+            Êtes-vous sûr de vouloir désactiver l'authentification à deux facteurs ?
+            Cela réduira la sécurité de votre compte.
+        </p>
+        <div class="modal-actions">
+            <button type="button" class="btn btn-secondary" onclick="closeDisable2FAModal()">Annuler</button>
+            <button type="button" class="btn btn-danger" onclick="confirmDisable2FA()">Désactiver</button>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block content %}
-<!-- User Info Section -->
-<div class="section">
-    <h2>Informations du compte</h2>
+<!-- Tabs Navigation -->
+<div class="profile-tabs">
+    <button class="profile-tab active" onclick="switchProfileTab('general')">Général</button>
+    <button class="profile-tab" onclick="switchProfileTab('security')">Sécurité</button>
+    <button class="profile-tab" onclick="switchProfileTab('data')">Données</button>
+</div>
+
+<!-- Tab 1: General -->
+<div id="tab-general" class="tab-content active">
+    <!-- User Info Section -->
+    <div class="section">
+        <h2>Informations du compte</h2>
     <div class="info-row">
         <span class="info-label">Email</span>
         <span class="info-value">{{ current_user.email }}</span>
@@ -125,10 +299,13 @@
         <button type="submit" class="btn">Mettre à jour</button>
     </form>
 </div>
+</div>
 
-<!-- 2FA Section -->
-<div class="section">
-    <h2>Authentification à deux facteurs (2FA)</h2>
+<!-- Tab 2: Security -->
+<div id="tab-security" class="tab-content">
+    <!-- 2FA Section -->
+    <div class="section">
+        <h2>Authentification à deux facteurs (2FA)</h2>
     <div class="info-row">
         <span class="info-label">Statut 2FA</span>
         {% if current_user.is_2fa_enabled %}
@@ -236,23 +413,123 @@
         <button type="submit" class="btn">Modifier le mot de passe</button>
     </form>
 </div>
+</div>
 
-<!-- Modale de confirmation désactivation 2FA -->
-<div id="disable2faModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; align-items: center; justify-content: center;">
-    <div class="glass-container" style="max-width: 450px; margin: 20px;">
-        <h2 style="margin-top: 0;">Désactiver le 2FA ?</h2>
-        <p class="help-text" style="margin: 20px 0;">
-            Êtes-vous sûr de vouloir désactiver l'authentification à deux facteurs ?
-            Cela réduira la sécurité de votre compte.
-        </p>
-        <div style="display: flex; gap: 10px; margin-top: 25px;">
-            <button type="button" class="btn btn-secondary" onclick="closeDisable2FAModal()" style="flex: 1;">Annuler</button>
-            <button type="button" class="btn" onclick="confirmDisable2FA()" style="flex: 1; background: #ef4444;">Désactiver</button>
-        </div>
+<!-- Tab 3: Data RGPD -->
+<div id="tab-data" class="tab-content">
+    <!-- Export Data Section (RGPD Article 20) -->
+    <div class="section">
+        <h2>Export de mes données</h2>
+    <p class="help-text" style="margin: 15px 0;">
+        Conformément au RGPD (Article 20 - Droit à la portabilité des données), vous pouvez télécharger
+        l'intégralité de vos données personnelles dans un format structuré et couramment utilisé.
+    </p>
+
+    <div class="info-row" style="margin: 15px 0;">
+        <span class="info-label">Données incluses :</span>
+        <ul style="margin: 5px 0 0 20px; color: rgba(255,255,255,0.9); line-height: 1.8;">
+            <li>Informations du compte (email, username, paramètres)</li>
+            <li>Tous vos documents (DOCX, SRT, TXT)</li>
+            <li>Métadonnées des documents (titres, tags, dates)</li>
+            <li>Historique complet des transcriptions</li>
+        </ul>
     </div>
+
+    <button type="button" class="btn" onclick="showExportDataModal()" style="margin-top: 15px;">
+        Télécharger mes données (ZIP)
+    </button>
+</div>
+
+<!-- Delete Account Section (RGPD Article 17) -->
+<div class="section">
+    <h2>Suppression du compte</h2>
+    <p class="help-text" style="margin: 15px 0;">
+        Conformément au RGPD (Article 17 - Droit à l'effacement), vous pouvez demander la suppression
+        définitive de votre compte et de toutes vos données associées.
+    </p>
+
+    <div class="info-row" style="margin: 15px 0; color: rgba(239, 68, 68, 0.9);">
+        <span class="info-label" style="color: rgba(239, 68, 68, 1);">Attention :</span>
+        <ul style="margin: 5px 0 0 20px; line-height: 1.8;">
+            <li>Cette action est <strong>irréversible</strong></li>
+            <li>Tous vos documents seront définitivement supprimés</li>
+            <li>Votre historique de transcriptions sera effacé</li>
+            <li>Vous serez immédiatement déconnecté</li>
+        </ul>
+    </div>
+
+    <button type="button" class="btn btn-danger" onclick="showDeleteAccountModal()" style="margin-top: 15px; background: #ef4444;">
+        Supprimer mon compte
+    </button>
+</div>
 </div>
 
 <script>
+    // Toast notification system
+    function showNotification(message, type = 'info') {
+        const isDark = document.body.classList.contains('neon-night');
+        const toast = document.createElement('div');
+
+        const bgColor = isDark ? 'rgba(10, 10, 26, 0.95)' : 'white';
+        const textColor = isDark ? '#00ffff' : '#333';
+        const borderColor = type === 'success' ? (isDark ? '#00ffff' : '#27ae60') :
+                           type === 'error' ? '#e74c3c' :
+                           (isDark ? '#00ffff' : '#3498db');
+
+        toast.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: ${bgColor};
+            color: ${textColor};
+            padding: 15px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 10000;
+            min-width: 300px;
+            max-width: 400px;
+            animation: slideIn 0.3s ease-out;
+            border-left: 4px solid ${borderColor};
+            ${isDark ? 'box-shadow: 0 4px 20px rgba(0, 255, 255, 0.3);' : ''}
+        `;
+
+        toast.innerHTML = `
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="font-size: 18px;">${type === 'success' ? '✓' : type === 'error' ? '✗' : 'i'}</span>
+                <span style="flex: 1;">${message}</span>
+                <button onclick="this.parentElement.parentElement.remove()" style="background: none; border: none; font-size: 20px; cursor: pointer; color: ${isDark ? '#00ffff' : '#999'};">×</button>
+            </div>
+        `;
+
+        document.body.appendChild(toast);
+
+        // Auto remove after 5 seconds
+        setTimeout(() => {
+            if (toast.parentElement) {
+                toast.style.animation = 'slideOut 0.3s ease-out';
+                setTimeout(() => toast.remove(), 300);
+            }
+        }, 5000);
+    }
+
+    // Tab switching
+    function switchProfileTab(tabName) {
+        // Hide all tabs
+        document.querySelectorAll('.tab-content').forEach(content => {
+            content.classList.remove('active');
+        });
+        document.querySelectorAll('.profile-tab').forEach(tab => {
+            tab.classList.remove('active');
+        });
+
+        // Show selected tab
+        document.getElementById(`tab-${tabName}`).classList.add('active');
+        event.target.classList.add('active');
+
+        // Scroll to top
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
     // Theme toggle functionality
     const themeToggle = document.getElementById('themeToggle');
 
@@ -327,16 +604,16 @@
     function showDisable2FAModal() {
         const password = document.getElementById('disable_2fa_password').value;
         if (!password) {
-            alert('Veuillez saisir votre mot de passe avant de désactiver le 2FA.');
+            showNotification('Veuillez saisir votre mot de passe avant de désactiver le 2FA', 'error');
             return;
         }
         const modal = document.getElementById('disable2faModal');
-        modal.style.display = 'flex';
+        modal.classList.add('active');
     }
 
     function closeDisable2FAModal() {
         const modal = document.getElementById('disable2faModal');
-        modal.style.display = 'none';
+        modal.classList.remove('active');
     }
 
     function confirmDisable2FA() {
@@ -347,6 +624,140 @@
     document.getElementById('disable2faModal').addEventListener('click', function(e) {
         if (e.target === this) {
             closeDisable2FAModal();
+        }
+    });
+
+    // Export Data Modal Functions
+    function showExportDataModal() {
+        const modal = document.getElementById('exportDataModal');
+        modal.classList.add('active');
+    }
+
+    function closeExportDataModal() {
+        const modal = document.getElementById('exportDataModal');
+        modal.classList.remove('active');
+        document.getElementById('export_password').value = '';
+    }
+
+    async function confirmExportData() {
+        const password = document.getElementById('export_password').value;
+
+        if (!password) {
+            showNotification('Veuillez saisir votre mot de passe', 'error');
+            return;
+        }
+
+        const btn = document.querySelector('#exportDataModal .btn:not(.btn-secondary)');
+        btn.disabled = true;
+        btn.textContent = 'Préparation de l\'export...';
+
+        try {
+            const response = await fetch('/api/user/export-data', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ password })
+            });
+
+            if (response.ok) {
+                // Download the ZIP file
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `whisper_studio_export_${Date.now()}.zip`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+
+                closeExportDataModal();
+                showNotification('Export réussi ! Téléchargement en cours...', 'success');
+            } else {
+                const data = await response.json();
+                showNotification('Erreur : ' + (data.error || 'Échec de l\'export'), 'error');
+            }
+        } catch (error) {
+            console.error('Export error:', error);
+            showNotification('Erreur réseau lors de l\'export', 'error');
+        } finally {
+            btn.disabled = false;
+            btn.textContent = 'Télécharger';
+        }
+    }
+
+    // Delete Account Modal Functions
+    function showDeleteAccountModal() {
+        const modal = document.getElementById('deleteAccountModal');
+        modal.classList.add('active');
+    }
+
+    function closeDeleteAccountModal() {
+        const modal = document.getElementById('deleteAccountModal');
+        modal.classList.remove('active');
+        document.getElementById('delete_confirm_text').value = '';
+        document.getElementById('delete_password').value = '';
+    }
+
+    async function confirmDeleteAccount() {
+        const confirmText = document.getElementById('delete_confirm_text').value;
+        const password = document.getElementById('delete_password').value;
+
+        if (confirmText !== 'SUPPRIMER') {
+            showNotification('Veuillez taper exactement "SUPPRIMER" pour confirmer', 'error');
+            return;
+        }
+
+        if (!password) {
+            showNotification('Veuillez saisir votre mot de passe', 'error');
+            return;
+        }
+
+        const btn = document.querySelector('#deleteAccountModal .btn-danger:not(.btn-secondary)');
+        btn.disabled = true;
+        btn.textContent = 'Suppression en cours...';
+
+        try {
+            const response = await fetch('/api/user/delete-account', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    confirm_text: confirmText,
+                    password
+                })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                showNotification('Votre compte a été supprimé. Redirection...', 'success');
+                setTimeout(() => window.location.href = '/login', 2000);
+            } else {
+                showNotification('Erreur : ' + (data.error || 'Échec de la suppression'), 'error');
+                btn.disabled = false;
+                btn.textContent = 'Supprimer définitivement';
+            }
+        } catch (error) {
+            console.error('Delete error:', error);
+            showNotification('Erreur réseau lors de la suppression', 'error');
+            btn.disabled = false;
+            btn.textContent = 'Supprimer définitivement';
+        }
+    }
+
+    // Close modals on click outside
+    document.getElementById('exportDataModal').addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeExportDataModal();
+        }
+    });
+
+    document.getElementById('deleteAccountModal').addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeDeleteAccountModal();
         }
     });
 </script>

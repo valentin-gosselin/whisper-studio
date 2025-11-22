@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Registre des traitements - Whisper Studio</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 2cm;
+        }
+
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 11pt;
+            line-height: 1.5;
+            color: #000;
+            background: white;
+        }
+
+        h1 {
+            color: #333;
+            font-size: 20pt;
+            margin-bottom: 10px;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        h2 {
+            color: #667eea;
+            font-size: 14pt;
+            margin-top: 25px;
+            margin-bottom: 10px;
+            page-break-after: avoid;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .subtitle {
+            color: #666;
+            font-size: 10pt;
+            margin-top: 5px;
+        }
+
+        .info-box {
+            background: #f0f4ff;
+            border-left: 4px solid #667eea;
+            padding: 12px;
+            margin: 15px 0;
+            font-size: 10pt;
+        }
+
+        .treatment-card {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            page-break-inside: avoid;
+            background: #fafafa;
+        }
+
+        .treatment-title {
+            font-size: 13pt;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+        }
+
+        .treatment-badge {
+            background: #667eea;
+            color: white;
+            padding: 3px 10px;
+            border-radius: 10px;
+            font-size: 9pt;
+            margin-left: 10px;
+            font-weight: normal;
+        }
+
+        .field-group {
+            margin-bottom: 12px;
+        }
+
+        .field-label {
+            font-weight: bold;
+            color: #555;
+            font-size: 9pt;
+            text-transform: uppercase;
+            margin-bottom: 4px;
+            letter-spacing: 0.5px;
+        }
+
+        .field-value {
+            color: #333;
+            font-size: 10pt;
+            line-height: 1.6;
+        }
+
+        .field-value ul {
+            margin: 5px 0;
+            padding-left: 20px;
+        }
+
+        .field-value li {
+            margin: 3px 0;
+        }
+
+        .legal-basis {
+            display: inline-block;
+            background: #e8f5e9;
+            color: #2e7d32;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 10pt;
+            font-weight: bold;
+        }
+
+        .footer-note {
+            margin-top: 30px;
+            padding-top: 15px;
+            border-top: 2px solid #ddd;
+            font-size: 9pt;
+            color: #666;
+            text-align: center;
+        }
+
+        strong {
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Registre des traitements de données personnelles</h1>
+        <div class="subtitle">Article 30 du RGPD - Whisper Studio</div>
+        <div class="subtitle">Date d'édition : {{ current_date }}</div>
+    </div>
+
+    <div class="info-box">
+        Ce registre documente tous les traitements de données personnelles effectués par Whisper Studio, conformément à l'article 30 du RGPD. Il doit être tenu à jour et disponible pour les autorités de contrôle sur demande.
+    </div>
+
+    <!-- Traitement 1 -->
+    <div class="treatment-card">
+        <div class="treatment-title">
+            <span>1. Gestion des comptes utilisateurs</span>
+            <span class="treatment-badge">Essentiel</span>
+        </div>
+
+        <div class="field-group">
+            <div class="field-label">Finalité du traitement</div>
+            <div class="field-value">
+                Authentification, gestion des accès à la plateforme et administration des comptes utilisateurs
+            </div>
+        </div>
+
+        <div class="field-group">
+            <div class="field-label">Catégories de données collectées</div>
+            <div class="field-value">
+                <ul>
+                    <li><strong>Données d'identification :</strong> Adresse email, nom d'utilisateur</li>
+                    <li><strong>Données de connexion :</strong> Mot de passe hashé (bcrypt), date de création du compte, date de dernière connexion</li>
+                    <li><strong>Données techniques :</strong> Rôle utilisateur (admin/user), statut actif/inactif, préférences (thème, notifications)</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="field-group">
+            <div class="field-label">Personnes concernées</div>
+            <div class="field-value">Tous les utilisateurs enregistrés de la plateforme (administrateurs et utilisateurs)</div>
+        </div>
+
+        <div class="field-group">
+            <div class="field-label">Destinataires des données</div>
+            <div class="field-value">
+                <ul>
+                    <li>Responsable de traitement uniquement (pas de partage avec des tiers)</li>
+                    <li>Hébergement sur serveur propre (pas de cloud tiers)</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="field-group">
+            <div class="field-label">Durée de conservation</div>
+            <div class="field-value">
+                <ul>
+                    <li><strong>Comptes actifs :</strong> Durée d'utilisation du service</li>
+                    <li><strong>Comptes inactifs :</strong> Suppression automatique après 1 an d'inactivité (notification 30 jours avant)</li>
+                    <li><strong>Comptes supprimés :</strong> Suppression immédiate et définitive</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="field-group">
+            <div class="field-label">Base légale</div>
+            <div class="field-value">
+                <span class="legal-basis">Exécution du contrat (Art. 6.1.b RGPD)</span>
+            </div>
+        </div>
+
+        <div class="field-group">
+            <div class="field-label">Mesures de sécurité</div>
+            <div class="field-value">
+                <ul>
+                    <li>Hashage sécurisé des mots de passe (bcrypt)</li>
+                    <li>Sessions Flask sécurisées (Flask-Session)</li>
+                    <li>Authentification obligatoire pour accès aux fonctionnalités</li>
+                    <li>Isolation des données par utilisateur</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Traitement 2 -->
+    <div class="treatment-card">
+        <div class="treatment-title">
+            <span>2. Transcription audio et vidéo</span>
+            <span class="treatment-badge">Service principal</span>
+        </div>
+
+        <div class="field-group">
+            <div class="field-label">Finalité du traitement</div>
+            <div class="field-value">
+                Traitement des fichiers audio/vidéo pour génération de transcriptions textuelles via intelligence artificielle (Whisper)
+            </div>
+        </div>
+
+        <div class="field-group">
+            <div class="field-label">Catégories de données collectées</div>
+            <div class="field-value">
+                <ul>
+                    <li><strong>Fichiers source :</strong> Fichiers audio/vidéo uploadés temporairement</li>
+                    <li><strong>Métadonnées :</strong> Nom du fichier, taille, durée, format, date d'upload</li>
+                    <li><strong>Contenu vocal :</strong> Paroles transcrites, horodatage, identification des locuteurs (si activé)</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="field-group">
+            <div class="field-label">Personnes concernées</div>
+            <div class="field-value">
+                Utilisateurs uploadant des fichiers + personnes dont la voix apparaît dans les enregistrements
+            </div>
+        </div>
+
+        <div class="field-group">
+            <div class="field-label">Destinataires des données</div>
+            <div class="field-value">
+                <ul>
+                    <li>Serveur de transcription Whisper (en local, pas de cloud)</li>
+                    <li>Serveur de diarisation Pyannote (en local, si activé)</li>
+                    <li>Aucun partage avec des services tiers externes</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="field-group">
+            <div class="field-label">Durée de conservation</div>
+            <div class="field-value">
+                <ul>
+                    <li><strong>Fichiers uploadés :</strong> Supprimés automatiquement après traitement (conservation temporaire uniquement)</li>
+                    <li><strong>Transcriptions générées :</strong> Conservées tant que l'utilisateur conserve son compte</li>
+                    <li><strong>Suppression manuelle :</strong> Possible à tout moment par l'utilisateur</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="field-group">
+            <div class="field-label">Base légale</div>
+            <div class="field-value">
+                <span class="legal-basis">Exécution du contrat (Art. 6.1.b RGPD)</span>
+            </div>
+        </div>
+
+        <div class="field-group">
+            <div class="field-label">Mesures de sécurité</div>
+            <div class="field-value">
+                <ul>
+                    <li>Dossiers isolés par utilisateur (hash de l'email)</li>
+                    <li>Vérification stricte de propriété des fichiers</li>
+                    <li>Prévention de path traversal</li>
+                    <li>Traitement local (pas de cloud externe)</li>
+                    <li>Suppression automatique des fichiers temporaires</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Traitement 3 -->
+    <div class="treatment-card">
+        <div class="treatment-title">
+            <span>3. Génération de documents intelligents</span>
+            <span class="treatment-badge">Service principal</span>
+        </div>
+
+        <div class="field-group">
+            <div class="field-label">Finalité du traitement</div>
+            <div class="field-value">
+                Génération de documents formatés (TXT, DOCX, SRT) à partir des transcriptions, avec enrichissement optionnel via IA (Ollama)
+            </div>
+        </div>
+
+        <div class="field-group">
+            <div class="field-label">Catégories de données collectées</div>
+            <div class="field-value">
+                <ul>
+                    <li><strong>Documents générés :</strong> Fichiers TXT, DOCX, SRT avec transcriptions formatées</li>
+                    <li><strong>Métadonnées :</strong> Titre, date de création, taille, mode de génération</li>
+                    <li><strong>Paramètres de traitement :</strong> Options IA (résumé, mise en forme), speakers</li>
+                    <li><strong>Historique :</strong> Jobs de transcription (statut, durée, erreurs)</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="field-group">
+            <div class="field-label">Personnes concernées</div>
+            <div class="field-value">Utilisateurs générant des documents</div>
+        </div>
+
+        <div class="field-group">
+            <div class="field-label">Destinataires des données</div>
+            <div class="field-value">
+                <ul>
+                    <li>Serveur Ollama (LLM local) pour enrichissement des documents (si activé)</li>
+                    <li>Aucun partage avec des services tiers</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="field-group">
+            <div class="field-label">Durée de conservation</div>
+            <div class="field-value">
+                <ul>
+                    <li><strong>Documents :</strong> Conservés tant que l'utilisateur conserve son compte</li>
+                    <li><strong>Historique de jobs :</strong> Conservé avec les métadonnées des documents</li>
+                    <li><strong>Suppression :</strong> Suppression manuelle possible à tout moment</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="field-group">
+            <div class="field-label">Base légale</div>
+            <div class="field-value">
+                <span class="legal-basis">Exécution du contrat (Art. 6.1.b RGPD)</span>
+            </div>
+        </div>
+
+        <div class="field-group">
+            <div class="field-label">Mesures de sécurité</div>
+            <div class="field-value">
+                <ul>
+                    <li>Isolation des documents par utilisateur</li>
+                    <li>Contrôle d'accès strict (propriétaire uniquement)</li>
+                    <li>Traitement IA en local (pas de cloud externe)</li>
+                    <li>Cascade de suppression (suppression compte → suppression documents)</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Traitement 4 -->
+    <div class="treatment-card">
+        <div class="treatment-title">
+            <span>4. Système d'invitations utilisateurs</span>
+            <span class="treatment-badge">Administration</span>
+        </div>
+
+        <div class="field-group">
+            <div class="field-label">Finalité du traitement</div>
+            <div class="field-value">
+                Gestion des accès à la plateforme via système d'invitations par email (administrateurs uniquement)
+            </div>
+        </div>
+
+        <div class="field-group">
+            <div class="field-label">Catégories de données collectées</div>
+            <div class="field-value">
+                <ul>
+                    <li><strong>Email invité :</strong> Adresse email du futur utilisateur</li>
+                    <li><strong>Token d'invitation :</strong> Token sécurisé unique</li>
+                    <li><strong>Métadonnées :</strong> Date de création, date d'expiration (7 jours), statut (pending/accepted)</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="field-group">
+            <div class="field-label">Personnes concernées</div>
+            <div class="field-value">Personnes invitées à rejoindre la plateforme par un administrateur</div>
+        </div>
+
+        <div class="field-group">
+            <div class="field-label">Destinataires des données</div>
+            <div class="field-value">
+                <ul>
+                    <li>Serveur SMTP pour envoi de l'email d'invitation</li>
+                    <li>Administrateurs de la plateforme (visualisation des invitations)</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="field-group">
+            <div class="field-label">Durée de conservation</div>
+            <div class="field-value">
+                <ul>
+                    <li><strong>Invitations pending :</strong> Supprimées automatiquement après 7 jours d'expiration</li>
+                    <li><strong>Invitations acceptées :</strong> Supprimées dès la création du compte</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="field-group">
+            <div class="field-label">Base légale</div>
+            <div class="field-value">
+                <span class="legal-basis">Intérêt légitime (Art. 6.1.f RGPD)</span> - Gestion des accès sécurisés
+            </div>
+        </div>
+
+        <div class="field-group">
+            <div class="field-label">Mesures de sécurité</div>
+            <div class="field-value">
+                <ul>
+                    <li>Tokens sécurisés (secrets.token_urlsafe)</li>
+                    <li>Expiration automatique après 7 jours</li>
+                    <li>Limitation aux administrateurs uniquement</li>
+                    <li>Email non réutilisable après acceptation</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Traitement 5 -->
+    <div class="treatment-card">
+        <div class="treatment-title">
+            <span>5. Notifications et communications par email</span>
+            <span class="treatment-badge">Communication</span>
+        </div>
+
+        <div class="field-group">
+            <div class="field-label">Finalité du traitement</div>
+            <div class="field-value">
+                Envoi de notifications liées au service (invitations, alertes de suppression de compte, notifications de transcription terminée si activées)
+            </div>
+        </div>
+
+        <div class="field-group">
+            <div class="field-label">Catégories de données collectées</div>
+            <div class="field-value">
+                <ul>
+                    <li><strong>Adresse email :</strong> Email de l'utilisateur</li>
+                    <li><strong>Contenu des notifications :</strong> Informations sur l'action concernée</li>
+                    <li><strong>Historique d'envoi :</strong> Date de notification de suppression (deletion_notified_at)</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="field-group">
+            <div class="field-label">Personnes concernées</div>
+            <div class="field-value">Tous les utilisateurs recevant des notifications</div>
+        </div>
+
+        <div class="field-group">
+            <div class="field-label">Destinataires des données</div>
+            <div class="field-value">
+                <ul>
+                    <li>Serveur SMTP configuré (mail.gosselin.pro)</li>
+                    <li>Utilisateur destinataire uniquement</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="field-group">
+            <div class="field-label">Durée de conservation</div>
+            <div class="field-value">
+                <ul>
+                    <li><strong>Date de notification :</strong> Conservée jusqu'à action (connexion ou suppression)</li>
+                    <li><strong>Emails envoyés :</strong> Non conservés (transmis uniquement)</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="field-group">
+            <div class="field-label">Base légale</div>
+            <div class="field-value">
+                <span class="legal-basis">Exécution du contrat (Art. 6.1.b RGPD)</span> pour notifications de service<br>
+                <span class="legal-basis">Obligation légale (Art. 6.1.c RGPD)</span> pour notifications RGPD (suppression compte)
+            </div>
+        </div>
+
+        <div class="field-group">
+            <div class="field-label">Mesures de sécurité</div>
+            <div class="field-value">
+                <ul>
+                    <li>Connexion SMTP sécurisée (TLS)</li>
+                    <li>Pas de stockage des emails envoyés</li>
+                    <li>Respect de la préférence utilisateur (notifications désactivables pour transcriptions)</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="info-box">
+        <strong>Droits des personnes concernées :</strong> Conformément aux articles 15 à 22 du RGPD, toute personne peut exercer ses droits d'accès, de rectification, d'effacement, de limitation, de portabilité et d'opposition via la page Profil > Données ou en contactant le responsable de traitement.
+    </div>
+
+    <div class="info-box">
+        <strong>Transferts de données hors UE :</strong> Aucun. Toutes les données sont traitées et hébergées localement sur le serveur de production, sans recours à des services cloud tiers.
+    </div>
+
+    <div class="footer-note">
+        Document généré automatiquement par Whisper Studio<br>
+        Dernière mise à jour : {{ current_date }}
+    </div>
+</body>
+</html>

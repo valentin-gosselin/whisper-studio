@@ -38,7 +38,7 @@ sys.stdout.reconfigure(line_buffering=True)
 sys.stderr.reconfigure(line_buffering=True)
 
 # Application version
-APP_VERSION = "0.6.0"
+APP_VERSION = "0.7.0"
 
 app = Flask(__name__)
 
@@ -1091,6 +1091,10 @@ register_admin_routes(app)
 from library_routes import library_bp, init_serializer
 app.register_blueprint(library_bp)
 init_serializer(app.config['SECRET_KEY'])
+
+# ========== RGPD ROUTES (Legal pages & Data rights) ==========
+from rgpd_routes import rgpd_bp
+app.register_blueprint(rgpd_bp)
 
 
 @app.route('/')

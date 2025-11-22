@@ -5,6 +5,171 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.0] - 2025-11-22
+
+### 🔐 Phase 3: RGPD & Legal Compliance
+
+**Complete GDPR compliance system for public deployment**
+
+### 🎯 Major Features
+
+#### Legal Pages System
+- **Privacy Policy** (`/privacy-policy`): Complete GDPR-compliant privacy documentation
+- **Terms of Service** (`/terms`): Clear terms and conditions with open-source disclaimer
+- **Legal Mentions** (`/legal-mentions`): Required legal information for EU compliance
+- **Template system**: Markdown-based with dynamic placeholder replacement
+- **Admin editing interface**: Live editing with preview in `/admin/legal`
+- **RGPD Settings**: Configurable placeholders (controller name, email, DPO, hosting, etc.)
+
+#### Cookie Consent Banner
+- **Glassmorphism design**: Unified banner matching light/dark themes
+- **Strictly necessary cookies only**: Session + theme preferences
+- **LocalStorage consent**: No tracking, pure client-side
+- **Reopen function**: `reopenCookieBanner()` accessible from all legal pages
+- **Footer integration**: "Gérer mes cookies" link on all pages
+
+#### User Rights (GDPR Articles 15-22)
+- **Data Export (Article 20)**:
+  - Secure ZIP download with password verification
+  - Includes: user profile JSON, all documents, metadata, jobs history
+  - Download endpoint: `/profile/export-data`
+  - Complete `README.txt` guide in export
+- **Right to Erasure (Article 17)**:
+  - Account deletion with double confirmation (text "SUPPRIMER" + password)
+  - Complete data cascade: user → documents → files → jobs
+  - Automatic logout after deletion
+  - Warning modal with explicit data loss explanation
+
+#### Data Retention & Cleanup
+- **Automatic inactive account deletion**: 1 year inactivity threshold
+- **Email notification**: 30 days warning before deletion
+- **Cron job**: Daily cleanup at 3 AM (`inactivity_cleanup.py`)
+- **Admin exclusion**: Administrators exempt from auto-deletion
+- **Database tracking**: `deletion_notified_at` column for notification tracking
+- **SMTP integration**: Styled email notifications for deletion warnings
+
+#### GDPR Registry (Article 30)
+- **Processing Activities Registry** (`/admin/registry`):
+  - 5 documented treatments: user accounts, transcription, documents, invitations, emails
+  - Complete documentation: purpose, data categories, recipients, retention, legal basis, security
+  - Professional PDF export for GDPR compliance audits
+  - Clean legal-style layout matching other legal pages
+
+### 🎨 UI/UX Improvements
+- **Unified footer**: Legal links on all pages (base_auth.html, index.html, admin/base.html, profile.html)
+- **Legal content styling**: Professional `.legal-content` class with proper typography
+- **Theme-adaptive badges**: `.badge-active` for legal basis indicators (green/light, cyan/dark)
+- **Modal system**: Confirmation modals for critical actions (export, deletion)
+- **Password verification**: Security layer for sensitive operations
+
+### 🔧 Technical Implementation
+
+#### New Files
+- `webui/rgpd_routes.py`: Blueprint for legal pages rendering
+  - `/privacy-policy` - Privacy policy page
+  - `/terms` - Terms of service page
+  - `/legal-mentions` - Legal mentions page
+  - Dynamic placeholder replacement from `rgpd_settings`
+- `webui/rgpd_templates.py`: Default legal text templates (Markdown format)
+- `webui/email_utils.py`: Email sending utilities (SMTP configuration, templates)
+- `webui/inactivity_cleanup.py`: Cron script for inactive account cleanup
+- `webui/migrate_rgpd.py`: Database migration for RGPD tables
+- `webui/migrate_inactivity.py`: Database migration for deletion tracking
+- `webui/update_legal_texts.py`: Script to populate default legal texts
+- `webui/templates/rgpd/legal_page.html`: Unified legal page template
+- `webui/templates/cookie_banner.html`: Cookie consent banner component
+- `webui/templates/admin/legal.html`: Admin legal texts editor
+- `webui/templates/admin/registry.html`: GDPR processing registry
+- `webui/templates/admin/registry_pdf.html`: PDF export template for registry
+- `webui/static/cookie-banner.css`: Cookie banner glassmorphism styles
+- `webui/static/cookie-banner.js`: Cookie consent management logic
+
+#### Modified Files
+- `webui/app.py`:
+  - Registered `rgpd_bp` Blueprint
+  - Added `app_version` context processor
+  - Initialized Flask-Mail for email notifications
+  - Added SMTP configuration from environment variables
+- `webui/admin_routes.py`:
+  - Added `/admin/legal` - Legal texts editor with tabs
+  - Added `/admin/legal/save` - Save legal texts API
+  - Added `/admin/rgpd-settings/save` - Save RGPD settings API
+  - Added `/admin/registry` - GDPR registry display
+  - Added `/admin/registry/export-pdf` - PDF export with WeasyPrint
+- `webui/models.py`:
+  - Added `LegalText` model (title, content, updated_at)
+  - Added `RgpdSettings` model (key-value pairs for placeholders)
+  - Added `User.deletion_notified_at` field for cleanup tracking
+- `webui/Dockerfile`:
+  - Added WeasyPrint system dependencies (libpango, libcairo, libgdk-pixbuf)
+  - Added cron job for `inactivity_cleanup.py` (daily 3 AM)
+- `webui/requirements.txt`:
+  - Added `Flask-Mail==0.10.0` for email notifications
+  - Added `weasyprint==62.3` for PDF generation
+- `webui/templates/profile.html`:
+  - Added "Mes données" section with export/delete buttons
+  - Added export confirmation modal
+  - Added delete confirmation modal with double-check
+  - Added footer with legal links
+- `webui/templates/base_auth.html`:
+  - Added footer with legal links (privacy, terms, legal mentions, cookies)
+  - Added cookie banner component
+- `webui/templates/index.html`:
+  - Added footer with legal links
+- `webui/templates/admin/base.html`:
+  - Added "Textes légaux" menu item
+  - Added "Registre RGPD" menu item
+  - Added footer with legal links
+
+#### Database Schema
+```sql
+-- New tables
+CREATE TABLE legal_texts (
+    id SERIAL PRIMARY KEY,
+    title VARCHAR(100) NOT NULL UNIQUE,
+    content TEXT NOT NULL,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE rgpd_settings (
+    id SERIAL PRIMARY KEY,
+    key VARCHAR(100) NOT NULL UNIQUE,
+    value TEXT
+);
+
+-- Modified tables
+ALTER TABLE users ADD COLUMN deletion_notified_at TIMESTAMP;
+```
+
+### 📦 Dependencies
+- **Flask-Mail**: Email notifications for RGPD compliance
+- **WeasyPrint**: PDF generation for GDPR registry export
+- **itsdangerous**: Secure token generation for data export
+
+### 🔐 Security
+- **Password verification**: Required for data export and account deletion
+- **Email security**: SMTP with TLS encryption
+- **Token-based export**: Temporary secure tokens for data downloads
+- **Cascade deletion**: Automatic cleanup of all user data on account deletion
+- **Admin-only access**: RGPD settings and registry restricted to administrators
+
+### 🐛 Bug Fixes
+- Fixed cookie banner display persistence
+- Fixed legal page rendering with proper Markdown parsing
+- Fixed email sending with proper SMTP configuration
+- Fixed PDF export styling for professional documents
+
+### ✅ Phase 3 Status
+All objectives from ROADMAP.md Phase 3 completed:
+- ✅ Legal pages (privacy policy, terms, legal mentions)
+- ✅ Cookie consent banner
+- ✅ Data export (GDPR Article 20)
+- ✅ Right to erasure (GDPR Article 17)
+- ✅ Data retention and automatic cleanup
+- ✅ Admin interface for legal texts editing
+- ✅ RGPD settings management
+- ✅ Processing activities registry (GDPR Article 30)
+
 ## [0.6.0] - 2025-11-21
 
 ### 📚 Phase 2: Library & History

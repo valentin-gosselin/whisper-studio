@@ -18,6 +18,9 @@ cachelib==0.13.0
 # Email
 Flask-Mail==0.10.0
 
+# PDF Generation
+weasyprint==62.3
+
 # 2FA
 pyotp==2.9.0
 qrcode[pil]==8.0
