@@ -136,6 +136,48 @@ class PasswordResetToken(Base):
         return not self.used and not self.is_expired
 
 
+class Notification(Base):
+    """In-app notifications for users"""
+    __tablename__ = "notifications"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey('users.id', ondelete='CASCADE'), nullable=False, index=True)
+
+    # Notification content
+    message: Mapped[str] = mapped_column(String(500), nullable=False)
+    notification_type: Mapped[str] = mapped_column(String(20), default='info', nullable=False)  # 'info', 'success', 'warning', 'error'
+
+    # Link to related resource (optional)
+    link_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    link_text: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+
+    # Status
+    is_read: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+
+    # Timestamps
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+    read_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+
+    # Relationship
+    user: Mapped["User"] = relationship("User", backref="notifications")
+
+    def __repr__(self):
+        return f"<Notification user_id={self.user_id} read={self.is_read}>"
+
+    def to_dict(self):
+        """Convert notification to dictionary for API response"""
+        return {
+            'id': self.id,
+            'message': self.message,
+            'type': self.notification_type,
+            'link_url': self.link_url,
+            'link_text': self.link_text,
+            'is_read': self.is_read,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'read_at': self.read_at.isoformat() if self.read_at else None
+        }
+
+
 class Setting(Base):
     """Settings model for global application configuration"""
     __tablename__ = "settings"

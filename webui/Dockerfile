@@ -33,6 +33,7 @@ COPY auth_routes.py .
 COPY admin_routes.py .
 COPY library_routes.py .
 COPY rgpd_routes.py .
+COPY notification_routes.py .
 COPY email_utils.py .
 COPY init_db.py .
 COPY cleanup_cron.py .
@@ -46,6 +47,7 @@ COPY migrate_rgpd.py .
 COPY update_legal_texts.py .
 COPY templates ./templates
 COPY static ./static
+COPY email_templates ./email_templates
 
 # Create necessary directories
 RUN mkdir -p /tmp/uploads /tmp/outputs /tmp/flask_sessions

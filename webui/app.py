@@ -38,7 +38,7 @@ sys.stdout.reconfigure(line_buffering=True)
 sys.stderr.reconfigure(line_buffering=True)
 
 # Application version
-APP_VERSION = "0.7.0"
+APP_VERSION = "0.8.0"
 
 app = Flask(__name__)
 
@@ -1096,12 +1096,51 @@ init_serializer(app.config['SECRET_KEY'])
 from rgpd_routes import rgpd_bp
 app.register_blueprint(rgpd_bp)
 
+# ========== NOTIFICATION ROUTES (In-app notifications) ==========
+from notification_routes import notification_bp
+app.register_blueprint(notification_bp)
+
 
 @app.route('/')
 @login_required
 def index():
     """Main transcription interface"""
     return render_template('index.html')
+
+
+def send_transcription_complete_email(user, document_title):
+    """Send email notification when transcription is complete"""
+    from flask_mail import Message
+    from email_utils import get_email_template
+    import os
+
+    try:
+        # Get email template (from DB or default file)
+        template = get_email_template('transcription_complete')
+
+        # Get app URL from environment or use default
+        app_url = os.environ.get('APP_URL', 'http://localhost:7860').rstrip('/')
+
+        # Replace placeholders
+        html_body = template.replace('{{user_name}}', user.display_name) \
+                            .replace('{{document_title}}', document_title) \
+                            .replace('{{download_link}}', f'{app_url}/library') \
+                            .replace('{{app_url}}', app_url)
+
+        # Create and send email (requires app context)
+        with app.app_context():
+            msg = Message(
+                subject=f"Transcription terminée : {document_title}",
+                recipients=[user.email],
+                html=html_body
+            )
+            mail.send(msg)
+        return True
+
+    except Exception as e:
+        print(f"[EMAIL] Error sending email: {e}")
+        return False
+
 
 def update_job_status(job_id, status, error_message=None, started_at=None, completed_at=None, duration_seconds=None):
     """Update Job status in database"""
@@ -1110,6 +1149,9 @@ def update_job_status(job_id, status, error_message=None, started_at=None, compl
         try:
             job = db.query(Job).filter(Job.job_id == job_id).first()
             if job:
+                # Track if job was already completed to avoid duplicate notifications
+                was_already_completed = (job.status == 'completed')
+
                 job.status = status
                 if error_message:
                     job.error_message = error_message
@@ -1121,6 +1163,38 @@ def update_job_status(job_id, status, error_message=None, started_at=None, compl
                     job.duration_seconds = duration_seconds
                 db.commit()
                 print(f"[DB] Job {job_id} status updated to: {status}")
+
+                # Create in-app notification and send email when job completes (only once)
+                if status == 'completed' and not was_already_completed:
+                    try:
+                        from notification_routes import create_notification
+                        user = db.query(User).filter(User.id == job.user_id).first()
+
+                        # In-app notification
+                        if user and user.inapp_notifications:
+                            message = f"Votre transcription '{job.filename or 'Sans titre'}' est terminée !"
+                            create_notification(
+                                user_id=job.user_id,
+                                message=message,
+                                notification_type='success',
+                                link_url='/library',
+                                link_text='Voir dans la bibliothèque'
+                            )
+                            print(f"[NOTIFICATION] Created notification for user {job.user_id}")
+
+                        # Email notification
+                        if user and user.email_notifications:
+                            try:
+                                send_transcription_complete_email(
+                                    user=user,
+                                    document_title=job.filename or 'Sans titre'
+                                )
+                                print(f"[EMAIL] Sent completion email to {user.email}")
+                            except Exception as email_error:
+                                print(f"[EMAIL] Failed to send email: {email_error}")
+                    except Exception as notif_error:
+                        print(f"[NOTIFICATION] Failed to create notification: {notif_error}")
+
         finally:
             db.close()
     except Exception as e:

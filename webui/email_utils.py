@@ -179,3 +179,51 @@ def send_password_reset_email(mail_instance: Mail, recipient_email: str, reset_t
     )
 
     mail_instance.send(msg)
+
+
+def get_email_template(template_name):
+    """
+    Get email template from database or fallback to default file
+
+    Args:
+        template_name: Name of the template (e.g., 'transcription_complete')
+
+    Returns:
+        HTML template as string
+    """
+    import os
+    from database import SessionLocal
+    from models import Setting
+
+    # Try to get custom template from database
+    try:
+        db = SessionLocal()
+        try:
+            custom_template = Setting.get(db, f'email_template_{template_name}')
+            if custom_template:
+                print(f"[EMAIL] Using custom template for {template_name}")
+                return custom_template
+        finally:
+            db.close()
+    except Exception as e:
+        print(f"[EMAIL] Error loading custom template: {e}")
+
+    # Fallback to default file template
+    template_path = os.path.join('/app/email_templates', f'{template_name}.html')
+    if os.path.exists(template_path):
+        with open(template_path, 'r', encoding='utf-8') as f:
+            print(f"[EMAIL] Using default file template for {template_name}")
+            return f.read()
+
+    # Ultimate fallback
+    print(f"[EMAIL] No template found for {template_name}, using minimal fallback")
+    return """
+    <html>
+    <body>
+        <h1>Transcription terminée</h1>
+        <p>Bonjour {{user_name}},</p>
+        <p>Votre transcription "{{document_title}}" est terminée.</p>
+        <p><a href="{{download_link}}">Accéder à mes documents</a></p>
+    </body>
+    </html>
+    """

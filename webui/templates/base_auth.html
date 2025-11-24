@@ -133,6 +133,9 @@
     <!-- Cookie Banner -->
     {% include 'cookie_banner.html' %}
 
+    <!-- Notifications System -->
+    <script src="{{ url_for('static', filename='notifications.js') }}?v={{ app_version }}"></script>
+
     {% block extra_scripts %}{% endblock %}
 </body>
 </html>

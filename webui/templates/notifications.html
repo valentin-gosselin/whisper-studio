@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notifications - Whisper Studio</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%23667eea' width='100' height='100' rx='20'/><text x='50' y='70' font-size='60' text-anchor='middle' fill='white' font-family='Arial'>W</text></svg>">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        body.neon-night {
+            background: linear-gradient(135deg, #0a0a1a 0%, #1a0a2e 50%, #16213e 100%);
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+            font-size: 32px;
+            font-weight: 700;
+        }
+
+        body.neon-night h1 {
+            color: #00ffff;
+            text-shadow: 0 0 20px rgba(0,255,255,0.5);
+        }
+
+        .glass-container {
+            background: rgba(255,255,255,0.15);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        body.neon-night .glass-container {
+            background: rgba(10,10,26,0.6);
+            border: 1px solid rgba(0,255,255,0.2);
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid rgba(255,255,255,0.2);
+        }
+
+        body.neon-night .header {
+            border-bottom-color: rgba(0,255,255,0.2);
+        }
+
+        .header h2 {
+            color: #333;
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        body.neon-night .header h2 {
+            color: #00ffff;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border-radius: 8px;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background: rgba(102,126,234,0.15);
+            color: #667eea;
+            border: 1px solid rgba(102,126,234,0.3);
+        }
+
+        .btn-primary:hover {
+            background: rgba(102,126,234,0.25);
+            transform: translateY(-1px);
+        }
+
+        body.neon-night .btn-primary {
+            background: rgba(0,255,255,0.15);
+            color: #00ffff;
+            border-color: rgba(0,255,255,0.3);
+        }
+
+        body.neon-night .btn-primary:hover {
+            background: rgba(0,255,255,0.25);
+        }
+
+        .notifications-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .notification-item {
+            background: rgba(255,255,255,0.1);
+            border-radius: 12px;
+            padding: 16px 20px;
+            border-left: 4px solid;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .notification-item:hover {
+            background: rgba(255,255,255,0.15);
+            transform: translateX(5px);
+        }
+
+        .notification-item.unread {
+            background: rgba(102,126,234,0.25);
+            border-left-color: #667eea;
+        }
+
+        .notification-item.info {
+            border-left-color: #3498db;
+        }
+
+        .notification-item.success {
+            border-left-color: #4caf50;
+        }
+
+        .notification-item.warning {
+            border-left-color: #ff9800;
+        }
+
+        .notification-item.error {
+            border-left-color: #f44336;
+        }
+
+        body.neon-night .notification-item {
+            background: rgba(0,255,255,0.05);
+        }
+
+        body.neon-night .notification-item:hover {
+            background: rgba(0,255,255,0.1);
+        }
+
+        body.neon-night .notification-item.unread {
+            background: rgba(0,255,255,0.15);
+            border-left-color: #00ffff;
+        }
+
+        .notification-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 15px;
+        }
+
+        .notification-message {
+            flex: 1;
+            color: #333;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        body.neon-night .notification-message {
+            color: #00ffff;
+        }
+
+        .notification-time {
+            color: #666;
+            font-size: 12px;
+            white-space: nowrap;
+        }
+
+        body.neon-night .notification-time {
+            color: rgba(0,255,255,0.6);
+        }
+
+        .notification-link {
+            margin-top: 8px;
+        }
+
+        .notification-link a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 13px;
+        }
+
+        .notification-link a:hover {
+            text-decoration: underline;
+        }
+
+        body.neon-night .notification-link a {
+            color: #00ffff;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: rgba(255,255,255,0.7);
+        }
+
+        body.neon-night .empty-state {
+            color: rgba(0,255,255,0.7);
+        }
+
+        .empty-state svg {
+            width: 80px;
+            height: 80px;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 25px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+
+        body.neon-night .pagination {
+            border-top-color: rgba(0,255,255,0.1);
+        }
+
+        .pagination a {
+            padding: 8px 16px;
+            border-radius: 8px;
+            background: rgba(102,126,234,0.15);
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .pagination a:hover {
+            background: rgba(102,126,234,0.25);
+        }
+
+        .pagination a.disabled {
+            opacity: 0.3;
+            pointer-events: none;
+        }
+
+        .pagination span {
+            color: #333;
+        }
+
+        body.neon-night .pagination a {
+            background: rgba(0,255,255,0.15);
+            color: #00ffff;
+        }
+
+        body.neon-night .pagination a:hover {
+            background: rgba(0,255,255,0.25);
+        }
+
+        body.neon-night .pagination span {
+            color: #00ffff;
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .back-link:hover {
+            color: #5568d3;
+            transform: translateX(-5px);
+        }
+
+        body.neon-night .back-link {
+            color: #00ffff;
+        }
+
+        body.neon-night .back-link:hover {
+            color: #00ffff;
+            opacity: 0.8;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="/" class="back-link">← Retour</a>
+
+        <h1>Notifications</h1>
+
+        <div class="glass-container">
+            <div class="header">
+                <h2>Toutes les notifications</h2>
+                <div class="header-actions">
+                    {% if unread_count > 0 %}
+                    <button class="btn btn-primary" onclick="markAllAsRead()">
+                        Tout marquer comme lu ({{ unread_count }})
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+
+            {% if notifications %}
+            <div class="notifications-list">
+                {% for notification in notifications %}
+                <div class="notification-item {{ notification.notification_type }} {% if not notification.is_read %}unread{% endif %}"
+                     onclick="markAsRead({{ notification.id }}, '{{ notification.link_url or '' }}')">
+                    <div class="notification-content">
+                        <div class="notification-message">
+                            {{ notification.message }}
+                            {% if notification.link_url and notification.link_text %}
+                            <div class="notification-link">
+                                <a href="{{ notification.link_url }}">{{ notification.link_text }} →</a>
+                            </div>
+                            {% endif %}
+                        </div>
+                        <div class="notification-time">
+                            {{ notification.created_at.strftime('%d/%m/%Y %H:%M') }}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            {% if has_prev or has_next %}
+            <div class="pagination">
+                {% if has_prev %}
+                <a href="?page={{ page - 1 }}">← Précédent</a>
+                {% else %}
+                <a class="disabled">← Précédent</a>
+                {% endif %}
+
+                <span style="color: white; padding: 8px 16px;">
+                    Page {{ page }}
+                </span>
+
+                {% if has_next %}
+                <a href="?page={{ page + 1 }}">Suivant →</a>
+                {% else %}
+                <a class="disabled">Suivant →</a>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            {% else %}
+            <div class="empty-state">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                    <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                </svg>
+                <p style="font-size: 18px; font-weight: 600; margin-bottom: 8px;">Aucune notification</p>
+                <p style="font-size: 14px;">Vous n'avez pas encore de notifications.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <script>
+        // Load theme
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        if (savedTheme === 'dark') {
+            document.body.classList.add('neon-night');
+        }
+
+        async function markAsRead(notificationId, linkUrl) {
+            try {
+                const res = await fetch(`/api/notifications/${notificationId}/read`, {
+                    method: 'POST'
+                });
+
+                if (res.ok) {
+                    // Redirect to link if available, otherwise reload
+                    if (linkUrl) {
+                        window.location.href = linkUrl;
+                    } else {
+                        window.location.reload();
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to mark notification as read:', error);
+            }
+        }
+
+        async function markAllAsRead() {
+            try {
+                const res = await fetch('/api/notifications/read-all', {
+                    method: 'POST'
+                });
+
+                if (res.ok) {
+                    window.location.reload();
+                }
+            } catch (error) {
+                console.error('Failed to mark all as read:', error);
+            }
+        }
+    </script>
+
+    <!-- Notifications System -->
+    <script src="{{ url_for('static', filename='notifications.js') }}?v={{ app_version }}"></script>
+</body>
+</html>

@@ -196,6 +196,31 @@
             <button class="btn btn-sm btn-secondary" onclick="bulkAddTags()">
                 Ajouter des tags
             </button>
+
+            <!-- Bulk download dropdown -->
+            <div class="bulk-download-container" style="position: relative; display: inline-block;">
+                <button class="btn btn-sm btn-primary" onclick="toggleBulkDownloadDropdown(event)">
+                    Télécharger
+                    <svg width="10" height="6" viewBox="0 0 10 6" fill="none" style="margin-left: 6px;">
+                        <path d="M1 1L5 5L9 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                    </svg>
+                </button>
+                <div class="export-dropdown" id="bulkDownloadDropdown" style="display: none;">
+                    <a href="#" class="export-dropdown-item" onclick="bulkDownload('docx'); return false;">
+                        <span>DOCX</span>
+                        <small>Format Word</small>
+                    </a>
+                    <a href="#" class="export-dropdown-item" onclick="bulkDownload('pdf'); return false;">
+                        <span>PDF</span>
+                        <small>Document portable</small>
+                    </a>
+                    <a href="#" class="export-dropdown-item" onclick="bulkDownload('markdown'); return false;">
+                        <span>Markdown</span>
+                        <small>Texte brut</small>
+                    </a>
+                </div>
+            </div>
+
             <button class="btn btn-sm btn-danger" onclick="bulkDelete()">
                 Supprimer la sélection
             </button>
@@ -247,9 +272,29 @@
         </div>
 
         <div class="document-actions">
-            <button class="btn btn-sm btn-primary" onclick="downloadDocument({{ doc.id }})">
-                Télécharger
-            </button>
+            <!-- Export dropdown -->
+            <div class="export-dropdown-container">
+                <button class="btn btn-sm btn-primary export-dropdown-toggle" onclick="toggleExportDropdown({{ doc.id }}, event)">
+                    Télécharger
+                    <svg width="10" height="6" viewBox="0 0 10 6" fill="none" style="margin-left: 6px;">
+                        <path d="M1 1L5 5L9 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                    </svg>
+                </button>
+                <div class="export-dropdown" id="exportDropdown{{ doc.id }}" style="display: none;">
+                    <a href="{{ url_for('library.export_document', doc_id=doc.id, format='docx') }}" class="export-dropdown-item">
+                        <span>DOCX</span>
+                        <small>Format Word</small>
+                    </a>
+                    <a href="{{ url_for('library.export_document', doc_id=doc.id, format='pdf') }}" class="export-dropdown-item">
+                        <span>PDF</span>
+                        <small>Document portable</small>
+                    </a>
+                    <a href="{{ url_for('library.export_document', doc_id=doc.id, format='markdown') }}" class="export-dropdown-item">
+                        <span>Markdown</span>
+                        <small>Texte brut</small>
+                    </a>
+                </div>
+            </div>
             <button class="btn btn-sm btn-secondary"
                     data-doc-id="{{ doc.id }}"
                     onclick="editTagsFromButton(this)">
@@ -296,6 +341,70 @@
     </button>
 </div>
 {% endif %}
+
+<style>
+/* Export Dropdown */
+.export-dropdown-container {
+    position: relative;
+    display: inline-block;
+    z-index: 1000;
+}
+
+.export-dropdown {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    min-width: 180px;
+    background: rgba(255,255,255,0.98);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255,255,255,0.4);
+    border-radius: 12px;
+    padding: 8px;
+    box-shadow: 0 12px 32px rgba(0,0,0,0.4);
+    z-index: 1001;
+}
+
+.export-dropdown-item {
+    display: flex;
+    flex-direction: column;
+    padding: 10px 14px;
+    color: #333;
+    text-decoration: none;
+    border-radius: 8px;
+    transition: background 0.2s ease;
+    cursor: pointer;
+}
+
+.export-dropdown-item:hover {
+    background: rgba(255,255,255,0.3);
+}
+
+.export-dropdown-item span {
+    font-weight: 600;
+    font-size: 14px;
+    margin-bottom: 2px;
+}
+
+.export-dropdown-item small {
+    font-size: 11px;
+    opacity: 0.7;
+}
+
+/* Dark theme */
+body.neon-night .export-dropdown {
+    background: rgba(10,10,26,0.95);
+    border: 1px solid rgba(0,255,255,0.3);
+}
+
+body.neon-night .export-dropdown-item {
+    color: #00ffff;
+}
+
+body.neon-night .export-dropdown-item:hover {
+    background: rgba(0,255,255,0.1);
+}
+</style>
 
 <script>
 // Reset checkboxes on page load (browser caches checkbox state)
@@ -660,6 +769,123 @@ function confirmBulkAddTags() {
         showNotification('Erreur: ' + err, 'error');
     });
 }
+
+// Bulk download dropdown toggle
+function toggleBulkDownloadDropdown(event) {
+    event.stopPropagation();
+    const dropdown = document.getElementById('bulkDownloadDropdown');
+    const isVisible = dropdown.style.display === 'block';
+
+    dropdown.style.display = isVisible ? 'none' : 'block';
+}
+
+// Bulk download function - downloads as ZIP
+function bulkDownload(format) {
+    const docIds = getSelectedDocIds();
+
+    if (docIds.length === 0) {
+        showToast('Aucun document sélectionné', 'error');
+        return;
+    }
+
+    // Close dropdown
+    document.getElementById('bulkDownloadDropdown').style.display = 'none';
+
+    // Show loading message
+    showToast(`Préparation du ZIP avec ${docIds.length} document(s)...`, 'info');
+
+    // Call bulk export API
+    fetch('/library/bulk-export', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            doc_ids: docIds,
+            format: format
+        })
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Erreur lors de la génération du ZIP');
+        }
+        return response.blob();
+    })
+    .then(blob => {
+        // Create download link
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+        a.download = `documents_${format}.zip`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+
+        showToast(`ZIP téléchargé : ${docIds.length} document(s) en ${format.toUpperCase()}`, 'success');
+    })
+    .catch(error => {
+        console.error('Bulk download error:', error);
+        showToast('Erreur lors du téléchargement', 'error');
+    });
+}
+
+// Close bulk download dropdown when clicking outside
+document.addEventListener('click', function(event) {
+    if (!event.target.closest('.bulk-download-container')) {
+        const dropdown = document.getElementById('bulkDownloadDropdown');
+        if (dropdown) {
+            dropdown.style.display = 'none';
+        }
+    }
+});
+
+// Export dropdown toggle
+function toggleExportDropdown(docId, event) {
+    event.stopPropagation();
+    const dropdown = document.getElementById('exportDropdown' + docId);
+    const isVisible = dropdown.style.display === 'block';
+
+    // Close all dropdowns first
+    document.querySelectorAll('.export-dropdown').forEach(d => {
+        d.style.display = 'none';
+    });
+
+    // Reset z-index on all document cards
+    document.querySelectorAll('.document-card').forEach(card => {
+        card.style.zIndex = '';
+    });
+
+    // Toggle current dropdown
+    if (!isVisible) {
+        // Lower z-index of all other document cards
+        document.querySelectorAll('.document-card').forEach(card => {
+            card.style.zIndex = '1';
+        });
+
+        // Raise z-index of current card
+        const currentCard = event.target.closest('.document-card');
+        if (currentCard) {
+            currentCard.style.zIndex = '1000';
+        }
+
+        dropdown.style.display = 'block';
+    }
+}
+
+// Close dropdown when clicking outside
+document.addEventListener('click', function(event) {
+    if (!event.target.closest('.export-dropdown-container')) {
+        document.querySelectorAll('.export-dropdown').forEach(d => {
+            d.style.display = 'none';
+        });
+        // Reset all z-indexes
+        document.querySelectorAll('.document-card').forEach(card => {
+            card.style.zIndex = '';
+        });
+    }
+});
 </script>
 <script src="{{ url_for('static', filename='custom-select.js') }}"></script>
 {% endblock %}

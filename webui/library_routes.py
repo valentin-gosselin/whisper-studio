@@ -12,6 +12,11 @@ from pathlib import Path
 from database import SessionLocal
 from models import Document, Job, User
 from auth import verify_password
+from docx import Document as DocxDocument
+from weasyprint import HTML
+import tempfile
+import zipfile
+import shutil
 
 library_bp = Blueprint('library', __name__)
 
@@ -22,6 +27,60 @@ def init_serializer(secret_key):
     """Initialize the URL serializer with app secret key"""
     global serializer
     serializer = URLSafeTimedSerializer(secret_key)
+
+
+def set_docx_language(doc, language_code):
+    """Set document language for spell checking"""
+    if not language_code:
+        return
+
+    # Map common language codes to Word language identifiers
+    lang_map = {
+        'fr': 'fr-FR',
+        'en': 'en-US',
+        'es': 'es-ES',
+        'de': 'de-DE',
+        'it': 'it-IT',
+        'pt': 'pt-PT',
+        'nl': 'nl-NL',
+        'pl': 'pl-PL',
+        'ru': 'ru-RU',
+        'ja': 'ja-JP',
+        'zh': 'zh-CN',
+        'ar': 'ar-SA'
+    }
+
+    lang_code = lang_map.get(language_code.lower(), 'en-US')
+
+    try:
+        from docx.oxml.shared import OxmlElement, qn
+
+        # Set language in document settings
+        settings = doc.settings
+        if hasattr(settings, 'element'):
+            settings_elem = settings.element
+
+            # Create or find lang defaults element
+            lang_defaults = settings_elem.find(qn('w:themeFontLang'))
+            if lang_defaults is None:
+                lang_defaults = OxmlElement('w:themeFontLang')
+                settings_elem.append(lang_defaults)
+
+            lang_defaults.set(qn('w:val'), lang_code)
+
+        # Set language for each paragraph's runs
+        for paragraph in doc.paragraphs:
+            for run in paragraph.runs:
+                rPr = run._element.get_or_add_rPr()
+                lang = rPr.find(qn('w:lang'))
+                if lang is None:
+                    lang = OxmlElement('w:lang')
+                    rPr.append(lang)
+
+                lang.set(qn('w:val'), lang_code)
+
+    except Exception as e:
+        print(f"[EXPORT] Warning: Could not set document language: {e}")
 
 
 # ============================================================================
@@ -313,6 +372,348 @@ def generate_download_link(doc_id):
         return jsonify({'success': True, 'download_url': download_url})
     finally:
         db.close()
+
+
+@library_bp.route('/library/export/<int:doc_id>/<format>')
+@login_required
+def export_document(doc_id, format):
+    """Export document in specified format (docx, pdf, markdown)"""
+    db = SessionLocal()
+    try:
+        doc = db.query(Document).filter(
+            Document.id == doc_id,
+            Document.user_id == current_user.id
+        ).first()
+
+        if not doc or not os.path.exists(doc.file_path):
+            abort(404)
+
+        # DOCX - direct download or create from text
+        if format == 'docx':
+            file_ext = os.path.splitext(doc.file_path)[1].lower()
+
+            if file_ext == '.docx':
+                # Direct download for existing DOCX
+                filename = f"{doc.title}.docx"
+                return send_file(
+                    doc.file_path,
+                    as_attachment=True,
+                    download_name=filename
+                )
+            else:
+                # Create DOCX from plain text file
+                try:
+                    new_doc = DocxDocument()
+                    new_doc.add_heading(doc.title, 0)
+
+                    # Read text file
+                    with open(doc.file_path, 'r', encoding='utf-8') as f:
+                        content = f.read()
+                        for line in content.split('\n'):
+                            new_doc.add_paragraph(line)
+
+                    # Set document language if available
+                    if doc.language:
+                        set_docx_language(new_doc, doc.language)
+
+                    # Save to temp file
+                    with tempfile.NamedTemporaryFile(delete=False, suffix='.docx') as tmp:
+                        new_doc.save(tmp.name)
+                        tmp_path = tmp.name
+
+                    try:
+                        filename = f"{doc.title}.docx"
+                        return send_file(
+                            tmp_path,
+                            as_attachment=True,
+                            download_name=filename,
+                            mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+                        )
+                    finally:
+                        if os.path.exists(tmp_path):
+                            os.remove(tmp_path)
+
+                except Exception as e:
+                    print(f"[EXPORT] DOCX generation error: {e}")
+                    flash('Erreur lors de la génération du DOCX', 'error')
+                    return redirect(url_for('library.library'))
+
+        # PDF - convert from DOCX or text
+        elif format == 'pdf':
+            try:
+                # Detect file type
+                file_ext = os.path.splitext(doc.file_path)[1].lower()
+
+                # Build HTML
+                html_content = '<html><head><meta charset="utf-8"><style>'
+                html_content += 'body { font-family: Arial, sans-serif; margin: 40px; line-height: 1.6; }'
+                html_content += 'h1 { color: #333; border-bottom: 2px solid #667eea; padding-bottom: 10px; }'
+                html_content += 'p { margin: 10px 0; color: #333; white-space: pre-wrap; }'
+                html_content += '</style></head><body>'
+                html_content += f'<h1>{doc.title}</h1>'
+
+                # Extract content based on file type
+                if file_ext == '.docx':
+                    # Read DOCX content
+                    docx_doc = DocxDocument(doc.file_path)
+                    for para in docx_doc.paragraphs:
+                        if para.text.strip():
+                            html_content += f'<p>{para.text}</p>'
+                else:
+                    # Read plain text file (txt, srt, etc.)
+                    with open(doc.file_path, 'r', encoding='utf-8') as f:
+                        content = f.read()
+                        for line in content.split('\n'):
+                            if line.strip():
+                                html_content += f'<p>{line}</p>'
+
+                html_content += '</body></html>'
+
+                # Generate PDF
+                with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as tmp:
+                    HTML(string=html_content).write_pdf(tmp.name)
+                    tmp_path = tmp.name
+
+                try:
+                    filename = f"{doc.title}.pdf"
+                    return send_file(
+                        tmp_path,
+                        as_attachment=True,
+                        download_name=filename,
+                        mimetype='application/pdf'
+                    )
+                finally:
+                    # Cleanup temp file after sending
+                    if os.path.exists(tmp_path):
+                        os.remove(tmp_path)
+
+            except Exception as e:
+                print(f"[EXPORT] PDF generation error: {e}")
+                flash('Erreur lors de la génération du PDF', 'error')
+                return redirect(url_for('library.library'))
+
+        # MARKDOWN - simple text export
+        elif format == 'markdown':
+            try:
+                # Detect file type
+                file_ext = os.path.splitext(doc.file_path)[1].lower()
+
+                # Build Markdown
+                md_content = f"# {doc.title}\n\n"
+
+                # Extract content based on file type
+                if file_ext == '.docx':
+                    # Read DOCX content
+                    docx_doc = DocxDocument(doc.file_path)
+                    for para in docx_doc.paragraphs:
+                        if para.text.strip():
+                            md_content += f"{para.text}\n\n"
+                else:
+                    # Read plain text file (txt, srt, etc.)
+                    with open(doc.file_path, 'r', encoding='utf-8') as f:
+                        md_content += f.read()
+
+                # Create temp file
+                with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.md', encoding='utf-8') as tmp:
+                    tmp.write(md_content)
+                    tmp_path = tmp.name
+
+                try:
+                    filename = f"{doc.title}.md"
+                    return send_file(
+                        tmp_path,
+                        as_attachment=True,
+                        download_name=filename,
+                        mimetype='text/markdown'
+                    )
+                finally:
+                    # Cleanup temp file after sending
+                    if os.path.exists(tmp_path):
+                        os.remove(tmp_path)
+
+            except Exception as e:
+                print(f"[EXPORT] Markdown generation error: {e}")
+                flash('Erreur lors de la génération du Markdown', 'error')
+                return redirect(url_for('library.library'))
+
+        else:
+            abort(400)
+
+    finally:
+        db.close()
+
+
+@library_bp.route('/library/bulk-export', methods=['POST'])
+@login_required
+def bulk_export():
+    """Export multiple documents as a ZIP file in the specified format"""
+    try:
+        data = request.get_json()
+        doc_ids = data.get('doc_ids', [])
+        format = data.get('format', 'docx')
+
+        if not doc_ids:
+            return jsonify({'error': 'No documents selected'}), 400
+
+        db = SessionLocal()
+        try:
+            # Get documents
+            docs = db.query(Document).filter(
+                Document.id.in_(doc_ids),
+                Document.user_id == current_user.id
+            ).all()
+
+            if not docs:
+                return jsonify({'error': 'No documents found'}), 404
+
+            # Create temporary directory for ZIP
+            temp_dir = tempfile.mkdtemp()
+            zip_path = os.path.join(temp_dir, f'documents_{format}.zip')
+
+            try:
+                with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+                    for doc in docs:
+                        if not os.path.exists(doc.file_path):
+                            continue
+
+                        # Detect file type
+                        file_ext = os.path.splitext(doc.file_path)[1].lower()
+
+                        # Generate file based on format
+                        if format == 'docx':
+                            # For DOCX: copy directly if already DOCX, create from text otherwise
+                            if file_ext == '.docx':
+                                filename = f"{doc.title}.docx"
+                                zipf.write(doc.file_path, filename)
+                            else:
+                                # Create DOCX from plain text file
+                                try:
+                                    new_doc = DocxDocument()
+                                    new_doc.add_heading(doc.title, 0)
+
+                                    # Read text file
+                                    with open(doc.file_path, 'r', encoding='utf-8') as f:
+                                        content = f.read()
+                                        # Add content as paragraphs
+                                        for line in content.split('\n'):
+                                            new_doc.add_paragraph(line)
+
+                                    # Set document language if available
+                                    if doc.language:
+                                        set_docx_language(new_doc, doc.language)
+
+                                    # Save to temp file
+                                    with tempfile.NamedTemporaryFile(delete=False, suffix='.docx') as tmp:
+                                        new_doc.save(tmp.name)
+                                        tmp_docx = tmp.name
+
+                                    # Add to ZIP
+                                    filename = f"{doc.title}.docx"
+                                    zipf.write(tmp_docx, filename)
+                                    os.remove(tmp_docx)
+
+                                except Exception as e:
+                                    print(f"[EXPORT] Error creating DOCX for {doc.title}: {e}")
+                                    continue
+
+                        elif format == 'pdf':
+                            # Convert to PDF
+                            try:
+                                # Build HTML
+                                html_content = '<html><head><meta charset="utf-8"><style>'
+                                html_content += 'body { font-family: Arial, sans-serif; margin: 40px; line-height: 1.6; }'
+                                html_content += 'h1 { color: #333; border-bottom: 2px solid #667eea; padding-bottom: 10px; }'
+                                html_content += 'p { margin: 10px 0; color: #333; white-space: pre-wrap; }'
+                                html_content += '</style></head><body>'
+                                html_content += f'<h1>{doc.title}</h1>'
+
+                                # Extract content based on file type
+                                if file_ext == '.docx':
+                                    # Read DOCX
+                                    docx_doc = DocxDocument(doc.file_path)
+                                    for para in docx_doc.paragraphs:
+                                        if para.text.strip():
+                                            html_content += f'<p>{para.text}</p>'
+                                else:
+                                    # Read plain text file (txt, srt, etc.)
+                                    with open(doc.file_path, 'r', encoding='utf-8') as f:
+                                        content = f.read()
+                                        # Split by lines and wrap in paragraphs
+                                        for line in content.split('\n'):
+                                            if line.strip():
+                                                html_content += f'<p>{line}</p>'
+
+                                html_content += '</body></html>'
+
+                                # Generate PDF to temp file
+                                with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as tmp:
+                                    HTML(string=html_content).write_pdf(tmp.name)
+                                    tmp_pdf = tmp.name
+
+                                # Add to ZIP
+                                filename = f"{doc.title}.pdf"
+                                zipf.write(tmp_pdf, filename)
+                                os.remove(tmp_pdf)
+
+                            except Exception as e:
+                                print(f"[EXPORT] Error converting {doc.title} to PDF: {e}")
+                                continue
+
+                        elif format == 'markdown':
+                            # Convert to Markdown
+                            try:
+                                md_content = f"# {doc.title}\n\n"
+
+                                # Extract content based on file type
+                                if file_ext == '.docx':
+                                    # Read DOCX
+                                    docx_doc = DocxDocument(doc.file_path)
+                                    for para in docx_doc.paragraphs:
+                                        if para.text.strip():
+                                            md_content += f"{para.text}\n\n"
+                                else:
+                                    # Read plain text file (txt, srt, etc.)
+                                    with open(doc.file_path, 'r', encoding='utf-8') as f:
+                                        md_content += f.read()
+
+                                # Add to ZIP
+                                filename = f"{doc.title}.md"
+                                zipf.writestr(filename, md_content.encode('utf-8'))
+
+                            except Exception as e:
+                                print(f"[EXPORT] Error converting {doc.title} to Markdown: {e}")
+                                continue
+
+                # Send ZIP file
+                response = send_file(
+                    zip_path,
+                    as_attachment=True,
+                    download_name=f'documents_{format}.zip',
+                    mimetype='application/zip'
+                )
+
+                # Clean up temp directory after sending
+                @response.call_on_close
+                def cleanup():
+                    try:
+                        shutil.rmtree(temp_dir)
+                    except:
+                        pass
+
+                return response
+
+            except Exception as e:
+                # Clean up on error
+                if os.path.exists(temp_dir):
+                    shutil.rmtree(temp_dir)
+                raise e
+
+        finally:
+            db.close()
+
+    except Exception as e:
+        print(f"[EXPORT] Bulk export error: {e}")
+        return jsonify({'error': str(e)}), 500
 
 
 # ============================================================================

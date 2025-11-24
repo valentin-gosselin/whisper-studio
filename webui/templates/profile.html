@@ -465,53 +465,6 @@
 </div>
 
 <script>
-    // Toast notification system
-    function showNotification(message, type = 'info') {
-        const isDark = document.body.classList.contains('neon-night');
-        const toast = document.createElement('div');
-
-        const bgColor = isDark ? 'rgba(10, 10, 26, 0.95)' : 'white';
-        const textColor = isDark ? '#00ffff' : '#333';
-        const borderColor = type === 'success' ? (isDark ? '#00ffff' : '#27ae60') :
-                           type === 'error' ? '#e74c3c' :
-                           (isDark ? '#00ffff' : '#3498db');
-
-        toast.style.cssText = `
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: ${bgColor};
-            color: ${textColor};
-            padding: 15px 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            z-index: 10000;
-            min-width: 300px;
-            max-width: 400px;
-            animation: slideIn 0.3s ease-out;
-            border-left: 4px solid ${borderColor};
-            ${isDark ? 'box-shadow: 0 4px 20px rgba(0, 255, 255, 0.3);' : ''}
-        `;
-
-        toast.innerHTML = `
-            <div style="display: flex; align-items: center; gap: 10px;">
-                <span style="font-size: 18px;">${type === 'success' ? '✓' : type === 'error' ? '✗' : 'i'}</span>
-                <span style="flex: 1;">${message}</span>
-                <button onclick="this.parentElement.parentElement.remove()" style="background: none; border: none; font-size: 20px; cursor: pointer; color: ${isDark ? '#00ffff' : '#999'};">×</button>
-            </div>
-        `;
-
-        document.body.appendChild(toast);
-
-        // Auto remove after 5 seconds
-        setTimeout(() => {
-            if (toast.parentElement) {
-                toast.style.animation = 'slideOut 0.3s ease-out';
-                setTimeout(() => toast.remove(), 300);
-            }
-        }, 5000);
-    }
-
     // Tab switching
     function switchProfileTab(tabName) {
         // Hide all tabs
@@ -604,7 +557,7 @@
     function showDisable2FAModal() {
         const password = document.getElementById('disable_2fa_password').value;
         if (!password) {
-            showNotification('Veuillez saisir votre mot de passe avant de désactiver le 2FA', 'error');
+            showToast('Veuillez saisir votre mot de passe avant de désactiver le 2FA', 'error');
             return;
         }
         const modal = document.getElementById('disable2faModal');
@@ -643,7 +596,7 @@
         const password = document.getElementById('export_password').value;
 
         if (!password) {
-            showNotification('Veuillez saisir votre mot de passe', 'error');
+            showToast('Veuillez saisir votre mot de passe', 'error');
             return;
         }
 
@@ -673,14 +626,14 @@
                 document.body.removeChild(a);
 
                 closeExportDataModal();
-                showNotification('Export réussi ! Téléchargement en cours...', 'success');
+                showToast('Export réussi ! Téléchargement en cours...', 'success');
             } else {
                 const data = await response.json();
-                showNotification('Erreur : ' + (data.error || 'Échec de l\'export'), 'error');
+                showToast('Erreur : ' + (data.error || 'Échec de l\'export'), 'error');
             }
         } catch (error) {
             console.error('Export error:', error);
-            showNotification('Erreur réseau lors de l\'export', 'error');
+            showToast('Erreur réseau lors de l\'export', 'error');
         } finally {
             btn.disabled = false;
             btn.textContent = 'Télécharger';
@@ -705,12 +658,12 @@
         const password = document.getElementById('delete_password').value;
 
         if (confirmText !== 'SUPPRIMER') {
-            showNotification('Veuillez taper exactement "SUPPRIMER" pour confirmer', 'error');
+            showToast('Veuillez taper exactement "SUPPRIMER" pour confirmer', 'error');
             return;
         }
 
         if (!password) {
-            showNotification('Veuillez saisir votre mot de passe', 'error');
+            showToast('Veuillez saisir votre mot de passe', 'error');
             return;
         }
 
@@ -733,16 +686,16 @@
             const data = await response.json();
 
             if (response.ok) {
-                showNotification('Votre compte a été supprimé. Redirection...', 'success');
+                showToast('Votre compte a été supprimé. Redirection...', 'success');
                 setTimeout(() => window.location.href = '/login', 2000);
             } else {
-                showNotification('Erreur : ' + (data.error || 'Échec de la suppression'), 'error');
+                showToast('Erreur : ' + (data.error || 'Échec de la suppression'), 'error');
                 btn.disabled = false;
                 btn.textContent = 'Supprimer définitivement';
             }
         } catch (error) {
             console.error('Delete error:', error);
-            showNotification('Erreur réseau lors de la suppression', 'error');
+            showToast('Erreur réseau lors de la suppression', 'error');
             btn.disabled = false;
             btn.textContent = 'Supprimer définitivement';
         }
