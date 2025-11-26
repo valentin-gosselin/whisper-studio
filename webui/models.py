@@ -258,18 +258,31 @@ class Job(Base):
     job_id: Mapped[str] = mapped_column(String(64), unique=True, nullable=False, index=True)
 
     # Job details
-    status: Mapped[str] = mapped_column(String(20), default='pending', nullable=False)  # pending, processing, completed, error
+    status: Mapped[str] = mapped_column(String(20), default='queued', nullable=False)  # queued, processing, completed, error, cancelled
     mode: Mapped[str] = mapped_column(String(20), nullable=False)  # 'srt' or 'document'
     file_count: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
     total_duration_seconds: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     filename: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     duration_seconds: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
 
+    # Job parameters (stored as JSON for flexibility)
+    input_path: Mapped[Optional[str]] = mapped_column(String(1000), nullable=True)
+    processing_mode: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)  # 'text', 'srt', 'smart_doc'
+    chunking_strategy: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)  # 'standard', 'strong_head'
+    language: Mapped[Optional[str]] = mapped_column(String(10), nullable=True)  # 'auto', 'fr', 'en', etc.
+    doc_type: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)  # 'course', 'meeting', etc.
+    use_diarization: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+
+    # Queue management
+    queue_position: Mapped[Optional[int]] = mapped_column(Integer, nullable=True, index=True)
+    estimated_wait_seconds: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+
     # Error tracking
     error_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
     # Timestamps
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+    queued_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     started_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
 

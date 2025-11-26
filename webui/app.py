@@ -6,6 +6,7 @@ import requests
 import uuid
 import threading
 import re
+import redis
 from pathlib import Path
 from flask import Flask, render_template, request, jsonify, send_file, Response, stream_with_context, redirect, url_for, flash, session
 from werkzeug.utils import secure_filename
@@ -67,6 +68,9 @@ app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('MAIL_DEFAULT_SENDER', 'norep
 Session(app)
 mail.init_app(app)
 
+# Redis connection for progress tracking (shared between Flask and Worker)
+redis_client = redis.Redis(host='redis', port=6379, db=0, decode_responses=True)
+
 # Initialize Login Manager
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -99,10 +103,7 @@ try:
 except Exception as e:
     print(f"[APP] Database initialization error: {e}")
 
-# Global progress tracker
-progress_tracker = {}
-
-# Global job results storage
+# Global job results storage (kept in memory, only used within Flask process)
 job_results = {}
 
 ALLOWED_EXTENSIONS = {'wav', 'mp3', 'm4a', 'ogg', 'flac', 'aac', 'wma', 'opus', 'mp4', 'mkv', 'avi', 'mov', 'webm'}
@@ -656,17 +657,35 @@ def get_speaker_diarization(wav_path):
         return None
 
 def update_progress(job_id, progress, message):
-    """Update progress for a job"""
-    progress_tracker[job_id] = {
+    """Update progress for a job (stored in Redis for cross-process access)"""
+    progress_data = {
         'progress': progress,
         'message': message,
         'timestamp': time.time()
     }
+    # Store in Redis with 1 hour expiration
+    redis_client.setex(f'progress:{job_id}', 3600, json.dumps(progress_data))
     print(f"[PROGRESS] {job_id}: {progress}% - {message}")
 
 def get_progress(job_id):
-    """Get current progress for a job"""
-    return progress_tracker.get(job_id, {'progress': 0, 'message': 'Initializing...', 'timestamp': time.time()})
+    """Get current progress for a job (from Redis)"""
+    data = redis_client.get(f'progress:{job_id}')
+    if data:
+        return json.loads(data)
+    return {'progress': 0, 'message': 'Initializing...', 'timestamp': time.time()}
+
+def set_job_result(job_id, result_data):
+    """Store job result in Redis (for cross-process access)"""
+    # Store in Redis with 24 hour expiration
+    redis_client.setex(f'result:{job_id}', 86400, json.dumps(result_data))
+    print(f"[RESULT] Stored result for job {job_id}")
+
+def get_job_result(job_id):
+    """Get job result from Redis"""
+    data = redis_client.get(f'result:{job_id}')
+    if data:
+        return json.loads(data)
+    return None
 
 def process_transcription_job(job_id, wav_path, original_filename, mode, chunking, language, use_diarization=False, doc_type='other', user_id=None):
     """Process transcription in background thread"""
@@ -821,14 +840,14 @@ def process_transcription_job(job_id, wav_path, original_filename, mode, chunkin
             # Create document record
             create_document_record(user_id, job_id, title, docx_path, 'document', language=language, doc_type=doc_type)
 
-            job_results[job_id] = {
+            set_job_result(job_id, {
                 'success': True,
                 'download_url': f'/download/{job_id}',
                 'download_name': output_filename,
                 'mode': 'smart_doc',
                 'has_transcript': True,
                 'transcript_url': f'/download/{job_id}_transcript'
-            }
+            })
 
         # MODE: SRT (subtitles with timestamps)
         elif mode == 'srt':
@@ -946,13 +965,13 @@ def process_transcription_job(job_id, wav_path, original_filename, mode, chunkin
             create_document_record(user_id, job_id, base_name, output_path, 'srt', language=detected_language)
 
             # Store result (use job_id for URL, original name for download)
-            job_results[job_id] = {
+            set_job_result(job_id, {
                 'success': True,
                 'download_url': f'/download/{job_id}',
                 'download_name': output_filename,
                 'mode': 'srt',
                 'language': detected_language
-            }
+            })
 
         # MODE: TEXT (default - plain transcription)
         else:
@@ -1006,12 +1025,12 @@ def process_transcription_job(job_id, wav_path, original_filename, mode, chunkin
             create_document_record(user_id, job_id, base_name, output_path, 'document', language=language)
 
             # Store result (use job_id for URL, original name for download)
-            job_results[job_id] = {
+            set_job_result(job_id, {
                 'success': True,
                 'download_url': f'/download/{job_id}',
                 'download_name': output_filename,
                 'mode': 'text'
-            }
+            })
 
     except Exception as e:
         print(f"[JOB {job_id}] Error: {e}")
@@ -1035,10 +1054,10 @@ def process_transcription_job(job_id, wav_path, original_filename, mode, chunkin
                 except:
                     pass
 
-        job_results[job_id] = {
+        set_job_result(job_id, {
             'success': False,
             'error': str(e)
-        }
+        })
 
 @app.route('/progress/<job_id>')
 def progress_stream(job_id):
@@ -1264,10 +1283,10 @@ def prepare_audio_job(job_id, input_path, original_filename, mode, chunking, lan
         # Mark job as error
         update_job_status(job_id, 'error', error_message=str(e), completed_at=datetime.utcnow())
 
-        job_results[job_id] = {
+        set_job_result(job_id, {
             'success': False,
             'error': str(e)
-        }
+        })
 
 def process_merged_files_job(job_id, file_paths, original_filenames, mode, chunking, language, use_diarization, doc_type, user_id=None):
     """Process multiple files and merge their transcriptions"""
@@ -1456,14 +1475,14 @@ def process_merged_files_job(job_id, file_paths, original_filenames, mode, chunk
             # Create document record
             create_document_record(user_id, job_id, title, docx_path, 'document', language=language, doc_type=doc_type)
 
-            job_results[job_id] = {
+            set_job_result(job_id, {
                 'success': True,
                 'download_url': f'/download/{job_id}',
                 'download_name': output_filename,
                 'mode': 'smart_doc',
                 'has_transcript': True,
                 'transcript_url': f'/download/{job_id}_transcript'
-            }
+            })
 
         else:
             # Text mode: just save merged transcript
@@ -1490,12 +1509,12 @@ def process_merged_files_job(job_id, file_paths, original_filenames, mode, chunk
             # Create document record
             create_document_record(user_id, job_id, "Transcription fusionnée", txt_path, 'document', language=language)
 
-            job_results[job_id] = {
+            set_job_result(job_id, {
                 'success': True,
                 'download_url': f'/download/{job_id}',
                 'download_name': 'merged_transcript.txt',
                 'mode': 'text'
-            }
+            })
 
     except Exception as e:
         print(f"[BATCH {job_id}] Processing error: {e}")
@@ -1506,10 +1525,10 @@ def process_merged_files_job(job_id, file_paths, original_filenames, mode, chunk
         update_job_status(job_id, 'error', error_message=str(e), completed_at=datetime.utcnow())
 
         update_progress(job_id, 0, f'Erreur: {str(e)}')
-        job_results[job_id] = {
+        set_job_result(job_id, {
             'success': False,
             'error': str(e)
-        }
+        })
 
         # Cleanup on error
         for wav_path in wav_paths:
@@ -1556,40 +1575,34 @@ def transcribe():
 
         print(f"[JOB {job_id}] File uploaded: {original_filename}")
 
-        # Create Job record in database
-        db = SessionLocal()
-        try:
-            job_record = Job(
-                user_id=current_user.id,
-                job_id=job_id,
-                status='pending',
-                mode='document' if mode in ['text', 'smart_doc'] else 'srt',
-                file_count=1,
-                filename=original_filename
-            )
-            db.add(job_record)
-            db.commit()
-            print(f"[JOB {job_id}] Job record created in database")
-        finally:
-            db.close()
+        # Add job to queue
+        from queue_manager import QueueManager
+
+        job = QueueManager.enqueue_job(
+            job_id=job_id,
+            user_id=current_user.id,
+            mode='document' if mode in ['text', 'smart_doc'] else 'srt',
+            filename=original_filename,
+            file_count=1,
+            input_path=input_path,
+            processing_mode=mode,
+            chunking_strategy=chunking,
+            language=language,
+            doc_type=doc_type,
+            use_diarization=use_diarization
+        )
+
+        print(f"[JOB {job_id}] Job enqueued at position {job.queue_position}")
 
         # Initialize progress
-        update_progress(job_id, 5, 'Fichier uploadé, préparation...')
+        update_progress(job_id, 5, 'En attente de traitement...')
 
-        # Start background processing (audio extraction + transcription)
-        thread = threading.Thread(
-            target=prepare_audio_job,
-            args=(job_id, input_path, original_filename, mode, chunking, language, use_diarization, doc_type, current_user.id),
-            daemon=True
-        )
-        thread.start()
-
-        print(f"[JOB {job_id}] Background thread started, returning job_id to client")
-
-        # Return immediately with job_id
+        # Return immediately with job_id and queue info
         return jsonify({
             'success': True,
-            'job_id': job_id
+            'job_id': job_id,
+            'queue_position': job.queue_position,
+            'estimated_wait_seconds': job.estimated_wait_seconds
         })
 
     except Exception as e:
@@ -1655,36 +1668,34 @@ def transcribe_batch():
             file_paths.append(input_path)
             print(f"[BATCH {job_id}] Saved file {idx+1}/{len(uploaded_files)}: {original_filename} -> {safe_filename}")
 
-        # Create Job record in database
-        db = SessionLocal()
-        try:
-            job_record = Job(
-                user_id=current_user.id,
-                job_id=job_id,
-                status='pending',
-                mode='document' if mode in ['text', 'smart_doc'] else 'srt',
-                file_count=len(uploaded_files),
-                filename=', '.join(original_filenames[:3]) + ('...' if len(original_filenames) > 3 else '')
-            )
-            db.add(job_record)
-            db.commit()
-            print(f"[BATCH {job_id}] Job record created in database with {len(uploaded_files)} files")
-        finally:
-            db.close()
+        # Add batch job to queue
+        from queue_manager import QueueManager
+        import json
 
-        # Start background processing
-        thread = threading.Thread(
-            target=process_merged_files_job,
-            args=(job_id, file_paths, original_filenames, mode, chunking, language, use_diarization, doc_type, current_user.id),
-            daemon=True
+        # Store file paths as JSON string
+        job = QueueManager.enqueue_job(
+            job_id=job_id,
+            user_id=current_user.id,
+            mode='document' if mode in ['text', 'smart_doc'] else 'srt',
+            filename=', '.join(original_filenames[:3]) + ('...' if len(original_filenames) > 3 else ''),
+            file_count=len(uploaded_files),
+            input_path=json.dumps(file_paths),  # Store as JSON for multiple files
+            processing_mode=mode,
+            chunking_strategy=chunking,
+            language=language,
+            doc_type=doc_type,
+            use_diarization=use_diarization
         )
-        thread.start()
 
-        print(f"[BATCH {job_id}] Background thread started for merged processing")
+        print(f"[BATCH {job_id}] Batch job enqueued at position {job.queue_position} with {len(uploaded_files)} files")
+
+        update_progress(job_id, 5, 'En attente de traitement...')
 
         return jsonify({
             'success': True,
-            'job_id': job_id
+            'job_id': job_id,
+            'queue_position': job.queue_position,
+            'estimated_wait_seconds': job.estimated_wait_seconds
         })
 
     except Exception as e:
@@ -1694,11 +1705,61 @@ def transcribe_batch():
 @app.route('/job_result/<job_id>')
 def job_result(job_id):
     """Get the result of a completed job"""
-    result = job_results.get(job_id)
+    result = get_job_result(job_id)
     if result:
         return jsonify(result)
     else:
         return jsonify({'error': 'Job not found or not completed'}), 404
+
+@app.route('/api/queue/status')
+@login_required
+def queue_status():
+    """Get global queue status"""
+    from queue_manager import QueueManager
+    status = QueueManager.get_queue_status()
+    return jsonify(status)
+
+@app.route('/api/queue/my-position')
+@login_required
+def my_queue_position():
+    """Get current user's position in queue"""
+    from queue_manager import QueueManager
+    info = QueueManager.get_user_queue_info(current_user.id)
+    if info:
+        return jsonify(info)
+    else:
+        return jsonify({'in_queue': False}), 200
+
+@app.route('/api/queue/cancel/<job_id>', methods=['POST'])
+@login_required
+def cancel_queued_job(job_id):
+    """Cancel a queued job (only if it belongs to current user)"""
+    from queue_manager import QueueManager
+
+    # Verify job belongs to user
+    db = SessionLocal()
+    try:
+        job = db.query(Job).filter(
+            Job.job_id == job_id,
+            Job.user_id == current_user.id
+        ).first()
+
+        if not job:
+            return jsonify({'error': 'Job not found or access denied'}), 404
+
+        if job.status != 'queued':
+            return jsonify({'error': 'Job is not queued (cannot cancel)'}), 400
+
+    finally:
+        db.close()
+
+    # Cancel the job
+    success = QueueManager.cancel_job(job_id)
+
+    if success:
+        return jsonify({'success': True, 'message': 'Job cancelled'})
+    else:
+        return jsonify({'error': 'Failed to cancel job'}), 500
 
 @app.route('/download/<path:file_id>')
 @login_required

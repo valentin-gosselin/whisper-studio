@@ -1442,6 +1442,45 @@
             color: rgba(255,255,255,0.9);
         }
 
+        .queue-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+            padding: 10px;
+            background: rgba(59, 130, 246, 0.15);
+            border-left: 3px solid #3b82f6;
+            border-radius: 6px;
+            font-size: 13px;
+            color: rgba(255,255,255,0.95);
+        }
+
+        .queue-info span {
+            flex: 1;
+        }
+
+        .btn-cancel {
+            background: rgba(239, 68, 68, 0.2);
+            border: 1px solid rgba(239, 68, 68, 0.4);
+            color: #fca5a5;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+
+        .btn-cancel:hover {
+            background: rgba(239, 68, 68, 0.3);
+            border-color: #ef4444;
+            color: white;
+        }
+
+        .btn-sm {
+            font-size: 12px;
+            padding: 5px 10px;
+        }
+
         .progress-bar {
             width: 100%;
             height: 8px;
@@ -2528,6 +2567,14 @@
 
                     ${globalStatus === 'processing' ? `
                         <div class="progress-container">
+                            ${files[0].queue_position && files[0].queue_position > 1 && avgProgress < 10 ? `
+                                <div class="queue-info">
+                                    <span>Position en file d'attente : ${files[0].queue_position}</span>
+                                    ${files[0].estimated_wait_seconds ? `
+                                        <span>Temps estimé : ${formatWaitTime(files[0].estimated_wait_seconds)}</span>
+                                    ` : ''}
+                                </div>
+                            ` : ''}
                             <div class="progress-info">
                                 <span>${globalMessage || 'Traitement en cours...'}</span>
                                 <span>${Math.round(avgProgress)}%</span>
@@ -2618,6 +2665,14 @@
                     </div>
                     ${fileItem.status === 'processing' ? `
                         <div class="progress-container">
+                            ${fileItem.queue_position && fileItem.queue_position > 1 && fileItem.progress < 10 ? `
+                                <div class="queue-info">
+                                    <span>Position en file d'attente : ${fileItem.queue_position}</span>
+                                    ${fileItem.estimated_wait_seconds ? `
+                                        <span>Temps estimé : ${formatWaitTime(fileItem.estimated_wait_seconds)}</span>
+                                    ` : ''}
+                                </div>
+                            ` : ''}
                             <div class="progress-info">
                                 <span>${fileItem.message || 'Traitement en cours...'}</span>
                                 <span>${Math.round(fileItem.progress)}%</span>
@@ -2714,6 +2769,37 @@
                         const data = JSON.parse(xhr.responseText);
 
                         if (data.success && data.job_id) {
+                            // Store queue info
+                            fileItem.job_id = data.job_id;
+                            fileItem.queue_position = data.queue_position;
+                            fileItem.estimated_wait_seconds = data.estimated_wait_seconds;
+
+                            // Poll queue position if in queue
+                            if (fileItem.queue_position && fileItem.queue_position > 0) {
+                                const queuePoll = setInterval(async () => {
+                                    try {
+                                        const queueRes = await fetch('/api/queue/my-position');
+                                        const queueData = await queueRes.json();
+
+                                        if (queueData.in_queue === false || !queueData.position) {
+                                            // No longer in queue, stop polling
+                                            clearInterval(queuePoll);
+                                            fileItem.queue_position = null;
+                                            fileItem.estimated_wait_seconds = null;
+                                        } else {
+                                            // Update position
+                                            fileItem.queue_position = queueData.position;
+                                            fileItem.estimated_wait_seconds = queueData.estimated_wait_seconds;
+                                        }
+                                        renderFiles();
+                                    } catch (err) {
+                                        console.error('Queue poll error:', err);
+                                    }
+                                }, 3000); // Poll every 3 seconds
+
+                                fileItem._queuePoll = queuePoll;
+                            }
+
                             // Connect to SSE for real-time progress
                             const eventSource = new EventSource(`/progress/${data.job_id}`);
 
@@ -2721,11 +2807,23 @@
                                 const progressData = JSON.parse(event.data);
                                 fileItem.progress = progressData.progress;
                                 fileItem.message = progressData.message;
+
+                                // Clear queue position when actual processing starts
+                                if (progressData.progress >= 10) {
+                                    fileItem.queue_position = null;
+                                    fileItem.estimated_wait_seconds = null;
+                                }
+
                                 renderFiles();
 
                                 // Close connection when complete
                                 if (progressData.progress >= 100) {
                                     eventSource.close();
+                                    // Stop queue polling if active
+                                    if (fileItem._queuePoll) {
+                                        clearInterval(fileItem._queuePoll);
+                                        fileItem._queuePoll = null;
+                                    }
 
                                     // Fetch job result for download info
                                     fetch(`/job_result/${data.job_id}`)
@@ -2753,6 +2851,11 @@
                             eventSource.onerror = (err) => {
                                 console.error(`[SSE] Connection error:`, err);
                                 eventSource.close();
+                                // Stop queue polling if active
+                                if (fileItem._queuePoll) {
+                                    clearInterval(fileItem._queuePoll);
+                                    fileItem._queuePoll = null;
+                                }
                                 // If we got an error but progress is 100, we're done anyway
                                 if (fileItem.progress >= 100) {
                                     fileItem.status = 'completed';
@@ -2864,6 +2967,117 @@
             return texts[status] || status;
         }
 
+        function formatWaitTime(seconds) {
+            if (!seconds || seconds <= 0) return '';
+            if (seconds < 60) return `${seconds}s`;
+            const minutes = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            if (minutes < 60) {
+                return secs > 0 ? `${minutes}m ${secs}s` : `${minutes}m`;
+            }
+            const hours = Math.floor(minutes / 60);
+            const mins = minutes % 60;
+            return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
+        }
+
+        async function cancelJob(index) {
+            const fileItem = files[index];
+            if (!fileItem.job_id) {
+                console.error('No job_id found for file');
+                return;
+            }
+
+            if (!confirm('Êtes-vous sûr de vouloir annuler ce traitement ?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/queue/cancel/${fileItem.job_id}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    // Close SSE connection if exists
+                    if (fileItem._eventSource) {
+                        fileItem._eventSource.close();
+                    }
+
+                    // Stop queue polling if active
+                    if (fileItem._queuePoll) {
+                        clearInterval(fileItem._queuePoll);
+                        fileItem._queuePoll = null;
+                    }
+
+                    // Update file status
+                    fileItem.status = 'error';
+                    fileItem.message = 'Annulé par l\'utilisateur';
+                    fileItem.queue_position = null;
+                    fileItem.estimated_wait_seconds = null;
+                    renderFiles();
+                } else {
+                    alert(data.error || 'Erreur lors de l\'annulation');
+                }
+            } catch (error) {
+                console.error('Cancel error:', error);
+                alert('Erreur lors de l\'annulation');
+            }
+        }
+
+        async function cancelMergedJob() {
+            const fileItem = files[0];
+            if (!fileItem.job_id) {
+                console.error('No job_id found for merged job');
+                return;
+            }
+
+            if (!confirm('Êtes-vous sûr de vouloir annuler ce traitement ?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/queue/cancel/${fileItem.job_id}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    // Close SSE connection if exists
+                    if (fileItem._eventSource) {
+                        fileItem._eventSource.close();
+                    }
+
+                    // Stop queue polling if active
+                    if (fileItem._queuePoll) {
+                        clearInterval(fileItem._queuePoll);
+                        fileItem._queuePoll = null;
+                    }
+
+                    // Update all files status
+                    files.forEach(f => {
+                        f.status = 'error';
+                        f.message = 'Annulé par l\'utilisateur';
+                        f.queue_position = null;
+                        f.estimated_wait_seconds = null;
+                    });
+                    renderFiles();
+                } else {
+                    alert(data.error || 'Erreur lors de l\'annulation');
+                }
+            } catch (error) {
+                console.error('Cancel error:', error);
+                alert('Erreur lors de l\'annulation');
+            }
+        }
+
         // ========== PROCESS MERGED FILES ==========
 
         async function processMergedFiles() {
@@ -2929,6 +3143,37 @@
                         const data = JSON.parse(xhr.responseText);
 
                         if (data.success && data.job_id) {
+                            // Store queue info
+                            fileItem.job_id = data.job_id;
+                            fileItem.queue_position = data.queue_position;
+                            fileItem.estimated_wait_seconds = data.estimated_wait_seconds;
+
+                            // Poll queue position if in queue
+                            if (fileItem.queue_position && fileItem.queue_position > 0) {
+                                const queuePoll = setInterval(async () => {
+                                    try {
+                                        const queueRes = await fetch('/api/queue/my-position');
+                                        const queueData = await queueRes.json();
+
+                                        if (queueData.in_queue === false || !queueData.position) {
+                                            // No longer in queue, stop polling
+                                            clearInterval(queuePoll);
+                                            fileItem.queue_position = null;
+                                            fileItem.estimated_wait_seconds = null;
+                                        } else {
+                                            // Update position
+                                            fileItem.queue_position = queueData.position;
+                                            fileItem.estimated_wait_seconds = queueData.estimated_wait_seconds;
+                                        }
+                                        renderFiles();
+                                    } catch (err) {
+                                        console.error('Queue poll error:', err);
+                                    }
+                                }, 3000); // Poll every 3 seconds
+
+                                fileItem._queuePoll = queuePoll;
+                            }
+
                             // Connect to SSE for real-time progress
                             const eventSource = new EventSource(`/progress/${data.job_id}`);
 
@@ -2947,6 +3192,11 @@
                                 // Close connection when complete
                                 if (progressData.progress >= 100) {
                                     eventSource.close();
+                                    // Stop queue polling if active
+                                    if (fileItem._queuePoll) {
+                                        clearInterval(fileItem._queuePoll);
+                                        fileItem._queuePoll = null;
+                                    }
 
                                     // Fetch job result for download info
                                     fetch(`/job_result/${data.job_id}`)

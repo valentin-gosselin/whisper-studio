@@ -8,6 +8,9 @@ SQLAlchemy==2.0.36
 psycopg2-binary==2.9.10
 alembic==1.14.0
 
+# Redis (for cross-process progress tracking)
+redis==5.0.1
+
 # Authentication & Sessions
 Flask-Login==0.6.3
 Flask-Session==0.8.0

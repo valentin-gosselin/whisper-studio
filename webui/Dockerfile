@@ -44,7 +44,10 @@ COPY migrate_user_folders.py .
 COPY migrate_inactivity.py .
 COPY rgpd_templates.py .
 COPY migrate_rgpd.py .
+COPY migrate_queue.py .
 COPY update_legal_texts.py .
+COPY queue_manager.py .
+COPY worker.py .
 COPY templates ./templates
 COPY static ./static
 COPY email_templates ./email_templates
@@ -83,13 +86,22 @@ python migrate_rgpd.py\n\
 # Run inactivity migration (add deletion_notified_at column)\n\
 python migrate_inactivity.py\n\
 \n\
+# Run queue migration (add queue fields)\n\
+python migrate_queue.py\n\
+\n\
 # Update legal texts from templates\n\
 python update_legal_texts.py\n\
 \n\
 # Start cron\n\
 service cron start\n\
 \n\
-# Start application\n\
+# Start queue worker in background\n\
+echo "Starting queue worker..."\n\
+python worker.py >> /var/log/worker.log 2>&1 &\n\
+WORKER_PID=$!\n\
+echo "Worker started with PID: $WORKER_PID"\n\
+\n\
+# Start Flask application\n\
 python app.py' > /start.sh && chmod +x /start.sh
 
 # Run the startup script
