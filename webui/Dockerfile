@@ -45,6 +45,8 @@ COPY migrate_inactivity.py .
 COPY rgpd_templates.py .
 COPY migrate_rgpd.py .
 COPY migrate_queue.py .
+COPY migrate_error_tracking.py .
+COPY error_tracker.py .
 COPY update_legal_texts.py .
 COPY queue_manager.py .
 COPY worker.py .
@@ -88,6 +90,9 @@ python migrate_inactivity.py\n\
 \n\
 # Run queue migration (add queue fields)\n\
 python migrate_queue.py\n\
+\n\
+# Run error tracking migration (add error_logs table)\n\
+python migrate_error_tracking.py\n\
 \n\
 # Update legal texts from templates\n\
 python update_legal_texts.py\n\

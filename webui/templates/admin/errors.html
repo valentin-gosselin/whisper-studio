@@ -1,0 +1,493 @@
+{% extends "admin/base.html" %}
+{% block title %}Suivi des Erreurs{% endblock %}
+
+{% block extra_css %}
+<style>
+    .errors-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+        gap: 15px;
+    }
+
+    .errors-title {
+        color: white;
+        font-size: 24px;
+        font-weight: 600;
+    }
+
+    body.neon-night .errors-title {
+        color: #00ffff;
+    }
+
+    .errors-stats {
+        display: flex;
+        gap: 20px;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+    }
+
+    .error-stat-card {
+        background: rgba(255,255,255,0.1);
+        backdrop-filter: blur(10px);
+        border-radius: 10px;
+        padding: 15px 20px;
+        min-width: 150px;
+    }
+
+    body.neon-night .error-stat-card {
+        background: rgba(0,255,255,0.05);
+        border: 1px solid rgba(0,255,255,0.2);
+    }
+
+    .error-stat-value {
+        font-size: 28px;
+        font-weight: 700;
+        color: white;
+    }
+
+    body.neon-night .error-stat-value {
+        color: #00ffff;
+    }
+
+    .error-stat-label {
+        font-size: 13px;
+        color: rgba(255,255,255,0.7);
+        margin-top: 5px;
+    }
+
+    body.neon-night .error-stat-label {
+        color: rgba(0,255,255,0.7);
+    }
+
+    .errors-filters {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        flex-wrap: wrap;
+        margin-bottom: 20px;
+    }
+
+    .filter-group {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+    }
+
+    .filter-label {
+        font-size: 12px;
+        color: rgba(255,255,255,0.7);
+        font-weight: 500;
+    }
+
+    body.neon-night .filter-label {
+        color: rgba(0,255,255,0.7);
+    }
+
+    .filter-select {
+        padding: 8px 12px;
+        border-radius: 6px;
+        border: 1px solid rgba(255,255,255,0.2);
+        background: rgba(255,255,255,0.1);
+        color: white;
+        font-size: 14px;
+        cursor: pointer;
+    }
+
+    body.neon-night .filter-select {
+        border-color: rgba(0,255,255,0.3);
+        background: rgba(0,255,255,0.1);
+        color: #00ffff;
+    }
+
+    .filter-select option {
+        background: #2d3748;
+        color: white;
+    }
+
+    .errors-table {
+        width: 100%;
+        border-collapse: collapse;
+        background: rgba(255,255,255,0.05);
+        border-radius: 10px;
+        overflow: hidden;
+    }
+
+    body.neon-night .errors-table {
+        background: rgba(0,255,255,0.03);
+    }
+
+    .errors-table th,
+    .errors-table td {
+        padding: 12px;
+        text-align: left;
+        border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+
+    body.neon-night .errors-table th,
+    body.neon-night .errors-table td {
+        border-bottom-color: rgba(0,255,255,0.1);
+    }
+
+    .errors-table th {
+        background: rgba(255,255,255,0.1);
+        font-weight: 600;
+        color: white;
+        font-size: 13px;
+    }
+
+    body.neon-night .errors-table th {
+        background: rgba(0,255,255,0.1);
+        color: #00ffff;
+    }
+
+    .errors-table td {
+        color: white;
+        font-size: 14px;
+    }
+
+    body.neon-night .errors-table td {
+        color: #00ffff;
+    }
+
+    .errors-table tr:last-child td {
+        border-bottom: none;
+    }
+
+    .errors-table tr:hover {
+        background: rgba(255,255,255,0.05);
+    }
+
+    body.neon-night .errors-table tr:hover {
+        background: rgba(0,255,255,0.05);
+    }
+
+    .severity-badge {
+        padding: 4px 10px;
+        border-radius: 4px;
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+
+    .severity-critical {
+        background: #e74c3c;
+        color: white;
+    }
+
+    .severity-error {
+        background: #f39c12;
+        color: white;
+    }
+
+    .severity-warning {
+        background: #f1c40f;
+        color: #2c3e50;
+    }
+
+    .status-badge {
+        padding: 4px 10px;
+        border-radius: 4px;
+        font-size: 11px;
+        font-weight: 600;
+    }
+
+    .status-resolved {
+        background: #27ae60;
+        color: white;
+    }
+
+    .status-unresolved {
+        background: #95a5a6;
+        color: white;
+    }
+
+    .error-type {
+        font-family: 'Courier New', monospace;
+        font-size: 12px;
+        color: #e74c3c;
+    }
+
+    body.neon-night .error-type {
+        color: #ff6b6b;
+    }
+
+    .error-message {
+        max-width: 400px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-size: 13px;
+    }
+
+    .resolve-btn {
+        padding: 6px 12px;
+        background: #27ae60;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 12px;
+        transition: all 0.2s ease;
+    }
+
+    .resolve-btn:hover {
+        background: #229954;
+    }
+
+    .resolve-btn:disabled {
+        background: #95a5a6;
+        cursor: not-allowed;
+    }
+
+    .empty-errors {
+        text-align: center;
+        padding: 60px 20px;
+        color: rgba(255,255,255,0.5);
+        font-size: 16px;
+    }
+
+    body.neon-night .empty-errors {
+        color: rgba(0,255,255,0.5);
+    }
+
+    .error-details-modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0,0,0,0.8);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 10000;
+        padding: 20px;
+    }
+
+    .error-details-content {
+        background: #2c3e50;
+        border-radius: 10px;
+        padding: 30px;
+        max-width: 800px;
+        max-height: 80vh;
+        overflow-y: auto;
+        position: relative;
+    }
+
+    body.neon-night .error-details-content {
+        background: rgba(0,20,40,0.95);
+        border: 1px solid rgba(0,255,255,0.3);
+    }
+
+    .error-details-close {
+        position: absolute;
+        top: 15px;
+        right: 15px;
+        background: none;
+        border: none;
+        font-size: 24px;
+        color: white;
+        cursor: pointer;
+    }
+
+    .error-traceback {
+        background: rgba(0,0,0,0.3);
+        border-radius: 6px;
+        padding: 15px;
+        font-family: 'Courier New', monospace;
+        font-size: 12px;
+        color: #ff6b6b;
+        white-space: pre-wrap;
+        word-break: break-all;
+        max-height: 400px;
+        overflow-y: auto;
+        margin-top: 15px;
+    }
+
+    body.neon-night .error-traceback {
+        border: 1px solid rgba(0,255,255,0.2);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="errors-header">
+    <h2 class="errors-title">Suivi des Erreurs</h2>
+</div>
+
+<!-- Statistics -->
+<div class="errors-stats">
+    <div class="error-stat-card">
+        <div class="error-stat-value">{{ total_errors }}</div>
+        <div class="error-stat-label">Total erreurs</div>
+    </div>
+    <div class="error-stat-card">
+        <div class="error-stat-value">{{ unresolved_errors }}</div>
+        <div class="error-stat-label">Non résolues</div>
+    </div>
+    <div class="error-stat-card">
+        <div class="error-stat-value">{{ critical_errors }}</div>
+        <div class="error-stat-label">Critiques</div>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="errors-filters">
+    <div class="filter-group">
+        <label class="filter-label">Sévérité</label>
+        <select class="filter-select" id="severityFilter" onchange="updateFilters()">
+            <option value="all" {% if severity == 'all' %}selected{% endif %}>Toutes</option>
+            <option value="critical" {% if severity == 'critical' %}selected{% endif %}>Critiques</option>
+            <option value="error" {% if severity == 'error' %}selected{% endif %}>Erreurs</option>
+            <option value="warning" {% if severity == 'warning' %}selected{% endif %}>Avertissements</option>
+        </select>
+    </div>
+
+    <div class="filter-group">
+        <label class="filter-label">Statut</label>
+        <select class="filter-select" id="statusFilter" onchange="updateFilters()">
+            <option value="all" {% if status == 'all' %}selected{% endif %}>Tous</option>
+            <option value="unresolved" {% if status == 'unresolved' %}selected{% endif %}>Non résolues</option>
+            <option value="resolved" {% if status == 'resolved' %}selected{% endif %}>Résolues</option>
+        </select>
+    </div>
+
+    <div class="filter-group">
+        <label class="filter-label">Limite</label>
+        <select class="filter-select" id="limitFilter" onchange="updateFilters()">
+            <option value="50" {% if limit == 50 %}selected{% endif %}>50</option>
+            <option value="100" {% if limit == 100 %}selected{% endif %}>100</option>
+            <option value="200" {% if limit == 200 %}selected{% endif %}>200</option>
+            <option value="500" {% if limit == 500 %}selected{% endif %}>500</option>
+        </select>
+    </div>
+</div>
+
+<!-- Errors Table -->
+{% if errors %}
+<table class="errors-table">
+    <thead>
+        <tr>
+            <th>Date</th>
+            <th>Sévérité</th>
+            <th>Type</th>
+            <th>Message</th>
+            <th>Endpoint</th>
+            <th>Utilisateur</th>
+            <th>Statut</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for error in errors %}
+        <tr>
+            <td>{{ error.created_at.strftime('%d/%m/%Y %H:%M') }}</td>
+            <td>
+                <span class="severity-badge severity-{{ error.severity }}">{{ error.severity }}</span>
+            </td>
+            <td class="error-type">{{ error.error_type }}</td>
+            <td class="error-message" title="{{ error.error_message }}">{{ error.error_message }}</td>
+            <td>{{ error.endpoint or '-' }}</td>
+            <td>{{ error.user.email if error.user else '-' }}</td>
+            <td>
+                {% if error.resolved %}
+                    <span class="status-badge status-resolved">Résolue</span>
+                {% else %}
+                    <span class="status-badge status-unresolved">Non résolue</span>
+                {% endif %}
+            </td>
+            <td>
+                <button class="resolve-btn" onclick="showErrorDetails({{ error.id }}, '{{ error.error_type }}', `{{ error.error_message }}`, `{{ error.traceback or '' }}`, {{ 'true' if error.resolved else 'false' }})" {% if error.resolved %}disabled{% endif %}>
+                    {% if error.resolved %}Résolue{% else %}Voir / Résoudre{% endif %}
+                </button>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<div class="empty-errors">
+    Aucune erreur enregistrée
+</div>
+{% endif %}
+
+<!-- Error Details Modal -->
+<div id="errorDetailsModal" class="error-details-modal">
+    <div class="error-details-content">
+        <button class="error-details-close" onclick="closeErrorDetails()">&times;</button>
+        <h3 id="errorDetailsType" style="color: white; margin-bottom: 10px;"></h3>
+        <p id="errorDetailsMessage" style="color: rgba(255,255,255,0.8); margin-bottom: 15px;"></p>
+        <div id="errorDetailsTraceback" class="error-traceback"></div>
+        <div id="errorDetailsActions" style="margin-top: 20px;">
+            <button class="resolve-btn" onclick="resolveError()">Marquer comme résolue</button>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentErrorId = null;
+
+function updateFilters() {
+    const severity = document.getElementById('severityFilter').value;
+    const status = document.getElementById('statusFilter').value;
+    const limit = document.getElementById('limitFilter').value;
+
+    window.location.href = `/admin/errors?severity=${severity}&status=${status}&limit=${limit}`;
+}
+
+function showErrorDetails(errorId, errorType, errorMessage, traceback, isResolved) {
+    currentErrorId = errorId;
+    document.getElementById('errorDetailsType').textContent = errorType;
+    document.getElementById('errorDetailsMessage').textContent = errorMessage;
+    document.getElementById('errorDetailsTraceback').textContent = traceback || 'Pas de traceback disponible';
+
+    if (isResolved) {
+        document.getElementById('errorDetailsActions').innerHTML = '<p style="color: #27ae60;">Cette erreur a été marquée comme résolue</p>';
+    } else {
+        document.getElementById('errorDetailsActions').innerHTML = '<button class="resolve-btn" onclick="resolveError()">Marquer comme résolue</button>';
+    }
+
+    document.getElementById('errorDetailsModal').style.display = 'flex';
+}
+
+function closeErrorDetails() {
+    document.getElementById('errorDetailsModal').style.display = 'none';
+    currentErrorId = null;
+}
+
+async function resolveError() {
+    if (!currentErrorId) return;
+
+    try {
+        const response = await fetch(`/admin/errors/${currentErrorId}/resolve`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ notes: '' })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            closeErrorDetails();
+            location.reload();
+        } else {
+            alert('Erreur: ' + data.error);
+        }
+    } catch (error) {
+        alert('Erreur lors de la résolution: ' + error);
+    }
+}
+
+// Close modal on click outside
+document.getElementById('errorDetailsModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeErrorDetails();
+    }
+});
+</script>
+{% endblock %}

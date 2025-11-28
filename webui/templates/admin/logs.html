@@ -1,0 +1,215 @@
+{% extends "admin/base.html" %}
+{% block title %}Logs Système{% endblock %}
+
+{% block extra_css %}
+<style>
+    .logs-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+        gap: 15px;
+    }
+
+    .logs-title {
+        color: white;
+        font-size: 24px;
+        font-weight: 600;
+    }
+
+    body.neon-night .logs-title {
+        color: #00ffff;
+    }
+
+    .logs-filters {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+
+    .filter-group {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+    }
+
+    .filter-label {
+        font-size: 12px;
+        color: rgba(255,255,255,0.7);
+        font-weight: 500;
+    }
+
+    body.neon-night .filter-label {
+        color: rgba(0,255,255,0.7);
+    }
+
+    .filter-select {
+        padding: 8px 12px;
+        border-radius: 6px;
+        border: 1px solid rgba(255,255,255,0.2);
+        background: rgba(255,255,255,0.1);
+        color: white;
+        font-size: 14px;
+        cursor: pointer;
+    }
+
+    body.neon-night .filter-select {
+        border-color: rgba(0,255,255,0.3);
+        background: rgba(0,255,255,0.1);
+        color: #00ffff;
+    }
+
+    .filter-select option {
+        background: #2d3748;
+        color: white;
+    }
+
+    .logs-container {
+        background: rgba(0,0,0,0.3);
+        border-radius: 10px;
+        padding: 20px;
+        font-family: 'Courier New', monospace;
+        font-size: 13px;
+        line-height: 1.6;
+        overflow-x: auto;
+        max-height: 600px;
+        overflow-y: auto;
+    }
+
+    body.neon-night .logs-container {
+        background: rgba(0,0,0,0.5);
+        border: 1px solid rgba(0,255,255,0.2);
+    }
+
+    .log-line {
+        padding: 4px 0;
+        color: rgba(255,255,255,0.9);
+        white-space: pre-wrap;
+        word-break: break-all;
+    }
+
+    body.neon-night .log-line {
+        color: rgba(0,255,255,0.8);
+    }
+
+    .log-line.error {
+        color: #ff6b6b;
+        font-weight: 600;
+    }
+
+    body.neon-night .log-line.error {
+        color: #ff4757;
+    }
+
+    .log-line.warning {
+        color: #ffa502;
+    }
+
+    body.neon-night .log-line.warning {
+        color: #ffc107;
+    }
+
+    .log-line.info {
+        color: #48dbfb;
+    }
+
+    body.neon-night .log-line.info {
+        color: #00ffff;
+    }
+
+    .empty-logs {
+        text-align: center;
+        padding: 40px;
+        color: rgba(255,255,255,0.5);
+        font-style: italic;
+    }
+
+    body.neon-night .empty-logs {
+        color: rgba(0,255,255,0.5);
+    }
+
+    .refresh-btn {
+        padding: 8px 16px;
+        background: rgba(255,255,255,0.2);
+        color: white;
+        border: 1px solid rgba(255,255,255,0.3);
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: all 0.2s ease;
+    }
+
+    .refresh-btn:hover {
+        background: rgba(255,255,255,0.3);
+    }
+
+    body.neon-night .refresh-btn {
+        background: rgba(0,255,255,0.15);
+        border-color: rgba(0,255,255,0.3);
+        color: #00ffff;
+    }
+
+    body.neon-night .refresh-btn:hover {
+        background: rgba(0,255,255,0.25);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="logs-header">
+    <h2 class="logs-title">Logs Système</h2>
+    <button class="refresh-btn" onclick="location.reload()">Rafraîchir</button>
+</div>
+
+<div class="logs-filters">
+    <div class="filter-group">
+        <label class="filter-label">Type de logs</label>
+        <select class="filter-select" id="logType" onchange="updateFilters()">
+            <option value="worker" {% if log_type == 'worker' %}selected{% endif %}>Worker (Jobs background)</option>
+            <option value="flask" {% if log_type == 'flask' %}selected{% endif %}>Cron (Nettoyage automatique)</option>
+        </select>
+    </div>
+
+    <div class="filter-group">
+        <label class="filter-label">Niveau</label>
+        <select class="filter-select" id="logLevel" onchange="updateFilters()">
+            <option value="all" {% if level == 'all' %}selected{% endif %}>Tous</option>
+            <option value="error" {% if level == 'error' %}selected{% endif %}>Erreurs</option>
+            <option value="warning" {% if level == 'warning' %}selected{% endif %}>Avertissements</option>
+            <option value="info" {% if level == 'info' %}selected{% endif %}>Info</option>
+        </select>
+    </div>
+
+    <div class="filter-group">
+        <label class="filter-label">Nombre de lignes</label>
+        <select class="filter-select" id="logLines" onchange="updateFilters()">
+            <option value="50" {% if lines == 50 %}selected{% endif %}>50</option>
+            <option value="100" {% if lines == 100 %}selected{% endif %}>100</option>
+            <option value="200" {% if lines == 200 %}selected{% endif %}>200</option>
+            <option value="500" {% if lines == 500 %}selected{% endif %}>500</option>
+        </select>
+    </div>
+</div>
+
+<div class="logs-container">
+    {% if logs and logs[0] and logs[0] != '' %}
+        {% for log in logs %}
+            <div class="log-line {% if 'ERROR' in log.upper() or 'Exception' in log or 'FAILED' in log.upper() %}error{% elif 'WARNING' in log.upper() or 'WARN' in log.upper() %}warning{% elif 'INFO' in log.upper() or '[' in log %}info{% endif %}">{{ log }}</div>
+        {% endfor %}
+    {% else %}
+        <div class="empty-logs">Aucun log disponible</div>
+    {% endif %}
+</div>
+
+<script>
+function updateFilters() {
+    const type = document.getElementById('logType').value;
+    const level = document.getElementById('logLevel').value;
+    const lines = document.getElementById('logLines').value;
+
+    window.location.href = `/admin/logs?type=${type}&level=${level}&lines=${lines}`;
+}
+</script>
+{% endblock %}

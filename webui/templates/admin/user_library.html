@@ -1,0 +1,276 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Bibliothèque de {{ user.display_name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Breadcrumb uses default nav-link styling */
+    .breadcrumb {
+        margin-bottom: 20px;
+        font-size: 14px;
+    }
+
+    .breadcrumb a {
+        text-decoration: none;
+    }
+
+    .breadcrumb a:hover {
+        text-decoration: underline;
+    }
+
+    /* Filters grid */
+    .filters-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+        margin-bottom: 20px;
+    }
+
+    /* Table uses theme styles with small adjustments */
+    .library-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 15px;
+    }
+
+    .library-table th {
+        padding: 12px;
+        text-align: left;
+        font-weight: 600;
+        font-size: 13px;
+    }
+
+    .library-table td {
+        padding: 12px;
+        font-size: 14px;
+    }
+
+    body:not(.neon-night) .library-table {
+        background: rgba(255,255,255,0.05);
+        border-radius: 10px;
+        overflow: hidden;
+    }
+
+    body:not(.neon-night) .library-table th {
+        background: rgba(255,255,255,0.1);
+        color: white;
+    }
+
+    body:not(.neon-night) .library-table td {
+        border-bottom: 1px solid rgba(255,255,255,0.05);
+        color: white;
+    }
+
+    body.neon-night .library-table {
+        background: rgba(0,255,255,0.02);
+        border-radius: 10px;
+        overflow: hidden;
+    }
+
+    body.neon-night .library-table th {
+        background: rgba(0,255,255,0.1);
+        color: #00ffff;
+    }
+
+    body.neon-night .library-table td {
+        border-bottom: 1px solid rgba(0,255,255,0.05);
+        color: #00ffff;
+    }
+
+    /* Small buttons in table */
+    .btn-sm {
+        padding: 6px 12px;
+        font-size: 12px;
+        margin-right: 5px;
+        display: inline-block;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="breadcrumb">
+    <a href="{{ url_for('admin_users') }}">← Administration</a> /
+    <a href="{{ url_for('admin_users') }}">Utilisateurs</a> /
+    {{ user.display_name }}
+</div>
+
+<h2>Bibliothèque de {{ user.display_name }}</h2>
+
+<!-- Storage info using storage-banner class -->
+<div class="storage-banner" style="margin-bottom: 20px;">
+    <div class="storage-label">Espace utilisé :</div>
+    <div class="storage-value">
+        {% if total_size >= 1024 * 1024 * 1024 %}
+            {{ (total_size / 1024 / 1024 / 1024) | round(2) }} Go
+        {% elif total_size >= 1024 * 1024 %}
+            {{ (total_size / 1024 / 1024) | round(2) }} Mo
+        {% elif total_size >= 1024 %}
+            {{ (total_size / 1024) | round(2) }} Ko
+        {% else %}
+            {{ total_size }} octets
+        {% endif %}
+        /
+        {% if user.storage_limit_bytes >= 1024 * 1024 * 1024 %}
+            {{ (user.storage_limit_bytes / 1024 / 1024 / 1024) | round(2) }} Go
+        {% else %}
+            {{ (user.storage_limit_bytes / 1024 / 1024) | round(0) | int }} Mo
+        {% endif %}
+    </div>
+    <div class="storage-help-text">{{ documents | length }} document{{ 's' if documents | length > 1 else '' }}</div>
+</div>
+
+<!-- Filters using library-filters class -->
+<form method="get" class="library-filters">
+    <div class="filters-container">
+        <div>
+            <input type="text" name="search" value="{{ search }}" placeholder="Rechercher..." class="filter-input">
+        </div>
+        <div>
+            <select name="mode" class="filter-select">
+                <option value="">Tous les modes</option>
+                {% for mode in modes %}
+                <option value="{{ mode }}" {% if mode == mode_filter %}selected{% endif %}>{{ mode }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <select name="doc_type" class="filter-select">
+                <option value="">Tous les types</option>
+                {% for dt in doc_types %}
+                <option value="{{ dt }}" {% if dt == doc_type_filter %}selected{% endif %}>{{ dt }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <select name="language" class="filter-select">
+                <option value="">Toutes les langues</option>
+                {% for lang in languages %}
+                <option value="{{ lang }}" {% if lang == language_filter %}selected{% endif %}>{{ lang }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <select name="sort" class="filter-select">
+                <option value="date_desc" {% if sort_by == 'date_desc' %}selected{% endif %}>Plus récent</option>
+                <option value="date_asc" {% if sort_by == 'date_asc' %}selected{% endif %}>Plus ancien</option>
+                <option value="title_asc" {% if sort_by == 'title_asc' %}selected{% endif %}>Titre (A-Z)</option>
+                <option value="title_desc" {% if sort_by == 'title_desc' %}selected{% endif %}>Titre (Z-A)</option>
+                <option value="size_asc" {% if sort_by == 'size_asc' %}selected{% endif %}>Plus petit</option>
+                <option value="size_desc" {% if sort_by == 'size_desc' %}selected{% endif %}>Plus grand</option>
+            </select>
+        </div>
+        <div>
+            <button type="submit" class="btn btn-purple" style="width: 100%; margin-top: 0;">Filtrer</button>
+        </div>
+    </div>
+</form>
+
+<!-- Documents table -->
+{% if documents %}
+<table class="library-table">
+    <thead>
+        <tr>
+            <th>Titre</th>
+            <th>Type</th>
+            <th>Mode</th>
+            <th>Langue</th>
+            <th>Taille</th>
+            <th>Date</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for doc in documents %}
+        <tr>
+            <td>{{ doc.title }}</td>
+            <td>{{ doc.document_type or 'N/A' }}</td>
+            <td>
+                {% if doc.mode == 'smart_doc' %}
+                    <span class="badge badge-smart_doc">{{ doc.mode }}</span>
+                {% elif doc.mode == 'srt' %}
+                    <span class="badge badge-srt">{{ doc.mode }}</span>
+                {% else %}
+                    <span class="badge badge-document">{{ doc.mode }}</span>
+                {% endif %}
+            </td>
+            <td>{{ doc.language or 'N/A' }}</td>
+            <td>
+                {% if doc.file_size_bytes >= 1024 * 1024 %}
+                    {{ (doc.file_size_bytes / 1024 / 1024) | round(1) }} Mo
+                {% elif doc.file_size_bytes >= 1024 %}
+                    {{ (doc.file_size_bytes / 1024) | round(1) }} Ko
+                {% else %}
+                    {{ doc.file_size_bytes }} octets
+                {% endif %}
+            </td>
+            <td>{{ doc.created_at.strftime('%d/%m/%Y %H:%M') }}</td>
+            <td>
+                <button onclick="downloadDocument({{ doc.id }})" class="btn btn-secondary btn-sm">
+                    Télécharger
+                </button>
+                <button onclick="deleteDocument({{ doc.id }}, '{{ doc.title }}')" class="btn btn-danger btn-sm">
+                    Supprimer
+                </button>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<div class="empty-state">
+    <p style="font-size: 18px; margin-bottom: 10px;">📂</p>
+    <p>Aucun document trouvé</p>
+    {% if search or doc_type_filter or language_filter or mode_filter %}
+    <p style="margin-top: 10px;"><a href="{{ url_for('admin_user_library', user_id=user.id) }}" style="text-decoration: underline;">Réinitialiser les filtres</a></p>
+    {% endif %}
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    async function downloadDocument(docId) {
+        try {
+            // Get download link
+            const response = await fetch(`/api/documents/${docId}/download-link`);
+            const data = await response.json();
+
+            if (data.success) {
+                window.location.href = data.download_url;
+            } else {
+                alert('Erreur: ' + (data.error || 'Impossible de générer le lien de téléchargement'));
+            }
+        } catch (error) {
+            console.error('Download error:', error);
+            alert('Erreur lors du téléchargement');
+        }
+    }
+
+    async function deleteDocument(docId, title) {
+        if (!confirm(`Voulez-vous vraiment supprimer le document "${title}" ?\n\nCette action est irréversible.`)) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`/admin/users/{{ user.id }}/library/${docId}/delete`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                alert('Document supprimé avec succès');
+                window.location.reload();
+            } else {
+                alert('Erreur: ' + (data.error || 'Impossible de supprimer le document'));
+            }
+        } catch (error) {
+            console.error('Delete error:', error);
+            alert('Erreur lors de la suppression');
+        }
+    }
+</script>
+{% endblock %}

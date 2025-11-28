@@ -30,3 +30,4 @@ qrcode[pil]==8.0
 
 # Security
 bcrypt==4.2.1
+psutil==5.9.6

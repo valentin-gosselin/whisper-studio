@@ -369,3 +369,41 @@ class RgpdSettings(Base):
             db.add(settings)
             db.commit()
         return settings
+
+
+class ErrorLog(Base):
+    """Error tracking model for monitoring"""
+    __tablename__ = "error_logs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+
+    # Error details
+    error_type: Mapped[str] = mapped_column(String(100), nullable=False, index=True)  # Exception class name
+    error_message: Mapped[str] = mapped_column(Text, nullable=False)
+    traceback: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
+    # Context
+    endpoint: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)  # URL endpoint
+    method: Mapped[Optional[str]] = mapped_column(String(10), nullable=True)  # GET, POST, etc.
+    user_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey('users.id'), nullable=True)
+    job_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey('jobs.id'), nullable=True)
+
+    # Severity level: 'critical', 'error', 'warning'
+    severity: Mapped[str] = mapped_column(String(20), default='error', nullable=False, index=True)
+
+    # Resolution status
+    resolved: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    resolved_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    resolved_by_user_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey('users.id'), nullable=True)
+    notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)  # Admin notes
+
+    # Timestamp
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+
+    # Relationships
+    user: Mapped[Optional["User"]] = relationship("User", foreign_keys=[user_id])
+    job: Mapped[Optional["Job"]] = relationship("Job", foreign_keys=[job_id])
+    resolved_by: Mapped[Optional["User"]] = relationship("User", foreign_keys=[resolved_by_user_id])
+
+    def __repr__(self):
+        return f"<ErrorLog {self.error_type} at {self.created_at}>"

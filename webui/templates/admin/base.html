@@ -193,22 +193,31 @@
             font-size: 28px;
             font-weight: 700;
             margin-bottom: 4px;
+            color: white;
         }
 
         .stat-label {
             font-size: 13px;
             opacity: 0.9;
             margin-bottom: 4px;
+            color: white;
         }
 
         .stat-detail {
             font-size: 11px;
             opacity: 0.7;
+            color: white;
         }
 
         body.neon-night .stat-card {
             background: rgba(0,255,255,0.1);
             border: 1px solid rgba(0,255,255,0.2);
+        }
+
+        body.neon-night .stat-value,
+        body.neon-night .stat-label,
+        body.neon-night .stat-detail {
+            color: #00ffff;
         }
 
         /* Main Content */
@@ -304,6 +313,121 @@
         .badge-warning {
             background: #f39c12;
             color: white;
+        }
+
+        .badge-info {
+            background: #3498db;
+            color: white;
+        }
+
+        .badge-danger {
+            background: #e74c3c;
+            color: white;
+        }
+
+        /* Section Titles */
+        .section-title {
+            color: white;
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+
+        body.neon-night .section-title {
+            color: #00ffff;
+        }
+
+        .subsection-title {
+            color: white;
+            font-size: 16px;
+            font-weight: 600;
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+
+        body.neon-night .subsection-title {
+            color: #00ffff;
+        }
+
+        /* Chart Cards */
+        .chart-card {
+            background: rgba(255,255,255,0.15);
+            backdrop-filter: blur(10px);
+            border-radius: 10px;
+            padding: 20px;
+        }
+
+        .chart-card h3 {
+            color: white;
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+
+        body.neon-night .chart-card {
+            background: rgba(0,255,255,0.05);
+            border: 1px solid rgba(0,255,255,0.2);
+        }
+
+        body.neon-night .chart-card h3 {
+            color: #00ffff;
+        }
+
+        /* Job Items */
+        .job-item {
+            background: rgba(255,255,255,0.15);
+            backdrop-filter: blur(10px);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+
+        body.neon-night .job-item {
+            background: rgba(0,255,255,0.05);
+            border: 1px solid rgba(0,255,255,0.2);
+        }
+
+        /* Dashboard Tables */
+        .dashboard-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .dashboard-table th,
+        .dashboard-table td {
+            padding: 12px;
+            text-align: left;
+            color: white;
+        }
+
+        .dashboard-table th {
+            background: rgba(255,255,255,0.1);
+            font-weight: 600;
+            font-size: 13px;
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .dashboard-table td {
+            font-size: 14px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .dashboard-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        body.neon-night .dashboard-table th,
+        body.neon-night .dashboard-table td {
+            color: #00ffff;
+        }
+
+        body.neon-night .dashboard-table th {
+            background: rgba(0,255,255,0.1);
+            border-bottom-color: rgba(0,255,255,0.2);
+        }
+
+        body.neon-night .dashboard-table td {
+            border-bottom-color: rgba(0,255,255,0.1);
         }
 
         /* Button Styles */
@@ -518,8 +642,25 @@
 
         {% block extra_css %}{% endblock %}
     </style>
+
+    <script>
+        // Load theme IMMEDIATELY before body renders to avoid flash
+        (function() {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            if (savedTheme === 'dark') {
+                // Will be applied to body when it loads
+                window.__darkMode = true;
+            }
+        })();
+    </script>
 </head>
 <body>
+    <script>
+        // Apply theme to body as soon as it exists
+        if (window.__darkMode) {
+            document.body.classList.add('neon-night');
+        }
+    </script>
     <div class="admin-container">
         <!-- Header -->
         <div class="admin-header">
@@ -536,6 +677,7 @@
             <a href="/admin/users" class="nav-item {% if '/users' in request.path %}active{% endif %}">Utilisateurs</a>
             <a href="/admin/invitations" class="nav-item {% if '/invitations' in request.path %}active{% endif %}">Invitations</a>
             <a href="/admin/jobs" class="nav-item {% if '/jobs' in request.path %}active{% endif %}">Transcriptions</a>
+            <a href="/admin/monitoring" class="nav-item {% if '/monitoring' in request.path or '/logs' in request.path or '/errors' in request.path %}active{% endif %}">Monitoring</a>
             <a href="/admin/legal" class="nav-item {% if '/legal' in request.path %}active{% endif %}">Textes légaux</a>
             <a href="/admin/registry" class="nav-item {% if '/registry' in request.path %}active{% endif %}">Registre RGPD</a>
             <a href="/admin/settings" class="nav-item {% if '/settings' in request.path %}active{% endif %}">Paramètres</a>
@@ -584,13 +726,6 @@
     </div>
 
     <script>
-        // Load global theme from localStorage (controlled from profile page)
-        const savedTheme = localStorage.getItem('theme') || 'light';
-
-        if (savedTheme === 'dark') {
-            document.body.classList.add('neon-night');
-        }
-
         // Toast Notification System
         function showToast(message, type = 'info') {
             const container = document.getElementById('toastContainer');

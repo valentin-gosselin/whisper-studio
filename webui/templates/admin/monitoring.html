@@ -1,0 +1,707 @@
+{% extends "admin/base.html" %}
+{% block title %}Monitoring{% endblock %}
+
+{% block extra_css %}
+<style>
+    .monitoring-tabs {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 20px;
+        border-bottom: 2px solid rgba(255,255,255,0.1);
+    }
+
+    body.neon-night .monitoring-tabs {
+        border-bottom-color: rgba(0,255,255,0.2);
+    }
+
+    .monitoring-tab {
+        padding: 12px 24px;
+        background: none;
+        border: none;
+        color: rgba(255,255,255,0.6);
+        font-size: 16px;
+        cursor: pointer;
+        border-bottom: 3px solid transparent;
+        transition: all 0.2s ease;
+    }
+
+    .monitoring-tab:hover {
+        color: rgba(255,255,255,0.9);
+    }
+
+    .monitoring-tab.active {
+        color: white;
+        border-bottom-color: #667eea;
+    }
+
+    body.neon-night .monitoring-tab {
+        color: rgba(0,255,255,0.5);
+    }
+
+    body.neon-night .monitoring-tab:hover {
+        color: rgba(0,255,255,0.9);
+    }
+
+    body.neon-night .monitoring-tab.active {
+        color: #00ffff;
+        border-bottom-color: #00ffff;
+    }
+
+    .monitoring-content {
+        display: none;
+    }
+
+    .monitoring-content.active {
+        display: block;
+        margin-top: 25px;
+    }
+
+    /* Logs styles */
+    .logs-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+        gap: 15px;
+    }
+
+    .logs-filters {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+
+    .filter-group {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+    }
+
+    .filter-label {
+        font-size: 12px;
+        color: rgba(255,255,255,0.7);
+        font-weight: 500;
+    }
+
+    body.neon-night .filter-label {
+        color: rgba(0,255,255,0.7);
+    }
+
+    .filter-select {
+        padding: 8px 12px;
+        border-radius: 6px;
+        border: 1px solid rgba(255,255,255,0.2);
+        background: rgba(255,255,255,0.1);
+        color: white;
+        font-size: 14px;
+        cursor: pointer;
+    }
+
+    body.neon-night .filter-select {
+        border-color: rgba(0,255,255,0.3);
+        background: rgba(0,255,255,0.1);
+        color: #00ffff;
+    }
+
+    .filter-select option {
+        background: #2d3748;
+        color: white;
+    }
+
+    .logs-container {
+        background: rgba(0,0,0,0.3);
+        border-radius: 10px;
+        padding: 20px;
+        font-family: 'Courier New', monospace;
+        font-size: 13px;
+        line-height: 1.6;
+        overflow-x: auto;
+        max-height: 600px;
+        overflow-y: auto;
+    }
+
+    body.neon-night .logs-container {
+        background: rgba(0,0,0,0.5);
+        border: 1px solid rgba(0,255,255,0.2);
+    }
+
+    .log-line {
+        padding: 4px 0;
+        color: rgba(255,255,255,0.9);
+        white-space: pre-wrap;
+        word-break: break-all;
+    }
+
+    body.neon-night .log-line {
+        color: rgba(0,255,255,0.8);
+    }
+
+    .log-line.error {
+        color: #ff6b6b;
+        font-weight: 600;
+    }
+
+    body.neon-night .log-line.error {
+        color: #ff4757;
+    }
+
+    .log-line.warning {
+        color: #ffa502;
+    }
+
+    body.neon-night .log-line.warning {
+        color: #ffc107;
+    }
+
+    .log-line.info {
+        color: #48dbfb;
+    }
+
+    body.neon-night .log-line.info {
+        color: #00ffff;
+    }
+
+    .empty-logs {
+        text-align: center;
+        padding: 40px;
+        color: rgba(255,255,255,0.5);
+        font-style: italic;
+    }
+
+    body.neon-night .empty-logs {
+        color: rgba(0,255,255,0.5);
+    }
+
+    .refresh-btn {
+        padding: 8px 16px;
+        background: rgba(255,255,255,0.2);
+        color: white;
+        border: 1px solid rgba(255,255,255,0.3);
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: all 0.2s ease;
+    }
+
+    .refresh-btn:hover {
+        background: rgba(255,255,255,0.3);
+    }
+
+    body.neon-night .refresh-btn {
+        background: rgba(0,255,255,0.15);
+        border-color: rgba(0,255,255,0.3);
+        color: #00ffff;
+    }
+
+    body.neon-night .refresh-btn:hover {
+        background: rgba(0,255,255,0.25);
+    }
+
+    /* Errors styles */
+    .errors-stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+        margin-bottom: 25px;
+    }
+
+    .error-stat-card {
+        background: rgba(255,255,255,0.05);
+        border-radius: 10px;
+        padding: 15px;
+        border: 1px solid rgba(255,255,255,0.1);
+    }
+
+    body.neon-night .error-stat-card {
+        background: rgba(0,255,255,0.05);
+        border-color: rgba(0,255,255,0.2);
+    }
+
+    .error-stat-label {
+        font-size: 12px;
+        color: rgba(255,255,255,0.6);
+        margin-bottom: 8px;
+    }
+
+    body.neon-night .error-stat-label {
+        color: rgba(0,255,255,0.6);
+    }
+
+    .error-stat-value {
+        font-size: 28px;
+        font-weight: 700;
+        color: white;
+    }
+
+    body.neon-night .error-stat-value {
+        color: #00ffff;
+    }
+
+    .errors-table {
+        width: 100%;
+        border-collapse: collapse;
+        background: rgba(0,0,0,0.3);
+        border-radius: 10px;
+        overflow: hidden;
+    }
+
+    body.neon-night .errors-table {
+        background: rgba(0,0,0,0.5);
+    }
+
+    .errors-table th {
+        background: rgba(255,255,255,0.1);
+        color: rgba(255,255,255,0.8);
+        padding: 12px;
+        text-align: left;
+        font-weight: 600;
+        font-size: 13px;
+    }
+
+    body.neon-night .errors-table th {
+        background: rgba(0,255,255,0.15);
+        color: #00ffff;
+    }
+
+    .errors-table td {
+        padding: 12px;
+        border-top: 1px solid rgba(255,255,255,0.05);
+        color: rgba(255,255,255,0.9);
+        font-size: 13px;
+    }
+
+    body.neon-night .errors-table td {
+        border-top-color: rgba(0,255,255,0.1);
+        color: rgba(0,255,255,0.8);
+    }
+
+    .severity-badge {
+        padding: 4px 10px;
+        border-radius: 4px;
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+
+    .severity-critical {
+        background: rgba(255,0,0,0.2);
+        color: #ff4757;
+        border: 1px solid rgba(255,0,0,0.3);
+    }
+
+    .severity-error {
+        background: rgba(255,107,107,0.2);
+        color: #ff6b6b;
+        border: 1px solid rgba(255,107,107,0.3);
+    }
+
+    .severity-warning {
+        background: rgba(255,165,2,0.2);
+        color: #ffa502;
+        border: 1px solid rgba(255,165,2,0.3);
+    }
+
+    .status-badge {
+        padding: 4px 10px;
+        border-radius: 4px;
+        font-size: 11px;
+        font-weight: 600;
+    }
+
+    .status-resolved {
+        background: rgba(72,219,251,0.2);
+        color: #48dbfb;
+        border: 1px solid rgba(72,219,251,0.3);
+    }
+
+    body.neon-night .status-resolved {
+        background: rgba(0,255,255,0.2);
+        color: #00ffff;
+        border-color: rgba(0,255,255,0.3);
+    }
+
+    .status-pending {
+        background: rgba(255,165,2,0.2);
+        color: #ffa502;
+        border: 1px solid rgba(255,165,2,0.3);
+    }
+
+    .error-action-btn {
+        padding: 6px 12px;
+        background: rgba(72,219,251,0.2);
+        color: #48dbfb;
+        border: 1px solid rgba(72,219,251,0.3);
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 12px;
+        transition: all 0.2s ease;
+    }
+
+    .error-action-btn:hover {
+        background: rgba(72,219,251,0.3);
+    }
+
+    body.neon-night .error-action-btn {
+        background: rgba(0,255,255,0.15);
+        color: #00ffff;
+        border-color: rgba(0,255,255,0.3);
+    }
+
+    body.neon-night .error-action-btn:hover {
+        background: rgba(0,255,255,0.25);
+    }
+
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.8);
+    }
+
+    .modal-content {
+        background: #1a202c;
+        margin: 5% auto;
+        padding: 30px;
+        border-radius: 10px;
+        width: 80%;
+        max-width: 800px;
+        max-height: 80vh;
+        overflow-y: auto;
+        border: 1px solid rgba(255,255,255,0.2);
+    }
+
+    body.neon-night .modal-content {
+        background: rgba(10,25,47,0.95);
+        border-color: rgba(0,255,255,0.3);
+    }
+
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        padding-bottom: 15px;
+        border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+
+    body.neon-night .modal-header {
+        border-bottom-color: rgba(0,255,255,0.2);
+    }
+
+    .modal-title {
+        font-size: 20px;
+        font-weight: 600;
+        color: white;
+    }
+
+    body.neon-night .modal-title {
+        color: #00ffff;
+    }
+
+    .close-btn {
+        font-size: 28px;
+        font-weight: bold;
+        color: rgba(255,255,255,0.6);
+        cursor: pointer;
+        background: none;
+        border: none;
+        transition: color 0.2s ease;
+    }
+
+    .close-btn:hover {
+        color: white;
+    }
+
+    body.neon-night .close-btn:hover {
+        color: #00ffff;
+    }
+
+    .traceback-container {
+        background: rgba(0,0,0,0.5);
+        border-radius: 6px;
+        padding: 15px;
+        font-family: 'Courier New', monospace;
+        font-size: 12px;
+        color: #ff6b6b;
+        white-space: pre-wrap;
+        word-break: break-all;
+        max-height: 400px;
+        overflow-y: auto;
+        margin: 15px 0;
+    }
+
+    body.neon-night .traceback-container {
+        border: 1px solid rgba(0,255,255,0.2);
+        color: #ff4757;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<h2 class="section-title" style="margin-bottom: 20px;">Monitoring</h2>
+
+<!-- Tabs -->
+<div class="monitoring-tabs">
+    <button class="monitoring-tab active" onclick="switchTab('logs')">Logs Système</button>
+    <button class="monitoring-tab" onclick="switchTab('errors')">Erreurs</button>
+</div>
+
+<!-- Logs Content -->
+<div id="logs-content" class="monitoring-content active">
+    <div class="logs-header" style="margin-bottom: 25px;">
+        <button class="refresh-btn" onclick="refreshLogs()">Rafraîchir</button>
+    </div>
+
+    <div class="logs-filters" style="margin-bottom: 25px;">
+        <div class="filter-group">
+            <label class="filter-label">Type de logs</label>
+            <select class="filter-select" id="logType" onchange="updateLogs()">
+                <option value="worker" {% if log_type == 'worker' %}selected{% endif %}>Worker (Jobs background)</option>
+                <option value="cron" {% if log_type == 'cron' %}selected{% endif %}>Cron (Nettoyage automatique)</option>
+            </select>
+        </div>
+
+        <div class="filter-group">
+            <label class="filter-label">Niveau</label>
+            <select class="filter-select" id="logLevel" onchange="updateLogs()">
+                <option value="all" {% if level == 'all' %}selected{% endif %}>Tous</option>
+                <option value="error" {% if level == 'error' %}selected{% endif %}>Erreurs</option>
+                <option value="warning" {% if level == 'warning' %}selected{% endif %}>Avertissements</option>
+                <option value="info" {% if level == 'info' %}selected{% endif %}>Info</option>
+            </select>
+        </div>
+
+        <div class="filter-group">
+            <label class="filter-label">Nombre de lignes</label>
+            <select class="filter-select" id="logLines" onchange="updateLogs()">
+                <option value="50" {% if lines == 50 %}selected{% endif %}>50</option>
+                <option value="100" {% if lines == 100 %}selected{% endif %}>100</option>
+                <option value="200" {% if lines == 200 %}selected{% endif %}>200</option>
+                <option value="500" {% if lines == 500 %}selected{% endif %}>500</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="logs-container">
+        {% if logs and logs[0] and logs[0] != '' %}
+            {% for log in logs %}
+                <div class="log-line {% if 'ERROR' in log.upper() or 'Exception' in log or 'FAILED' in log.upper() %}error{% elif 'WARNING' in log.upper() or 'WARN' in log.upper() %}warning{% elif 'INFO' in log.upper() or '[' in log %}info{% endif %}">{{ log }}</div>
+            {% endfor %}
+        {% else %}
+            <div class="empty-logs">Aucun log disponible</div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Errors Content -->
+<div id="errors-content" class="monitoring-content">
+    <div class="logs-header" style="margin-bottom: 25px;">
+        <button class="refresh-btn" onclick="refreshErrors()">Rafraîchir</button>
+    </div>
+
+    <!-- Statistics -->
+    <div class="errors-stats">
+        <div class="error-stat-card">
+            <div class="error-stat-label">Total Erreurs</div>
+            <div class="error-stat-value">{{ total_errors }}</div>
+        </div>
+        <div class="error-stat-card">
+            <div class="error-stat-label">Non Résolues</div>
+            <div class="error-stat-value" style="color: #ff6b6b;">{{ unresolved_errors }}</div>
+        </div>
+        <div class="error-stat-card">
+            <div class="error-stat-label">Critiques</div>
+            <div class="error-stat-value" style="color: #ff4757;">{{ critical_errors }}</div>
+        </div>
+        <div class="error-stat-card">
+            <div class="error-stat-label">Résolues</div>
+            <div class="error-stat-value" style="color: #48dbfb;">{{ resolved_errors }}</div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="logs-filters" style="margin-bottom: 20px;">
+        <div class="filter-group">
+            <label class="filter-label">Sévérité</label>
+            <select class="filter-select" id="errorSeverity" onchange="updateErrors()">
+                <option value="all" {% if severity == 'all' %}selected{% endif %}>Toutes</option>
+                <option value="critical" {% if severity == 'critical' %}selected{% endif %}>Critiques</option>
+                <option value="error" {% if severity == 'error' %}selected{% endif %}>Erreurs</option>
+                <option value="warning" {% if severity == 'warning' %}selected{% endif %}>Avertissements</option>
+            </select>
+        </div>
+
+        <div class="filter-group">
+            <label class="filter-label">Statut</label>
+            <select class="filter-select" id="errorStatus" onchange="updateErrors()">
+                <option value="all" {% if status == 'all' %}selected{% endif %}>Tous</option>
+                <option value="pending" {% if status == 'pending' %}selected{% endif %}>Non résolues</option>
+                <option value="resolved" {% if status == 'resolved' %}selected{% endif %}>Résolues</option>
+            </select>
+        </div>
+
+        <div class="filter-group">
+            <label class="filter-label">Limite</label>
+            <select class="filter-select" id="errorLimit" onchange="updateErrors()">
+                <option value="50" {% if limit == 50 %}selected{% endif %}>50</option>
+                <option value="100" {% if limit == 100 %}selected{% endif %}>100</option>
+                <option value="200" {% if limit == 200 %}selected{% endif %}>200</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- Errors Table -->
+    <table class="errors-table">
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Type</th>
+                <th>Message</th>
+                <th>Sévérité</th>
+                <th>Statut</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% if errors %}
+                {% for error in errors %}
+                <tr>
+                    <td>{{ error.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                    <td>{{ error.error_type }}</td>
+                    <td style="max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                        {{ error.error_message }}
+                    </td>
+                    <td>
+                        <span class="severity-badge severity-{{ error.severity }}">
+                            {{ error.severity }}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="status-badge status-{{ 'resolved' if error.resolved else 'pending' }}">
+                            {{ 'Résolue' if error.resolved else 'En attente' }}
+                        </span>
+                    </td>
+                    <td>
+                        <button class="error-action-btn" onclick="viewErrorDetails({{ error.id }}, '{{ error.error_type }}', '{{ error.error_message|replace("'", "\\'") }}', '{{ error.traceback|replace("'", "\\'")|replace("\n", "\\n") if error.traceback else '' }}')">
+                            Détails
+                        </button>
+                        {% if not error.resolved %}
+                        <button class="error-action-btn" onclick="resolveError({{ error.id }})" style="margin-left: 5px;">
+                            Résoudre
+                        </button>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            {% else %}
+                <tr>
+                    <td colspan="6" style="text-align: center; padding: 40px; color: rgba(255,255,255,0.5);">
+                        Aucune erreur trouvée
+                    </td>
+                </tr>
+            {% endif %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Error Details Modal -->
+<div id="errorModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title" id="modalErrorType">Détails de l'erreur</h3>
+            <button class="close-btn" onclick="closeModal()">&times;</button>
+        </div>
+        <div>
+            <p style="color: rgba(255,255,255,0.8); margin-bottom: 10px;"><strong>Message:</strong></p>
+            <p id="modalErrorMessage" style="color: rgba(255,255,255,0.9); margin-bottom: 20px;"></p>
+
+            <p style="color: rgba(255,255,255,0.8); margin-bottom: 10px;"><strong>Traceback:</strong></p>
+            <div id="modalTraceback" class="traceback-container"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+function switchTab(tab) {
+    // Update tabs
+    document.querySelectorAll('.monitoring-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.monitoring-content').forEach(c => c.classList.remove('active'));
+
+    // Activate selected
+    event.target.classList.add('active');
+    document.getElementById(tab + '-content').classList.add('active');
+}
+
+function refreshLogs() {
+    updateLogs();
+}
+
+function updateLogs() {
+    const type = document.getElementById('logType').value;
+    const level = document.getElementById('logLevel').value;
+    const lines = document.getElementById('logLines').value;
+    window.location.href = `/admin/monitoring?type=${type}&level=${level}&lines=${lines}`;
+}
+
+function refreshErrors() {
+    updateErrors();
+}
+
+function updateErrors() {
+    const severity = document.getElementById('errorSeverity').value;
+    const status = document.getElementById('errorStatus').value;
+    const limit = document.getElementById('errorLimit').value;
+    window.location.href = `/admin/monitoring?severity=${severity}&status=${status}&limit=${limit}`;
+}
+
+function viewErrorDetails(id, type, message, traceback) {
+    document.getElementById('modalErrorType').textContent = type;
+    document.getElementById('modalErrorMessage').textContent = message;
+    document.getElementById('modalTraceback').textContent = traceback || 'Aucun traceback disponible';
+    document.getElementById('errorModal').style.display = 'block';
+}
+
+function closeModal() {
+    document.getElementById('errorModal').style.display = 'none';
+}
+
+async function resolveError(errorId) {
+    const notes = prompt('Notes de résolution (optionnel):');
+
+    try {
+        const response = await fetch(`/admin/errors/${errorId}/resolve`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ notes: notes })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            alert('Erreur marquée comme résolue');
+            location.reload();
+        } else {
+            alert('Erreur: ' + result.error);
+        }
+    } catch (error) {
+        alert('Erreur lors de la résolution: ' + error.message);
+    }
+}
+
+// Close modal when clicking outside
+window.onclick = function(event) {
+    const modal = document.getElementById('errorModal');
+    if (event.target == modal) {
+        closeModal();
+    }
+}
+</script>
+{% endblock %}

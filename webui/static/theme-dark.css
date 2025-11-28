@@ -569,6 +569,13 @@ body.neon-night .stat-card:hover {
     transform: translateY(-2px);
 }
 
+body.neon-night .stat-label,
+body.neon-night .stat-value,
+body.neon-night .stat-detail {
+    color: #00ffff;
+    text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+}
+
 /* Charts */
 body.neon-night .chart-card {
     background: rgba(0, 255, 255, 0.05);

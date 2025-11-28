@@ -99,6 +99,15 @@
         margin-right: 5px;
     }
 
+    .btn-info {
+        background: #3498db;
+        color: white;
+    }
+
+    .btn-info:hover {
+        background: #2980b9;
+    }
+
     .btn-toggle {
         background: #f39c12;
         color: white;
@@ -204,6 +213,9 @@
                     {% endif %}
                 </td>
                 <td>
+                    <a href="{{ url_for('admin_user_library', user_id=user.id) }}" class="btn-small btn-info" style="text-decoration: none; display: inline-block;">
+                        Bibliothèque
+                    </a>
                     {% if user.id != current_user.id %}
                         <button class="btn-small btn-toggle" onclick="toggleUser({{ user.id }})">
                             {% if user.is_active %}Désactiver{% else %}Activer{% endif %}
@@ -211,8 +223,6 @@
                         <button class="btn-small btn-delete" onclick="deleteUser({{ user.id }}, '{{ user.email }}')">
                             Supprimer
                         </button>
-                    {% else %}
-                        <span style="opacity: 0.5; font-size: 12px;">Vous</span>
                     {% endif %}
                 </td>
             </tr>

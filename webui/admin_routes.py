@@ -22,52 +22,143 @@ def register_admin_routes(app):
     @app.route('/admin')
     @admin_required
     def admin_dashboard():
-        """Admin dashboard with statistics"""
+        """Admin dashboard with detailed statistics"""
         db = SessionLocal()
         try:
-            # Statistics
+            from sqlalchemy import func, and_, case, extract
+
+            # Basic stats
             total_users = db.query(User).count()
-
-            # Active users (logged in within 30 days)
-            thirty_days_ago = datetime.utcnow() - timedelta(days=30)
-            active_users = db.query(User).filter(
-                User.is_active == True,
-                User.last_login_at >= thirty_days_ago
-            ).count()
-
             total_jobs = db.query(Job).count()
             pending_invitations = db.query(Invitation).filter_by(status='pending').count()
             total_documents = db.query(Document).count()
 
-            # Total disk usage (sum of all document sizes)
-            from sqlalchemy import func
+            # Total disk usage
             disk_usage_result = db.query(func.sum(Document.file_size_bytes)).scalar()
             total_disk_usage = disk_usage_result if disk_usage_result else 0
 
+            # Active users by period
+            now = datetime.utcnow()
+            today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+            week_start = today_start - timedelta(days=7)
+            month_start = today_start - timedelta(days=30)
+
+            active_today = db.query(User).filter(
+                User.is_active == True,
+                User.last_login_at >= today_start
+            ).count()
+
+            active_week = db.query(User).filter(
+                User.is_active == True,
+                User.last_login_at >= week_start
+            ).count()
+
+            active_month = db.query(User).filter(
+                User.is_active == True,
+                User.last_login_at >= month_start
+            ).count()
+
             # Jobs processed today
-            today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
             jobs_today = db.query(Job).filter(Job.created_at >= today_start).count()
+
+            # Jobs by status
+            completed_jobs = db.query(Job).filter_by(status='completed').count()
+            error_jobs = db.query(Job).filter_by(status='error').count()
+            queued_jobs = db.query(Job).filter_by(status='queued').count()
+            processing_jobs = db.query(Job).filter_by(status='processing').count()
+
+            # Top 5 languages (most used)
+            top_languages = db.query(
+                Job.language,
+                func.count(Job.id).label('count')
+            ).filter(
+                Job.language.isnot(None)
+            ).group_by(Job.language).order_by(func.count(Job.id).desc()).limit(5).all()
+
+            # Document types distribution
+            doc_types = db.query(
+                Job.doc_type,
+                func.count(Job.id).label('count')
+            ).filter(
+                Job.doc_type.isnot(None)
+            ).group_by(Job.doc_type).order_by(func.count(Job.id).desc()).all()
+
+            # Processing modes distribution
+            processing_modes = db.query(
+                Job.processing_mode,
+                func.count(Job.id).label('count')
+            ).filter(
+                Job.processing_mode.isnot(None)
+            ).group_by(Job.processing_mode).order_by(func.count(Job.id).desc()).all()
+
+            # Average processing time by mode (last 100 jobs)
+            avg_times = db.query(
+                Job.processing_mode,
+                func.avg(
+                    func.extract('epoch', Job.completed_at - Job.started_at)
+                ).label('avg_seconds')
+            ).filter(
+                and_(
+                    Job.status == 'completed',
+                    Job.started_at.isnot(None),
+                    Job.completed_at.isnot(None),
+                    Job.processing_mode.isnot(None)
+                )
+            ).group_by(Job.processing_mode).all()
+
+            # Top 10 most frequent errors
+            top_errors = db.query(
+                Job.error_message,
+                func.count(Job.id).label('count')
+            ).filter(
+                and_(
+                    Job.status == 'error',
+                    Job.error_message.isnot(None)
+                )
+            ).group_by(Job.error_message).order_by(func.count(Job.id).desc()).limit(10).all()
 
             # Recent activity
             recent_users = db.query(User).order_by(User.created_at.desc()).limit(5).all()
             recent_jobs = db.query(Job).order_by(Job.created_at.desc()).limit(10).all()
 
-            # Jobs by status
-            completed_jobs = db.query(Job).filter_by(status='completed').count()
-            failed_jobs = db.query(Job).filter_by(status='failed').count()
+            # Jobs per day for last 7 days (for chart)
+            jobs_per_day = []
+            for i in range(6, -1, -1):
+                day_start = today_start - timedelta(days=i)
+                day_end = day_start + timedelta(days=1)
+                count = db.query(Job).filter(
+                    and_(
+                        Job.created_at >= day_start,
+                        Job.created_at < day_end
+                    )
+                ).count()
+                jobs_per_day.append({
+                    'date': day_start.strftime('%Y-%m-%d'),
+                    'count': count
+                })
 
             stats = {
                 'total_users': total_users,
-                'active_users': active_users,
+                'active_today': active_today,
+                'active_week': active_week,
+                'active_month': active_month,
                 'total_jobs': total_jobs,
                 'pending_invitations': pending_invitations,
                 'total_documents': total_documents,
                 'total_disk_usage': total_disk_usage,
                 'jobs_today': jobs_today,
                 'completed_jobs': completed_jobs,
-                'failed_jobs': failed_jobs,
+                'error_jobs': error_jobs,
+                'queued_jobs': queued_jobs,
+                'processing_jobs': processing_jobs,
+                'top_languages': top_languages,
+                'doc_types': doc_types,
+                'processing_modes': processing_modes,
+                'avg_times': avg_times,
+                'top_errors': top_errors,
                 'recent_users': recent_users,
-                'recent_jobs': recent_jobs
+                'recent_jobs': recent_jobs,
+                'jobs_per_day': jobs_per_day
             }
 
             return render_template('admin/dashboard.html', stats=stats)
@@ -218,6 +309,127 @@ def register_admin_routes(app):
             db.commit()
 
             return jsonify({'success': True})
+        finally:
+            db.close()
+
+    @app.route('/admin/users/<int:user_id>/library')
+    @admin_required
+    def admin_user_library(user_id):
+        """View a user's document library (admin access)"""
+        db = SessionLocal()
+        try:
+            from sqlalchemy import func
+
+            # Get user
+            user = db.query(User).get(user_id)
+            if not user:
+                flash('Utilisateur introuvable', 'error')
+                return redirect(url_for('admin_users'))
+
+            # Get user's documents with filters
+            search = request.args.get('search', '').strip()
+            doc_type_filter = request.args.get('doc_type', '')
+            language_filter = request.args.get('language', '')
+            mode_filter = request.args.get('mode', '')
+            sort_by = request.args.get('sort', 'date_desc')
+
+            # Base query
+            query = db.query(Document).filter(Document.user_id == user_id)
+
+            # Apply filters
+            if search:
+                query = query.filter(Document.title.ilike(f'%{search}%'))
+            if doc_type_filter:
+                query = query.filter(Document.document_type == doc_type_filter)
+            if language_filter:
+                query = query.filter(Document.language == language_filter)
+            if mode_filter:
+                query = query.filter(Document.mode == mode_filter)
+
+            # Sorting
+            if sort_by == 'date_asc':
+                query = query.order_by(Document.created_at.asc())
+            elif sort_by == 'date_desc':
+                query = query.order_by(Document.created_at.desc())
+            elif sort_by == 'title_asc':
+                query = query.order_by(Document.title.asc())
+            elif sort_by == 'title_desc':
+                query = query.order_by(Document.title.desc())
+            elif sort_by == 'size_asc':
+                query = query.order_by(Document.file_size_bytes.asc())
+            elif sort_by == 'size_desc':
+                query = query.order_by(Document.file_size_bytes.desc())
+
+            documents = query.all()
+
+            # Calculate storage usage
+            total_size = db.query(func.sum(Document.file_size_bytes)).filter(
+                Document.user_id == user_id
+            ).scalar() or 0
+
+            # Get unique values for filters
+            doc_types = db.query(Document.document_type).filter(
+                Document.user_id == user_id,
+                Document.document_type.isnot(None)
+            ).distinct().all()
+            doc_types = [t[0] for t in doc_types]
+
+            languages = db.query(Document.language).filter(
+                Document.user_id == user_id,
+                Document.language.isnot(None)
+            ).distinct().all()
+            languages = [l[0] for l in languages]
+
+            modes = db.query(Document.mode).filter(
+                Document.user_id == user_id
+            ).distinct().all()
+            modes = [m[0] for m in modes]
+
+            return render_template(
+                'admin/user_library.html',
+                user=user,
+                documents=documents,
+                total_size=total_size,
+                doc_types=doc_types,
+                languages=languages,
+                modes=modes,
+                search=search,
+                doc_type_filter=doc_type_filter,
+                language_filter=language_filter,
+                mode_filter=mode_filter,
+                sort_by=sort_by
+            )
+        finally:
+            db.close()
+
+    @app.route('/admin/users/<int:user_id>/library/<int:doc_id>/delete', methods=['POST'])
+    @admin_required
+    def admin_delete_user_document(user_id, doc_id):
+        """Delete a document from a user's library (admin action)"""
+        db = SessionLocal()
+        try:
+            document = db.query(Document).filter(
+                Document.id == doc_id,
+                Document.user_id == user_id
+            ).first()
+
+            if not document:
+                return jsonify({'success': False, 'error': 'Document not found'}), 404
+
+            # Delete file from disk
+            if os.path.exists(document.file_path):
+                os.remove(document.file_path)
+                print(f"[ADMIN] Deleted file: {document.file_path}")
+
+            # Delete from database
+            db.delete(document)
+            db.commit()
+
+            return jsonify({'success': True})
+        except Exception as e:
+            db.rollback()
+            print(f"[ADMIN] Error deleting document: {e}")
+            return jsonify({'success': False, 'error': str(e)}), 500
         finally:
             db.close()
 
@@ -515,3 +727,277 @@ def register_admin_routes(app):
         response.headers['Content-Disposition'] = f'attachment; filename=registre_traitements_whisper_studio_{datetime.utcnow().strftime("%Y%m%d")}.pdf'
 
         return response
+
+    @app.route('/admin/logs')
+    @admin_required
+    def admin_logs():
+        """Display system logs"""
+        import subprocess
+
+        # Get query parameters
+        log_type = request.args.get('type', 'worker')  # worker or flask
+        level = request.args.get('level', 'all')  # all, error, warning, info
+        lines = int(request.args.get('lines', '100'))
+
+        logs = []
+
+        try:
+            if log_type == 'worker':
+                # Read worker logs
+                try:
+                    with open('/var/log/worker.log', 'r') as f:
+                        all_lines = f.readlines()
+                        logs = [line.rstrip() for line in all_lines[-lines:]]
+                except FileNotFoundError:
+                    logs = ['[INFO] Worker log file not yet created - no jobs processed yet']
+                except Exception as e:
+                    logs = [f'[ERROR] Error reading worker logs: {str(e)}']
+            else:
+                # Read cleanup/cron logs which contain app info
+                try:
+                    with open('/var/log/cron.log', 'r') as f:
+                        all_lines = f.readlines()
+                        logs = [line.rstrip() for line in all_lines[-lines:]]
+                except FileNotFoundError:
+                    logs = ['[INFO] Cron log file not yet created']
+                except Exception as e:
+                    logs = [f'[ERROR] Error reading cron logs: {str(e)}']
+
+            # Filter by level if needed
+            if level != 'all':
+                if level == 'error':
+                    logs = [l for l in logs if 'ERROR' in l.upper() or 'FAILED' in l.upper() or 'Exception' in l]
+                elif level == 'warning':
+                    logs = [l for l in logs if 'WARNING' in l.upper() or 'WARN' in l.upper()]
+                elif level == 'info':
+                    logs = [l for l in logs if 'INFO' in l.upper() or '[' in l]
+
+            # Reverse to show newest first
+            logs.reverse()
+
+        except Exception as e:
+            logs = [f"Error reading logs: {str(e)}"]
+
+        return render_template('admin/logs.html',
+                             logs=logs,
+                             log_type=log_type,
+                             level=level,
+                             lines=lines)
+
+
+    @app.route("/admin/errors")
+    @admin_required
+    def admin_errors():
+        """Display error tracking page"""
+        from models import ErrorLog
+
+        db = SessionLocal()
+        try:
+            # Get query parameters
+            severity = request.args.get("severity", "all")
+            status = request.args.get("status", "all")  # all, resolved, unresolved
+            limit = int(request.args.get("limit", "100"))
+
+            # Build query
+            query = db.query(ErrorLog)
+
+            # Filter by severity
+            if severity != "all":
+                query = query.filter(ErrorLog.severity == severity)
+
+            # Filter by status
+            if status == "resolved":
+                query = query.filter(ErrorLog.resolved == True)
+            elif status == "unresolved":
+                query = query.filter(ErrorLog.resolved == False)
+
+            # Order by most recent first and limit
+            errors = query.order_by(ErrorLog.created_at.desc()).limit(limit).all()
+
+            # Get statistics
+            total_errors = db.query(ErrorLog).count()
+            unresolved_errors = db.query(ErrorLog).filter(ErrorLog.resolved == False).count()
+            critical_errors = db.query(ErrorLog).filter(ErrorLog.severity == "critical").count()
+
+            return render_template("admin/errors.html",
+                                 errors=errors,
+                                 severity=severity,
+                                 status=status,
+                                 limit=limit,
+                                 total_errors=total_errors,
+                                 unresolved_errors=unresolved_errors,
+                                 critical_errors=critical_errors)
+        finally:
+            db.close()
+
+    @app.route("/admin/errors/<int:error_id>/resolve", methods=["POST"])
+    @admin_required
+    def admin_resolve_error(error_id):
+        """Mark an error as resolved"""
+        from models import ErrorLog
+        from flask_login import current_user
+
+        db = SessionLocal()
+        try:
+            error = db.query(ErrorLog).filter(ErrorLog.id == error_id).first()
+            if not error:
+                return jsonify({"success": False, "error": "Error not found"}), 404
+
+            notes = request.json.get("notes", "")
+
+            error.resolved = True
+            error.resolved_at = datetime.utcnow()
+            error.resolved_by_user_id = current_user.id
+            error.notes = notes
+
+            db.commit()
+
+            return jsonify({"success": True})
+        except Exception as e:
+            db.rollback()
+            return jsonify({"success": False, "error": str(e)}), 500
+        finally:
+            db.close()
+
+
+
+    @app.route("/admin/metrics")
+    @admin_required
+    def admin_metrics():
+        """Get system metrics (CPU, RAM, Disk)"""
+        import psutil
+        import shutil
+
+        try:
+            # CPU usage
+            cpu_percent = psutil.cpu_percent(interval=1)
+            cpu_count = psutil.cpu_count()
+
+            # RAM usage
+            memory = psutil.virtual_memory()
+            ram_percent = memory.percent
+            ram_used_gb = memory.used / (1024**3)
+            ram_total_gb = memory.total / (1024**3)
+
+            # Disk usage
+            disk = shutil.disk_usage("/tmp")
+            disk_percent = (disk.used / disk.total) * 100
+            disk_used_gb = disk.used / (1024**3)
+            disk_total_gb = disk.total / (1024**3)
+
+            metrics = {
+                "cpu": {
+                    "percent": round(cpu_percent, 1),
+                    "count": cpu_count
+                },
+                "ram": {
+                    "percent": round(ram_percent, 1),
+                    "used_gb": round(ram_used_gb, 2),
+                    "total_gb": round(ram_total_gb, 2)
+                },
+                "disk": {
+                    "percent": round(disk_percent, 1),
+                    "used_gb": round(disk_used_gb, 2),
+                    "total_gb": round(disk_total_gb, 2)
+                }
+            }
+
+            return jsonify(metrics)
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+
+
+    @app.route("/admin/monitoring")
+    @admin_required
+    def admin_monitoring():
+        """Monitoring page with tabs for Logs and Errors"""
+        from models import ErrorLog
+
+        # Get query parameters for logs
+        log_type = request.args.get('type', 'worker')  # worker or cron
+        level = request.args.get('level', 'all')  # all, error, warning, info
+        lines = int(request.args.get('lines', '100'))
+
+        # Get query parameters for errors
+        severity = request.args.get("severity", "all")
+        status = request.args.get("status", "all")
+        limit = int(request.args.get("limit", "100"))
+
+        # Get logs
+        logs = []
+        try:
+            if log_type == 'worker':
+                try:
+                    with open('/var/log/worker.log', 'r') as f:
+                        all_lines = f.readlines()
+                        logs = [line.rstrip() for line in all_lines[-lines:]]
+                except FileNotFoundError:
+                    logs = ['[INFO] Worker log file not yet created - no jobs processed yet']
+                except Exception as e:
+                    logs = [f'[ERROR] Error reading worker logs: {str(e)}']
+            else:
+                try:
+                    with open('/var/log/cron.log', 'r') as f:
+                        all_lines = f.readlines()
+                        logs = [line.rstrip() for line in all_lines[-lines:]]
+                except FileNotFoundError:
+                    logs = ['[INFO] Cron log file not yet created']
+                except Exception as e:
+                    logs = [f'[ERROR] Error reading cron logs: {str(e)}']
+
+            # Filter logs by level if needed
+            if level != 'all':
+                if level == 'error':
+                    logs = [l for l in logs if 'ERROR' in l.upper() or 'FAILED' in l.upper() or 'Exception' in l]
+                elif level == 'warning':
+                    logs = [l for l in logs if 'WARNING' in l.upper() or 'WARN' in l.upper()]
+                elif level == 'info':
+                    logs = [l for l in logs if 'INFO' in l.upper() or '[' in l]
+
+        except Exception as e:
+            logs = [f'[ERROR] Unexpected error: {str(e)}']
+
+        # Get errors
+        db = SessionLocal()
+        try:
+            # Build query
+            query = db.query(ErrorLog)
+
+            # Filter by severity
+            if severity != "all":
+                query = query.filter(ErrorLog.severity == severity)
+
+            # Filter by status
+            if status == "resolved":
+                query = query.filter(ErrorLog.resolved == True)
+            elif status == "pending":
+                query = query.filter(ErrorLog.resolved == False)
+
+            # Order by most recent first and limit
+            errors = query.order_by(ErrorLog.created_at.desc()).limit(limit).all()
+
+            # Get statistics
+            total_errors = db.query(ErrorLog).count()
+            unresolved_errors = db.query(ErrorLog).filter(ErrorLog.resolved == False).count()
+            critical_errors = db.query(ErrorLog).filter(ErrorLog.severity == "critical").count()
+            resolved_errors = db.query(ErrorLog).filter(ErrorLog.resolved == True).count()
+
+            return render_template("admin/monitoring.html",
+                                 # Logs params
+                                 logs=logs,
+                                 log_type=log_type,
+                                 level=level,
+                                 lines=lines,
+                                 # Errors params
+                                 errors=errors,
+                                 severity=severity,
+                                 status=status,
+                                 limit=limit,
+                                 total_errors=total_errors,
+                                 unresolved_errors=unresolved_errors,
+                                 critical_errors=critical_errors,
+                                 resolved_errors=resolved_errors)
+        finally:
+            db.close()
+
